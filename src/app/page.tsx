@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Monitor,
   Wrench,
   Server,
   ShieldCheck,
-  ChevronRight,
   Phone,
   Mail,
   MapPin,
@@ -20,15 +19,484 @@ import {
   ArrowRight,
   Globe,
   Lock,
-  ExternalLink,
+  LogOut,
+  LayoutDashboard,
+  User,
+  Clock,
+  Activity,
+  BarChart3,
+  FolderKanban,
+  Settings,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useToast } from '@/hooks/use-toast'
+
+/* ──────────────────────── Types ──────────────────────── */
+interface StaffUser {
+  id: string
+  name: string
+  username: string
+  role: string
+  avatar: string | null
+}
+
+/* ──────────────────────── Auth Hook ──────────────────────── */
+function useStaffAuth() {
+  const [staff, setStaff] = useState<StaffUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [showLogin, setShowLogin] = useState(false)
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.authenticated) {
+          setStaff(data.staff)
+        } else {
+          setStaff(null)
+        }
+      } else {
+        setStaff(null)
+      }
+    } catch {
+      setStaff(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  const login = async (username: string, password: string) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setStaff(data.staff)
+      setShowLogin(false)
+      return { success: true }
+    }
+    return { success: false, error: data.error }
+  }
+
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    setStaff(null)
+  }
+
+  return { staff, loading, showLogin, setShowLogin, login, logout, checkAuth }
+}
+
+/* ──────────────────────── Staff Login Dialog ──────────────────────── */
+function StaffLoginDialog({
+  open,
+  onOpenChange,
+  onLogin,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onLogin: (username: string, password: string) => Promise<{ success: boolean; error?: string }>
+}) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const { toast } = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+
+    try {
+      const result = await onLogin(username, password)
+      if (!result.success) {
+        setError(result.error || 'Login failed')
+      } else {
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully logged in.',
+        })
+        setUsername('')
+        setPassword('')
+      }
+    } catch {
+      setError('An unexpected error occurred')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <Lock className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg">Staff Login</DialogTitle>
+              <DialogDescription>
+                Access the internal staff portal
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-9"
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-9 pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                Sign In
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
+          </Button>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            This portal is for authorized staff members only.
+          </p>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/* ──────────────────────── Staff Dashboard ──────────────────────── */
+function StaffDashboard({
+  staff,
+  onLogout,
+}: {
+  staff: StaffUser
+  onLogout: () => void
+}) {
+  const [stats, setStats] = useState<{
+    totalStaff: number
+    activeSessions: number
+  } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/dashboard/stats')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setStats(data.stats)
+      })
+      .catch(() => {})
+  }, [])
+
+  const quickLinks = [
+    { icon: FolderKanban, label: 'Projects', desc: 'Manage ongoing projects', count: '12 active' },
+    { icon: Users, label: 'Clients', desc: 'Client directory & CRM', count: '53 total' },
+    { icon: BarChart3, label: 'Reports', desc: 'Financial & project reports', count: 'Q4 2024' },
+    { icon: Settings, label: 'Settings', desc: 'System configuration', count: '' },
+  ]
+
+  const recentActivity = [
+    { action: 'New project added', detail: 'Pertamina CCTV Phase 3', time: '2 hours ago' },
+    { action: 'Invoice generated', detail: 'INV-2024-0147', time: '5 hours ago' },
+    { action: 'Maintenance scheduled', detail: 'PT SBI Cilacap - UPS Check', time: '1 day ago' },
+    { action: 'New client registered', detail: 'PT Semen Jawa', time: '2 days ago' },
+    { action: 'Project completed', detail: 'eKatalog Procurement Batch #8', time: '3 days ago' },
+  ]
+
+  return (
+    <div className="min-h-screen bg-muted/30">
+      {/* Dashboard nav */}
+      <div className="bg-white border-b border-border sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">IN</span>
+              </div>
+              <div>
+                <span className="font-bold text-sm text-foreground">PT INDO</span>
+                <span className="text-[10px] text-muted-foreground ml-1.5">Staff Portal</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5">
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground text-xs font-bold">
+                    {staff.name.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-foreground leading-tight">{staff.name}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight capitalize">{staff.role}</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={onLogout}>
+                <LogOut className="w-4 h-4 mr-1.5" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dashboard content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome header */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-8"
+        >
+          <h1 className="text-2xl font-bold text-foreground">
+            Welcome back, {staff.name.split(' ')[0]}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Here&apos;s what&apos;s happening with your projects today.
+          </p>
+        </motion.div>
+
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            {
+              icon: FolderKanban,
+              label: 'Active Projects',
+              value: '12',
+              change: '+2 this month',
+              color: 'text-primary',
+              bg: 'bg-primary/10',
+            },
+            {
+              icon: Users,
+              label: 'Total Clients',
+              value: '53',
+              change: '+5 this quarter',
+              color: 'text-emerald-600',
+              bg: 'bg-emerald-50',
+            },
+            {
+              icon: Activity,
+              label: 'Active Sessions',
+              value: stats?.activeSessions?.toString() || '—',
+              change: 'Current staff online',
+              color: 'text-amber-600',
+              bg: 'bg-amber-50',
+            },
+            {
+              icon: Clock,
+              label: 'Pending Tasks',
+              value: '8',
+              change: '3 urgent',
+              color: 'text-rose-600',
+              bg: 'bg-rose-50',
+            },
+          ].map((stat, idx) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: idx * 0.1 }}
+            >
+              <Card>
+                <CardContent className="p-4 lg:p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                      <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1">{stat.change}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Quick links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="lg:col-span-2"
+          >
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Quick Access</CardTitle>
+                <CardDescription>Navigate to key management areas</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {quickLinks.map((link) => (
+                    <button
+                      key={link.label}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                        <link.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{link.label}</p>
+                        <p className="text-xs text-muted-foreground">{link.desc}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Recent activity */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+          >
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Recent Activity</CardTitle>
+                <CardDescription>Latest updates</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {recentActivity.map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground">{item.action}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{item.detail}</p>
+                        <p className="text-[10px] text-muted-foreground/60">{item.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Staff info card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
+          className="mt-6"
+        >
+          <Card className="bg-primary/5 border-primary/10">
+            <CardContent className="p-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shrink-0">
+                  <span className="text-primary-foreground text-lg font-bold">
+                    {staff.name.charAt(0)}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">{staff.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    @{staff.username} · <span className="capitalize">{staff.role}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    PT Inti Nusa Dinamika Optima — Internal Staff Portal
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-primary/30 text-primary shrink-0">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Authenticated
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  )
+}
 
 /* ──────────────────────── Navigation ──────────────────────── */
-function Navigation() {
+function Navigation({
+  onStaffClick,
+  staff,
+  onLogout,
+}: {
+  onStaffClick: () => void
+  staff: StaffUser | null
+  onLogout: () => void
+}) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -90,19 +558,34 @@ function Navigation() {
                 {link.label}
               </a>
             ))}
-            {/* Hidden Staff Login */}
-            <a
-              href="#staff-login"
-              className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-30 hover:opacity-100 ${
-                scrolled
-                  ? 'text-muted-foreground hover:text-primary'
-                  : 'text-white/40 hover:text-white/90'
-              }`}
-              title="Staff Login"
-            >
-              <Lock className="w-3 h-3 inline mr-0.5" />
-              Staff
-            </a>
+            {/* Hidden Staff Login / Dashboard */}
+            {staff ? (
+              <button
+                onClick={onLogout}
+                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-40 hover:opacity-100 ${
+                  scrolled
+                    ? 'text-muted-foreground hover:text-primary'
+                    : 'text-white/40 hover:text-white/90'
+                }`}
+                title="Staff Logout"
+              >
+                <LogOut className="w-3 h-3 inline mr-0.5" />
+                Staff
+              </button>
+            ) : (
+              <button
+                onClick={onStaffClick}
+                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-30 hover:opacity-100 ${
+                  scrolled
+                    ? 'text-muted-foreground hover:text-primary'
+                    : 'text-white/40 hover:text-white/90'
+                }`}
+                title="Staff Login"
+              >
+                <Lock className="w-3 h-3 inline mr-0.5" />
+                Staff
+              </button>
+            )}
           </div>
 
           {/* Mobile menu toggle */}
@@ -138,14 +621,29 @@ function Navigation() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="#staff-login"
-                className="block px-3 py-2.5 text-[11px] text-muted-foreground/40 hover:text-primary hover:bg-primary/5 rounded-md transition-all"
-                onClick={() => setMobileOpen(false)}
+              <button
+                onClick={() => {
+                  setMobileOpen(false)
+                  if (staff) {
+                    onLogout()
+                  } else {
+                    onStaffClick()
+                  }
+                }}
+                className="block w-full text-left px-3 py-2.5 text-[11px] text-muted-foreground/40 hover:text-primary hover:bg-primary/5 rounded-md transition-all"
               >
-                <Lock className="w-3 h-3 inline mr-1" />
-                Staff Login
-              </a>
+                {staff ? (
+                  <>
+                    <LogOut className="w-3 h-3 inline mr-1" />
+                    Staff Logout
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3 h-3 inline mr-1" />
+                    Staff Login
+                  </>
+                )}
+              </button>
             </div>
           </motion.div>
         )}
@@ -281,7 +779,6 @@ function AboutSection() {
     <section id="about" className="py-20 lg:py-28 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left: Text */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -322,7 +819,6 @@ function AboutSection() {
             </div>
           </motion.div>
 
-          {/* Right: Feature cards */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -442,7 +938,6 @@ function ServicesSection() {
               transition={{ duration: 0.5, delay: idx * 0.1 }}
             >
               <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
-                {/* Image header */}
                 <div className="relative h-48 overflow-hidden">
                   <img
                     src={service.image}
@@ -530,7 +1025,6 @@ function ProjectsSection() {
           </p>
         </motion.div>
 
-        {/* Two column cards */}
         <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-12">
           {projectCategories.map((cat, idx) => (
             <motion.div
@@ -556,7 +1050,6 @@ function ProjectsSection() {
           ))}
         </div>
 
-        {/* Highlight list */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -589,19 +1082,16 @@ function PartnersSection() {
       name: 'Siplah',
       description: 'Government e-Procurement Platform',
       detail: 'Official partner for government school & institution IT procurement through the Siplah marketplace.',
-      logo: 'Siplah',
     },
     {
       name: 'eKatalog',
       description: 'LKPP e-Catalogue System',
       detail: 'Registered vendor on the national e-catalogue for transparent, compliant government procurement.',
-      logo: 'eKatalog',
     },
     {
       name: 'Padi UMKM',
       description: 'MSME Digital Platform',
       detail: 'Supporting digital transformation of micro, small & medium enterprises through the Padi UMKM ecosystem.',
-      logo: 'Padi UMKM',
     },
   ]
 
@@ -639,7 +1129,6 @@ function PartnersSection() {
             >
               <Card className="group text-center hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full">
                 <CardContent className="p-6 lg:p-8">
-                  {/* Logo placeholder */}
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center mx-auto mb-5 group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
                     <span className="text-2xl font-bold text-primary">{partner.name.charAt(0)}</span>
                   </div>
@@ -750,7 +1239,6 @@ function CTASection() {
         >
           <Card className="overflow-hidden">
             <div className="grid lg:grid-cols-5">
-              {/* Left side - CTA */}
               <div className="lg:col-span-3 p-8 lg:p-12 bg-gradient-to-br from-primary to-primary/80 flex flex-col justify-center">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">
                   Ready to Upgrade Your IT Infrastructure?
@@ -758,7 +1246,7 @@ function CTASection() {
                 <p className="text-primary-foreground/80 mb-8 leading-relaxed max-w-lg">
                   Whether you need a complete server room setup, CCTV installation, 
                   or IT equipment procurement — our team is ready to deliver. Contact us 
-                  for a free consultation and let's build your technology roadmap together.
+                  for a free consultation and let&apos;s build your technology roadmap together.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
@@ -785,7 +1273,6 @@ function CTASection() {
                 </div>
               </div>
 
-              {/* Right side - Contact info */}
               <div className="lg:col-span-2 p-8 lg:p-12 bg-card">
                 <h3 className="font-bold text-foreground text-lg mb-6">Get in Touch</h3>
                 <div className="space-y-5">
@@ -837,12 +1324,11 @@ function CTASection() {
 }
 
 /* ──────────────────────── Footer ──────────────────────── */
-function Footer() {
+function Footer({ onStaffClick, staff }: { onStaffClick: () => void; staff: StaffUser | null }) {
   return (
     <footer className="bg-foreground text-primary-foreground/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-          {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
@@ -859,7 +1345,6 @@ function Footer() {
             </p>
           </div>
 
-          {/* Services */}
           <div>
             <h4 className="font-semibold text-sm text-primary-foreground mb-4">Services</h4>
             <ul className="space-y-2">
@@ -878,7 +1363,6 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
           <div>
             <h4 className="font-semibold text-sm text-primary-foreground mb-4">Company</h4>
             <ul className="space-y-2">
@@ -900,7 +1384,6 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h4 className="font-semibold text-sm text-primary-foreground mb-4">Contact</h4>
             <div className="space-y-2">
@@ -920,12 +1403,22 @@ function Footer() {
             © {new Date().getFullYear()} PT Inti Nusa Dinamika Optima. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <a
-              href="#staff-login"
+            <button
+              onClick={onStaffClick}
               className="text-[10px] text-primary-foreground/20 hover:text-primary-foreground/60 transition-all"
             >
-              Staff Login
-            </a>
+              {staff ? (
+                <>
+                  <LayoutDashboard className="w-3 h-3 inline mr-0.5" />
+                  Dashboard
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 inline mr-0.5" />
+                  Staff Login
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -935,9 +1428,49 @@ function Footer() {
 
 /* ──────────────────────── Main Page ──────────────────────── */
 export default function Home() {
+  const { staff, loading, showLogin, setShowLogin, login, logout } = useStaffAuth()
+
+  const handleStaffClick = () => {
+    if (!staff) {
+      setShowLogin(true)
+    }
+    // If already logged in, dashboard is shown automatically via derived state
+  }
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <span className="text-muted-foreground text-sm">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Staff Dashboard view (derived from staff state - logged in = show dashboard)
+  if (staff) {
+    return (
+      <>
+        <StaffDashboard staff={staff} onLogout={handleLogout} />
+        <StaffLoginDialog
+          open={showLogin}
+          onOpenChange={setShowLogin}
+          onLogin={login}
+        />
+      </>
+    )
+  }
+
+  // Public website view
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
+      <Navigation onStaffClick={handleStaffClick} staff={staff} onLogout={handleLogout} />
       <main className="flex-1">
         <HeroSection />
         <AboutSection />
@@ -947,7 +1480,12 @@ export default function Home() {
         <ClientsSection />
         <CTASection />
       </main>
-      <Footer />
+      <Footer onStaffClick={handleStaffClick} staff={staff} />
+      <StaffLoginDialog
+        open={showLogin}
+        onOpenChange={setShowLogin}
+        onLogin={login}
+      />
     </div>
   )
 }
