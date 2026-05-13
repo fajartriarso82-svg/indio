@@ -10,36 +10,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
+// ─── Auth ───
 model Staff {
-  id           String   @id @default(cuid())
-  username     String   @unique
+  id           String         @id @default(cuid())
+  username     String         @unique
   passwordHash String
   name         String
-  role         String   @default("staff")
+  role         String         @default("staff")
   avatar       String?
-  isActive     Boolean  @default(true)
+  isActive     Boolean        @default(true)
   lastLoginAt  DateTime?
   sessions     StaffSession[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model StaffSession {
@@ -49,4 +32,273 @@ model StaffSession {
   staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// ─── Client ───
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  picName   String?
+  picPhone  String?
+  picEmail  String?
+  type      String    @default("corporate") // corporate, government, individual
+  notes     String?
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ─── Vendor ───
+model Vendor {
+  id          String              @id @default(cuid())
+  name        String
+  address     String?
+  phone       String?
+  email       String?
+  picName     String?
+  picPhone    String?
+  category    String?             // supplier, contractor, service-provider
+  bankName    String?
+  bankAccount String?
+  bankHolder  String?
+  notes       String?
+  purchases       RABPurchase[]
+  additionalCosts  ProjectAdditionalCost[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+// ─── Project ───
+model Project {
+  id            String              @id @default(cuid())
+  projectCode   String              @unique
+  name          String
+  type          String              // PENGADAAN, JASA
+  status        String              @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, CANCELLED
+  clientId      String
+  client        Client              @relation(fields: [clientId], references: [id])
+  clientPicName String?
+  clientPicEmail String?
+  clientPicPhone String?
+  clientAddress String?
+  poNumber      String?
+  internalPic   String?
+  poFileUrl     String?
+  rabFileUrl    String?
+  startDate     DateTime?
+  endDate       DateTime?
+  notes         String?
+  items         ProjectItem[]
+  rabPurchases  RABPurchase[]
+  additionalCosts ProjectAdditionalCost[]
+  progressNotes ProjectNote[]
+  documents     ProjectDocument[]
+  suratJalans   SuratJalan[]
+  basts         BAST[]
+  invoices      Invoice[]
+  kuitansis     Kuitansi[]
+  createdBy     String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model ProjectItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  itemId      String   // ID Item dari PO
+  itemName    String
+  qty         Float
+  unit        String
+  unitPrice   Float
+  total       Float    // auto kalkulasi: qty * unitPrice
+  notes       String?
+  sortOrder   Int      @default(0)
+  purchases   RABPurchase[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProjectAdditionalCost {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    String   // ACCESSORIES, SHIPPING, OPERATIONAL, OTHER
+  description String
+  amount      Float
+  vendorId    String?
+  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  docUrl      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProjectNote {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content   String
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectDocument {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   // PO, RAB, NOTA, KUITANSI, OTHER
+  fileUrl   String
+  fileSize  Int?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── RAB (Rencana Anggaran Biaya) ───
+model RABPurchase {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectItemId String
+  projectItem   ProjectItem @relation(fields: [projectItemId], references: [id], onDelete: Cascade)
+  vendorId      String?
+  vendor        Vendor?  @relation(fields: [vendorId], references: [id])
+  qty           Float    // qty yang dibeli dari vendor ini (split)
+  buyPrice      Float    // harga beli aktual per unit
+  totalBuy      Float    // qty * buyPrice
+  docUrl        String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── Surat Jalan ───
+model SuratJalan {
+  id          String           @id @default(cuid())
+  projectId   String
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sjNumber    String
+  date        DateTime
+  type        String           // PENGADAAN, JASA
+  notes       String?
+  checkerName String?
+  driverName  String?
+  items       SuratJalanItem[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model SuratJalanItem {
+  id           String     @id @default(cuid())
+  suratJalanId String
+  suratJalan   SuratJalan @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
+  description  String
+  qty          Float
+  unit         String
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// ─── BAST ───
+model BAST {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bastNumber  String
+  date        DateTime
+  type        String       // PENGADAAN, JASA
+  notes       String?
+  items       BASTItem[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model BASTItem {
+  id         String  @id @default(cuid())
+  bastId     String
+  bast       BAST    @relation(fields: [bastId], references: [id], onDelete: Cascade)
+  description String
+  qty        Float
+  unit       String
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Invoice ───
+model Invoice {
+  id            String        @id @default(cuid())
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invoiceNumber String
+  date          DateTime
+  dueDate       DateTime?
+  paymentMethod String        // CASH, TEMPO, TERMIN
+  status        String        @default("UNPAID") // UNPAID, PARTIAL, PAID
+  notes         String?
+  items         InvoiceItem[]
+  termins       InvoiceTermin[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InvoiceTermin {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  terminNo    Int
+  percentage  Float
+  amount      Float
+  dueDate     DateTime?
+  status      String   @default("UNPAID") // UNPAID, PAID
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Kuitansi ───
+model Kuitansi {
+  id             String         @id @default(cuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invoiceId      String?
+  bastId         String?
+  kuitansiNumber String
+  date           DateTime
+  amount         Float
+  paymentMethod  String         // CASH, TRANSFER, TEMPO
+  notes          String?
+  items          KuitansiItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model KuitansiItem {
+  id          String    @id @default(cuid())
+  kuitansiId  String
+  kuitansi    Kuitansi  @relation(fields: [kuitansiId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
