@@ -84,7 +84,7 @@ export default function ProjectModule() {
     } finally {
       setLoading(false)
     }
-  }, [search, filterType, filterStatus, toast])
+  }, [search, filterType, filterStatus])
 
   useEffect(() => {
     fetchProjects()

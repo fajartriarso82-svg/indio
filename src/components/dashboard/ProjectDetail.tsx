@@ -114,7 +114,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     } finally {
       setLoading(false)
     }
-  }, [projectId, toast])
+  }, [projectId])
 
   useEffect(() => {
     fetchProject()

@@ -127,7 +127,7 @@ export default function ClientModule() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     fetchClients()

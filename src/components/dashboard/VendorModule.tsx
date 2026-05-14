@@ -130,7 +130,7 @@ export default function VendorModule() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     fetchVendors()

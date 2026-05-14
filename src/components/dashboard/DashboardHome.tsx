@@ -51,6 +51,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     const fetchData = async () => {
       try {
         const [statsRes, projectsRes] = await Promise.all([
@@ -59,7 +60,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         ])
 
         const statsData = await statsRes.json()
-        if (statsData.success) {
+        if (!cancelled && statsData.success) {
           setStats({
             activeProjects: statsData.stats?.activeProjects ?? 0,
             totalClients: statsData.stats?.totalClients ?? 0,
@@ -69,16 +70,17 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         }
 
         const projectsData = await projectsRes.json()
-        if (projectsData.success) {
+        if (!cancelled && projectsData.success) {
           setRecentProjects(projectsData.data ?? [])
         }
       } catch {
         // Silently fail
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     fetchData()
+    return () => { cancelled = true }
   }, [])
 
   const statCards = [
