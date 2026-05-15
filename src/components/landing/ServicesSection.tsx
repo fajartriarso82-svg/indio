@@ -17,7 +17,7 @@ export default function ServicesSection() {
     },
     {
       icon: Wrench,
-      image: '/images/service-maintenance.png',
+      image: '/images/service-maintenance.jpeg',
       title: 'IT Service & Maintenance',
       description:
         'Keep your systems running at peak performance with our comprehensive maintenance programs. From routine check-ups to emergency repairs, our certified technicians have you covered.',
@@ -33,7 +33,7 @@ export default function ServicesSection() {
     },
     {
       icon: ShieldCheck,
-      image: '/images/service-cctv.png',
+      image: '/images/service-cctv.jpeg',
       title: 'Security Systems',
       description:
         "Protect your assets with professional CCTV installation and integrated security solutions. We design surveillance systems tailored to your facility's requirements and compliance needs.",
