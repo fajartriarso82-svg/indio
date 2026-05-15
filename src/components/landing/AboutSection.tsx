@@ -18,31 +18,27 @@ export default function AboutSection() {
           >
             <Badge variant="secondary" className="mb-4">
               <Building2 className="w-3 h-3 mr-1.5" />
-              About Us
+              Tentang Kami
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 leading-tight">
-              Your Trusted IT Solutions
+              Mitra Solusi IT Terpercaya
               <br />
-              <span className="text-primary">Partner in Cilacap</span>
+              <span className="text-primary">Anda di Cilacap</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              <strong className="text-foreground">PT Inti Nusa Dinamika Optima</strong> is a 
-              Cilacap-based IT firm committed to delivering reliable, scalable technology solutions 
-              for businesses and government institutions across Indonesia. With deep expertise in 
-              IT procurement, infrastructure deployment, maintenance services, and security systems, 
-              we serve as a single point of accountability for all your technology needs.
+              <strong className="text-foreground">PT Inti Nusa Dinamika Optima</strong> adalah perusahaan IT yang berbasis di Cilacap, berkomitmen untuk menyediakan solusi teknologi yang andal dan skalabel bagi bisnis dan instansi pemerintah di seluruh Indonesia. Dengan keahlian mendalam dalam pengadaan IT, penerapan infrastruktur, layanan perawatan, dan sistem keamanan, kami menjadi satu titik akuntabilitas untuk seluruh kebutuhan teknologi Anda.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Our team of certified professionals brings hands-on experience from deploying 
-              mission-critical systems for state-owned enterprises and private corporations alike. 
-              We combine local presence with national-grade capabilities — ensuring your projects 
-              are delivered on time, on spec, and on budget.
+              Tim profesional bersertifikat kami memiliki pengalaman langsung dalam menerapkan
+              sistem misi kritis untuk BUMN maupun korporasi swasta. Kami menggabungkan kehadiran lokal
+              dengan kapabilitas tingkat nasional — memastikan proyek Anda diselesaikan tepat waktu,
+              sesuai spesifikasi, dan sesuai anggaran.
             </p>
 
             <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
               <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">Headquarters</p>
+                <p className="text-sm font-semibold text-foreground">Kantor Pusat</p>
                 <p className="text-sm text-muted-foreground">
                   Jl. Jend. Ahmad Yani No.77, Cilacap, Jawa Tengah, Indonesia
                 </p>
@@ -60,23 +56,23 @@ export default function AboutSection() {
             {[
               {
                 icon: Award,
-                title: 'Certified Team',
-                desc: 'Industry-certified engineers & technicians',
+                title: 'Tim Bersertifikat',
+                desc: 'Insinyur & teknisi bersertifikat industri',
               },
               {
                 icon: ShieldCheck,
-                title: 'Trusted Partner',
-                desc: 'Government & enterprise grade solutions',
+                title: 'Mitra Terpercaya',
+                desc: 'Solusi tingkat pemerintah & korporasi',
               },
               {
                 icon: Users,
-                title: 'Client-Focused',
-                desc: 'Dedicated support & long-term partnerships',
+                title: 'Berorientasi Klien',
+                desc: 'Dukungan khusus & kemitraan jangka panjang',
               },
               {
                 icon: Globe,
-                title: 'National Reach',
-                desc: 'Serving clients across Indonesia',
+                title: 'Jangkauan Nasional',
+                desc: 'Melayani klien di seluruh Indonesia',
               },
             ].map((item) => (
               <Card

@@ -20,12 +20,12 @@ export default function CTASection() {
             <div className="grid lg:grid-cols-5">
               <div className="lg:col-span-3 p-8 lg:p-12 bg-gradient-to-br from-primary to-primary/80 flex flex-col justify-center">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">
-                  Ready to Upgrade Your IT Infrastructure?
+                  Siap Meningkatkan Kapabilitas Infrastruktur IT?
                 </h2>
                 <p className="text-primary-foreground/80 mb-8 leading-relaxed max-w-lg">
-                  Whether you need a complete server room setup, CCTV installation, 
-                  or IT equipment procurement — our team is ready to deliver. Contact us 
-                  for a free consultation and let&apos;s build your technology roadmap together.
+                  Baik Anda membutuhkan pembangunan ruang server, pemasangan CCTV,
+                  atau pengadaan peralatan IT — tim kami siap membantu. Hubungi kami
+                  untuk konsultasi gratis dan mari bersama menyusun peta teknologi Anda.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
@@ -35,7 +35,7 @@ export default function CTASection() {
                   >
                     <a href="mailto:info@intinusadinamika.co.id">
                       <Mail className="w-4 h-4 mr-2" />
-                      Email Us
+                      Hubungi Kami via Email
                     </a>
                   </Button>
                   <Button
@@ -46,19 +46,19 @@ export default function CTASection() {
                   >
                     <a href="tel:+622821234567">
                       <Phone className="w-4 h-4 mr-2" />
-                      Call Now
+                      Hubungi Sekarang
                     </a>
                   </Button>
                 </div>
               </div>
 
               <div className="lg:col-span-2 p-8 lg:p-12 bg-card">
-                <h3 className="font-bold text-foreground text-lg mb-6">Get in Touch</h3>
+                <h3 className="font-bold text-foreground text-lg mb-6">Hubungi Kami</h3>
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Office Address</p>
+                      <p className="text-sm font-semibold text-foreground">Alamat Kantor</p>
                       <p className="text-sm text-muted-foreground">
                         Jl. Jend. Ahmad Yani No.77
                         <br />
@@ -70,7 +70,7 @@ export default function CTASection() {
                   <div className="flex items-start gap-3">
                     <Phone className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Phone</p>
+                      <p className="text-sm font-semibold text-foreground">Telepon</p>
                       <p className="text-sm text-muted-foreground">(0282) 123-4567</p>
                     </div>
                   </div>
@@ -86,7 +86,7 @@ export default function CTASection() {
                   <div className="flex items-start gap-3">
                     <Globe className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Procurement Platforms</p>
+                      <p className="text-sm font-semibold text-foreground">Platform Pengadaan</p>
                       <p className="text-sm text-muted-foreground">
                         Siplah · eKatalog · Padi UMKM
                       </p>

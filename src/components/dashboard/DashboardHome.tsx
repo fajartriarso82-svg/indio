@@ -86,33 +86,33 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
   const statCards = [
     {
       icon: FolderKanban,
-      label: 'Active Projects',
+      label: 'Proyek Aktif',
       value: stats?.activeProjects ?? '—',
-      change: 'In progress',
+      change: 'Berjalan',
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
     {
       icon: Users,
-      label: 'Total Clients',
+      label: 'Total Klien',
       value: stats?.totalClients ?? '—',
-      change: 'Registered',
+      change: 'Terdaftar',
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
     {
       icon: Building2,
-      label: 'Total Vendors',
+      label: 'Total Vendor',
       value: stats?.totalVendors ?? '—',
-      change: 'Active suppliers',
+      change: 'Supplier aktif',
       color: 'text-amber-600',
       bg: 'bg-amber-50',
     },
     {
       icon: FileText,
-      label: 'Pending Invoices',
+      label: 'Invoice Tertunda',
       value: stats?.pendingInvoices ?? '—',
-      change: 'Awaiting payment',
+      change: 'Menunggu pembayaran',
       color: 'text-rose-600',
       bg: 'bg-rose-50',
     },
@@ -126,9 +126,9 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
   }
 
   const quickActions = [
-    { label: 'New Project', icon: FolderKanban, module: 'projects' as ModuleKey },
-    { label: 'Add Client', icon: Users, module: 'clients' as ModuleKey },
-    { label: 'Add Vendor', icon: Building2, module: 'vendors' as ModuleKey },
+    { label: 'Proyek Baru', icon: FolderKanban, module: 'projects' as ModuleKey },
+    { label: 'Tambah Klien', icon: Users, module: 'clients' as ModuleKey },
+    { label: 'Tambah Vendor', icon: Building2, module: 'vendors' as ModuleKey },
   ]
 
   if (loading) {
@@ -148,10 +148,10 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         transition={{ duration: 0.4 }}
       >
         <h1 className="text-2xl font-bold text-foreground">
-          Welcome back, {staff.name.split(' ')[0]}
+          Selamat datang, {staff.name.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Here&apos;s what&apos;s happening with your projects today.
+          Berikut perkembangan proyek Anda hari ini.
         </p>
       </motion.div>
 
@@ -192,15 +192,15 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Recent Projects</CardTitle>
-                  <CardDescription>Latest project activity</CardDescription>
+                  <CardTitle className="text-base">Proyek Terbaru</CardTitle>
+                  <CardDescription>Aktivitas proyek terbaru</CardDescription>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onNavigate('projects')}
                 >
-                  View All
+                  Lihat Semua
                   <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </div>
@@ -208,7 +208,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             <CardContent className="pt-0">
               {recentProjects.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
-                  No projects yet. Create your first project!
+                  Belum ada proyek. Buat proyek pertama Anda!
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -224,7 +224,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{project.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {project.projectCode} · {project.client?.name || 'No client'}
+                          {project.projectCode} · {project.client?.name || 'Tidak ada klien'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -252,8 +252,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         >
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-              <CardDescription>Common tasks</CardDescription>
+              <CardTitle className="text-base">Aksi Cepat</CardTitle>
+              <CardDescription>Tugas umum</CardDescription>
             </CardHeader>
             <CardContent className="pt-0 space-y-2">
               {quickActions.map((action) => (
@@ -276,11 +276,11 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-foreground text-sm">Pro Tip</h3>
+                <h3 className="font-semibold text-foreground text-sm">Tips</h3>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Use the sidebar to navigate between modules. Click on a project to view its details,
-                RAB, and documents.
+                Gunakan sidebar untuk berpindah modul. Klik proyek untuk melihat detail,
+                RAB, dan dokumen.
               </p>
             </CardContent>
           </Card>

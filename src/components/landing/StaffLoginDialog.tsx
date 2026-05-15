@@ -109,17 +109,17 @@ export function StaffLoginDialog({
     try {
       const result = await onLogin(username, password)
       if (!result.success) {
-        setError(result.error || 'Login failed')
+        setError(result.error || 'Gagal login')
       } else {
         toast({
-          title: 'Welcome back!',
-          description: 'You have successfully logged in.',
+          title: 'Selamat datang!',
+          description: 'Anda berhasil masuk.',
         })
         setUsername('')
         setPassword('')
       }
     } catch {
-      setError('An unexpected error occurred')
+      setError('Terjadi kesalahan tak terduga')
     } finally {
       setSubmitting(false)
     }
@@ -134,9 +134,9 @@ export function StaffLoginDialog({
               <Lock className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <DialogTitle className="text-lg">Staff Login</DialogTitle>
+              <DialogTitle className="text-lg">Login Staff</DialogTitle>
               <DialogDescription>
-                Access the internal staff portal
+                Akses portal staff internal
               </DialogDescription>
             </div>
           </div>
@@ -151,12 +151,12 @@ export function StaffLoginDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">Nama Pengguna</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="username"
-                placeholder="Enter your username"
+                placeholder="Masukkan username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-9"
@@ -167,13 +167,13 @@ export function StaffLoginDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Kata Sandi</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-9 pr-10"
@@ -193,18 +193,18 @@ export function StaffLoginDialog({
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Signing in...
+                Memproses...
               </>
             ) : (
               <>
-                Sign In
+                Masuk
                 <ArrowRight className="w-4 h-4 ml-2" />
               </>
             )}
           </Button>
 
           <p className="text-[11px] text-muted-foreground text-center">
-            This portal is for authorized staff members only.
+            Portal ini hanya untuk staff yang berwenang.
           </p>
         </form>
       </DialogContent>

@@ -10,34 +10,34 @@ export default function ServicesSection() {
     {
       icon: Monitor,
       image: '/images/service-store.png',
-      title: 'IT Product Sales & Physical Store',
+      title: 'Penjualan Produk IT & Toko',
       description:
-        'Complete range of IT products — from workstations, laptops, and peripherals to networking equipment. Visit our physical store in Cilacap or let us source and deliver directly to your site.',
-      features: ['Workstations & Laptops', 'Peripherals & Accessories', 'Networking Equipment', 'On-site & Online Orders'],
+        'Rangkaian lengkap produk IT — mulai dari workstation, laptop, dan periferal hingga perangkat jaringan. Kunjungi toko fisik kami di Cilacap atau biarkan kami mencarikan dan mengirimkan langsung ke lokasi Anda.',
+      features: ['Workstation & Laptop', 'Periferal & Aksesoris', 'Perangkat Jaringan', 'Pemesanan On-site & Online'],
     },
     {
       icon: Wrench,
       image: '/images/service-maintenance.jpeg',
-      title: 'IT Service & Maintenance',
+      title: 'Layanan & Perawatan IT',
       description:
-        'Keep your systems running at peak performance with our comprehensive maintenance programs. From routine check-ups to emergency repairs, our certified technicians have you covered.',
-      features: ['Preventive Maintenance', 'Emergency Repair', 'System Optimization', 'SLA-backed Support'],
+        'Pastikan sistem Anda berjalan pada performa optimal dengan program perawatan komprehensif kami. Mulai dari pemeriksaan rutin hingga perbaikan darurat, teknisi bersertifikat kami siap membantu Anda.',
+      features: ['Perawatan Preventif', 'Perbaikan Darurat', 'Optimasi Sistem', 'Dukungan Berbasis SLA'],
     },
     {
       icon: Server,
       image: '/images/service-infra.png',
-      title: 'Infrastructure Solutions',
+      title: 'Solusi Infrastruktur',
       description:
-        'Design, deploy, and manage robust IT infrastructure — server rooms, UPS systems, structured cabling, and enterprise-grade networks built for reliability and growth.',
-      features: ['Server Room Setup', 'UPS & Power Systems', 'Structured Cabling', 'Enterprise Networking'],
+        'Rancang, terapkan, dan kelola infrastruktur IT yang kokoh — ruang server, sistem UPS, kabel terstruktur, dan jaringan tingkat korporasi yang dibangun untuk keandalan dan pertumbuhan.',
+      features: ['Pembangunan Ruang Server', 'Sistem UPS & Kelistrikan', 'Kabel Terstruktur', 'Jaringan Korporasi'],
     },
     {
       icon: ShieldCheck,
       image: '/images/service-cctv.jpeg',
-      title: 'Security Systems',
+      title: 'Sistem Keamanan',
       description:
-        "Protect your assets with professional CCTV installation and integrated security solutions. We design surveillance systems tailored to your facility's requirements and compliance needs.",
-      features: ['CCTV Installation', 'Access Control', 'Remote Monitoring', 'Compliance-ready Setup'],
+        'Lindungi aset Anda dengan pemasangan CCTV profesional dan solusi keamanan terintegrasi. Kami merancang sistem pengawasan yang disesuaikan dengan kebutuhan fasilitas dan kepatuhan Anda.',
+      features: ['Pemasangan CCTV', 'Kontrol Akses', 'Pemantauan Jarak Jauh', 'Pengaturan Siap Kepatuhan'],
     },
   ]
 
@@ -53,14 +53,14 @@ export default function ServicesSection() {
         >
           <Badge variant="secondary" className="mb-4">
             <Wrench className="w-3 h-3 mr-1.5" />
-            What We Do
+            Layanan Kami
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Comprehensive <span className="text-primary">IT Solutions</span>
+            Solusi IT <span className="text-primary">Komprehensif</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Four pillars of service, one point of accountability. From procurement to protection — 
-            we cover every layer of your IT ecosystem.
+            Empat pilar layanan, satu titik akuntabilitas. Mulai dari pengadaan hingga perlindungan —
+            kami mencakup setiap lapisan ekosistem IT Anda.
           </p>
         </motion.div>
 

@@ -54,9 +54,9 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Draft',
-  IN_PROGRESS: 'In Progress',
-  COMPLETED: 'Completed',
-  CANCELLED: 'Cancelled',
+  IN_PROGRESS: 'Berjalan',
+  COMPLETED: 'Selesai',
+  CANCELLED: 'Dibatalkan',
 }
 
 export default function ProjectModule() {
@@ -80,7 +80,7 @@ export default function ProjectModule() {
       const data = await res.json()
       if (data.success) setProjects(data.data)
     } catch {
-      toast({ title: 'Error', description: 'Failed to fetch projects', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Gagal memuat proyek', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -112,12 +112,12 @@ export default function ProjectModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage all projects</p>
+          <h1 className="text-2xl font-bold text-foreground">Proyek</h1>
+          <p className="text-sm text-muted-foreground mt-1">Kelola semua proyek</p>
         </div>
         <Button onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-1.5" />
-          New Project
+          Proyek Baru
         </Button>
       </div>
 
@@ -126,7 +126,7 @@ export default function ProjectModule() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search projects..."
+            placeholder="Cari proyek..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -137,7 +137,7 @@ export default function ProjectModule() {
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">Semua Tipe</SelectItem>
             <SelectItem value="PENGADAAN">Pengadaan</SelectItem>
             <SelectItem value="JASA">Jasa</SelectItem>
           </SelectContent>
@@ -147,11 +147,11 @@ export default function ProjectModule() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">Semua Status</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
+            <SelectItem value="COMPLETED">Selesai</SelectItem>
+            <SelectItem value="CANCELLED">Dibatalkan</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -163,12 +163,12 @@ export default function ProjectModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden sm:table-cell">Client</TableHead>
+                  <TableHead>Proyek</TableHead>
+                  <TableHead className="hidden md:table-cell">Tipe</TableHead>
+                  <TableHead className="hidden sm:table-cell">Klien</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Items</TableHead>
-                  <TableHead className="text-right">View</TableHead>
+                  <TableHead className="hidden lg:table-cell">Item</TableHead>
+                  <TableHead className="text-right">Lihat</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -181,7 +181,7 @@ export default function ProjectModule() {
                 ) : projects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      No projects found. Create your first project!
+                      Tidak ada proyek. Buat proyek pertama Anda!
                     </TableCell>
                   </TableRow>
                 ) : (

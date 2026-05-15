@@ -94,9 +94,9 @@ const emptyForm: ClientForm = {
 }
 
 const typeLabels: Record<string, string> = {
-  corporate: 'Corporate',
-  government: 'Government',
-  individual: 'Individual',
+  corporate: 'Korporat',
+  government: 'Pemerintah',
+  individual: 'Perorangan',
 }
 
 const typeColors: Record<string, string> = {
@@ -123,7 +123,7 @@ export default function ClientModule() {
       const data = await res.json()
       if (data.success) setClients(data.data)
     } catch {
-      toast({ title: 'Error', description: 'Failed to fetch clients', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Gagal memuat klien', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -165,7 +165,7 @@ export default function ClientModule() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim()) {
-      toast({ title: 'Validation Error', description: 'Name is required', variant: 'destructive' })
+      toast({ title: 'Kesalahan Validasi', description: 'Nama wajib diisi', variant: 'destructive' })
       return
     }
     setSubmitting(true)
@@ -180,16 +180,16 @@ export default function ClientModule() {
       const data = await res.json()
       if (data.success) {
         toast({
-          title: editing ? 'Client Updated' : 'Client Created',
-          description: `${form.name} has been ${editing ? 'updated' : 'created'} successfully.`,
+          title: editing ? 'Klien Diperbarui' : 'Klien Dibuat',
+          description: `${form.name} telah ${editing ? 'diperbarui' : 'dibuat'} dengan berhasil.`,
         })
         setFormOpen(false)
         fetchClients()
       } else {
-        toast({ title: 'Error', description: data.error || 'Operation failed', variant: 'destructive' })
+        toast({ title: 'Kesalahan', description: data.error || 'Operasi gagal', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Kesalahan jaringan', variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -201,15 +201,15 @@ export default function ClientModule() {
       const res = await fetch(`/api/clients/${deleting.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Client Deleted', description: `${deleting.name} has been deleted.` })
+        toast({ title: 'Klien Dihapus', description: `${deleting.name} telah dihapus.` })
         setDeleteOpen(false)
         setDeleting(null)
         fetchClients()
       } else {
-        toast({ title: 'Error', description: data.error || 'Delete failed', variant: 'destructive' })
+        toast({ title: 'Kesalahan', description: data.error || 'Gagal menghapus', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Kesalahan jaringan', variant: 'destructive' })
     }
   }
 
@@ -217,12 +217,12 @@ export default function ClientModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your client directory</p>
+          <h1 className="text-2xl font-bold text-foreground">Klien</h1>
+          <p className="text-sm text-muted-foreground mt-1">Kelola daftar klien Anda</p>
         </div>
         <Button onClick={handleOpenCreate}>
           <Plus className="w-4 h-4 mr-1.5" />
-          Add Client
+          Tambah Klien
         </Button>
       </div>
 
@@ -230,7 +230,7 @@ export default function ClientModule() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search clients..."
+          placeholder="Cari klien..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -244,12 +244,12 @@ export default function ClientModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead className="hidden md:table-cell">Tipe</TableHead>
                   <TableHead className="hidden sm:table-cell">PIC</TableHead>
-                  <TableHead className="hidden lg:table-cell">Phone</TableHead>
-                  <TableHead className="hidden lg:table-cell">Projects</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="hidden lg:table-cell">Telepon</TableHead>
+                  <TableHead className="hidden lg:table-cell">Proyek</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -262,7 +262,7 @@ export default function ClientModule() {
                 ) : filteredClients.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      {search ? 'No clients match your search.' : 'No clients yet. Create your first client!'}
+                      {search ? 'Tidak ada klien yang cocok.' : 'Belum ada klien. Buat klien pertama Anda!'}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -319,46 +319,46 @@ export default function ClientModule() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Client' : 'Add Client'}</DialogTitle>
+            <DialogTitle>{editing ? 'Edit Klien' : 'Tambah Klien'}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Update client information' : 'Create a new client record'}
+              {editing ? 'Perbarui informasi klien' : 'Buat data klien baru'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="name">Nama *</Label>
                 <Input
                   id="name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Client name"
+                  placeholder="Nama klien"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor="type">Tipe</Label>
                 <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                   <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="corporate">Corporate</SelectItem>
-                    <SelectItem value="government">Government</SelectItem>
-                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="corporate">Korporat</SelectItem>
+                    <SelectItem value="government">Pemerintah</SelectItem>
+                    <SelectItem value="individual">Perorangan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">Telepon</Label>
                 <Input
                   id="phone"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="Phone number"
+                  placeholder="Nomor telepon"
                 />
               </div>
 
@@ -369,76 +369,76 @@ export default function ClientModule() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="Email address"
+                  placeholder="Alamat email"
                 />
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Alamat</Label>
                 <Textarea
                   id="address"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder="Full address"
+                  placeholder="Alamat lengkap"
                   rows={2}
                 />
               </div>
             </div>
 
             <div className="pt-2 border-t">
-              <p className="text-sm font-medium text-foreground mb-3">Person in Charge (PIC)</p>
+              <p className="text-sm font-medium text-foreground mb-3">Penanggung Jawab (PIC)</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="picName">PIC Name</Label>
+                  <Label htmlFor="picName">Nama PIC</Label>
                   <Input
                     id="picName"
                     value={form.picName}
                     onChange={(e) => setForm({ ...form, picName: e.target.value })}
-                    placeholder="Contact person name"
+                    placeholder="Nama kontak person"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="picPhone">PIC Phone</Label>
+                  <Label htmlFor="picPhone">Telepon PIC</Label>
                   <Input
                     id="picPhone"
                     value={form.picPhone}
                     onChange={(e) => setForm({ ...form, picPhone: e.target.value })}
-                    placeholder="PIC phone number"
+                    placeholder="Nomor telepon PIC"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="picEmail">PIC Email</Label>
+                  <Label htmlFor="picEmail">Email PIC</Label>
                   <Input
                     id="picEmail"
                     type="email"
                     value={form.picEmail}
                     onChange={(e) => setForm({ ...form, picEmail: e.target.value })}
-                    placeholder="PIC email address"
+                    placeholder="Alamat email PIC"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Catatan</Label>
               <Textarea
                 id="notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Additional notes"
+                placeholder="Catatan tambahan"
                 rows={2}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-                Cancel
+                Batal
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</>
                 ) : (
-                  editing ? 'Update Client' : 'Create Client'
+                  editing ? 'Perbarui Klien' : 'Buat Klien'
                 )}
               </Button>
             </div>
@@ -450,21 +450,21 @@ export default function ClientModule() {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Klien</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleting?.name}</strong>? This action cannot be undone.
+              Apakah Anda yakin ingin menghapus <strong>{deleting?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
               {deleting && (deleting._count?.projects ?? 0) > 0 && (
                 <span className="block mt-2 text-destructive font-medium">
                   <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
-                  This client has {deleting._count?.projects} project(s) associated.
+                  Klien ini memiliki {deleting._count?.projects} proyek terkait.
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

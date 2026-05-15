@@ -134,8 +134,8 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     e.preventDefault()
     if (!name.trim() || !clientId) {
       toast({
-        title: 'Validation Error',
-        description: 'Project name and client are required',
+        title: 'Kesalahan Validasi',
+        description: 'Nama proyek dan klien wajib diisi',
         variant: 'destructive',
       })
       return
@@ -144,8 +144,8 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     const validItems = items.filter((item) => item.itemName.trim())
     if (validItems.length === 0) {
       toast({
-        title: 'Validation Error',
-        description: 'At least one item is required',
+        title: 'Kesalahan Validasi',
+        description: 'Minimal satu item wajib diisi',
         variant: 'destructive',
       })
       return
@@ -180,16 +180,16 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
       const data = await res.json()
       if (data.success) {
         toast({
-          title: 'Project Created',
-          description: `${name} has been created successfully.`,
+          title: 'Proyek Dibuat',
+          description: `${name} telah berhasil dibuat.`,
         })
         resetForm()
         onCreated()
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to create project', variant: 'destructive' })
+        toast({ title: 'Error', description: data.error || 'Gagal membuat proyek', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Kesalahan jaringan', variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -207,9 +207,9 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle>Buat Proyek Baru</DialogTitle>
           <DialogDescription>
-            Add a new project with items from the RAB
+            Tambah proyek baru dengan item RAB
           </DialogDescription>
         </DialogHeader>
 
@@ -217,34 +217,34 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           {/* Project Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="projectType">Project Type *</Label>
+              <Label htmlFor="projectType">Tipe Proyek *</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger id="projectType">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENGADAAN">PENGADAAN (Procurement)</SelectItem>
-                  <SelectItem value="JASA">JASA (Service)</SelectItem>
+                  <SelectItem value="PENGADAAN">PENGADAAN (Pengadaan)</SelectItem>
+                  <SelectItem value="JASA">JASA (Jasa)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="projectName">Project Name *</Label>
+              <Label htmlFor="projectName">Nama Proyek *</Label>
               <Input
                 id="projectName"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter project name"
+                placeholder="Masukkan nama proyek"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client">Client *</Label>
+              <Label htmlFor="client">Klien *</Label>
               <Select value={clientId} onValueChange={handleClientChange}>
                 <SelectTrigger id="client">
-                  <SelectValue placeholder="Select client" />
+                  <SelectValue placeholder="Pilih klien" />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
@@ -257,41 +257,41 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="poNumber">PO Number</Label>
+              <Label htmlFor="poNumber">Nomor PO</Label>
               <Input
                 id="poNumber"
                 value={poNumber}
                 onChange={(e) => setPoNumber(e.target.value)}
-                placeholder="Purchase order number"
+                placeholder="Nomor purchase order"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="internalPic">Internal PIC</Label>
+              <Label htmlFor="internalPic">PIC Internal</Label>
               <Input
                 id="internalPic"
                 value={internalPic}
                 onChange={(e) => setInternalPic(e.target.value)}
-                placeholder="Internal person in charge"
+                placeholder="Penanggung jawab internal"
               />
             </div>
           </div>
 
           {/* Client PIC Info */}
           <div className="border rounded-lg p-4 bg-muted/30">
-            <p className="text-sm font-medium text-foreground mb-3">Client PIC (auto-filled from client)</p>
+            <p className="text-sm font-medium text-foreground mb-3">PIC Klien (otomatis dari data klien)</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpName">PIC Name</Label>
+                <Label htmlFor="cpName">Nama PIC</Label>
                 <Input
                   id="cpName"
                   value={clientPicName}
                   onChange={(e) => setClientPicName(e.target.value)}
-                  placeholder="Contact person"
+                  placeholder="Nama penanggung jawab"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cpEmail">PIC Email</Label>
+                <Label htmlFor="cpEmail">Email PIC</Label>
                 <Input
                   id="cpEmail"
                   value={clientPicEmail}
@@ -300,7 +300,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cpPhone">PIC Phone</Label>
+                <Label htmlFor="cpPhone">Telepon PIC</Label>
                 <Input
                   id="cpPhone"
                   value={clientPicPhone}
@@ -310,12 +310,12 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
               </div>
             </div>
             <div className="mt-3 space-y-2">
-              <Label htmlFor="cAddress">Delivery Address</Label>
+              <Label htmlFor="cAddress">Alamat Pengiriman</Label>
               <Input
                 id="cAddress"
                 value={clientAddress}
                 onChange={(e) => setClientAddress(e.target.value)}
-                placeholder="Delivery address"
+                placeholder="Alamat pengiriman"
               />
             </div>
           </div>
@@ -325,10 +325,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           {/* Items Table */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-foreground">RAB Items</p>
+              <p className="text-sm font-medium text-foreground">Item RAB</p>
               <Button type="button" variant="outline" size="sm" onClick={addItemRow}>
                 <Plus className="w-3.5 h-3.5 mr-1" />
-                Add Item
+                Tambah Item
               </Button>
             </div>
 
@@ -336,11 +336,11 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">Item ID</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">Item Name *</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">ID Item</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">Nama Item *</th>
                     <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-20">Qty</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-20">Unit</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32">Unit Price</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-20">Satuan</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32">Harga Satuan</th>
                     <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32">Total</th>
                     <th className="px-3 py-2 w-10"></th>
                   </tr>
@@ -412,7 +412,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 <tfoot className="border-t bg-muted/30">
                   <tr>
                     <td colSpan={5} className="px-3 py-2 text-right font-medium text-sm">
-                      Grand Total:
+                      Total Keseluruhan:
                     </td>
                     <td className="px-3 py-2 text-right font-bold text-sm text-primary">
                       {formatCurrency(getGrandTotal())}
@@ -426,25 +426,25 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Catatan</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional project notes"
+              placeholder="Catatan tambahan proyek"
               rows={2}
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Batal
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Membuat...</>
               ) : (
-                'Create Project'
+                'Buat Proyek'
               )}
             </Button>
           </div>

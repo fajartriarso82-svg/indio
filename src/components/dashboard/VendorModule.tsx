@@ -98,8 +98,8 @@ const emptyForm: VendorForm = {
 
 const categoryLabels: Record<string, string> = {
   supplier: 'Supplier',
-  contractor: 'Contractor',
-  'service-provider': 'Service Provider',
+  contractor: 'Kontraktor',
+  'service-provider': 'Penyedia Layanan',
 }
 
 const categoryColors: Record<string, string> = {
@@ -126,7 +126,7 @@ export default function VendorModule() {
       const data = await res.json()
       if (data.success) setVendors(data.data)
     } catch {
-      toast({ title: 'Error', description: 'Failed to fetch vendors', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Gagal memuat vendor', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -170,7 +170,7 @@ export default function VendorModule() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim()) {
-      toast({ title: 'Validation Error', description: 'Name is required', variant: 'destructive' })
+      toast({ title: 'Kesalahan Validasi', description: 'Nama wajib diisi', variant: 'destructive' })
       return
     }
     setSubmitting(true)
@@ -185,16 +185,16 @@ export default function VendorModule() {
       const data = await res.json()
       if (data.success) {
         toast({
-          title: editing ? 'Vendor Updated' : 'Vendor Created',
-          description: `${form.name} has been ${editing ? 'updated' : 'created'} successfully.`,
+          title: editing ? 'Vendor Diperbarui' : 'Vendor Dibuat',
+          description: `${form.name} telah ${editing ? 'diperbarui' : 'dibuat'} dengan berhasil.`,
         })
         setFormOpen(false)
         fetchVendors()
       } else {
-        toast({ title: 'Error', description: data.error || 'Operation failed', variant: 'destructive' })
+        toast({ title: 'Kesalahan', description: data.error || 'Operasi gagal', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Kesalahan jaringan', variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -206,15 +206,15 @@ export default function VendorModule() {
       const res = await fetch(`/api/vendors/${deleting.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Vendor Deleted', description: `${deleting.name} has been deleted.` })
+        toast({ title: 'Vendor Dihapus', description: `${deleting.name} telah dihapus.` })
         setDeleteOpen(false)
         setDeleting(null)
         fetchVendors()
       } else {
-        toast({ title: 'Error', description: data.error || 'Delete failed', variant: 'destructive' })
+        toast({ title: 'Kesalahan', description: data.error || 'Gagal menghapus', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      toast({ title: 'Kesalahan', description: 'Kesalahan jaringan', variant: 'destructive' })
     }
   }
 
@@ -222,12 +222,12 @@ export default function VendorModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Vendors</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your vendor directory</p>
+          <h1 className="text-2xl font-bold text-foreground">Vendor</h1>
+          <p className="text-sm text-muted-foreground mt-1">Kelola daftar vendor Anda</p>
         </div>
         <Button onClick={handleOpenCreate}>
           <Plus className="w-4 h-4 mr-1.5" />
-          Add Vendor
+          Tambah Vendor
         </Button>
       </div>
 
@@ -235,7 +235,7 @@ export default function VendorModule() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search vendors..."
+          placeholder="Cari vendor..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -249,12 +249,12 @@ export default function VendorModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead className="hidden md:table-cell">Kategori</TableHead>
                   <TableHead className="hidden sm:table-cell">PIC</TableHead>
-                  <TableHead className="hidden lg:table-cell">Phone</TableHead>
+                  <TableHead className="hidden lg:table-cell">Telepon</TableHead>
                   <TableHead className="hidden lg:table-cell">Bank</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -267,7 +267,7 @@ export default function VendorModule() {
                 ) : filteredVendors.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      {search ? 'No vendors match your search.' : 'No vendors yet. Create your first vendor!'}
+                      {search ? 'Tidak ada vendor yang cocok.' : 'Belum ada vendor. Buat vendor pertama Anda!'}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -316,46 +316,46 @@ export default function VendorModule() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Vendor' : 'Add Vendor'}</DialogTitle>
+            <DialogTitle>{editing ? 'Edit Vendor' : 'Tambah Vendor'}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Update vendor information' : 'Create a new vendor record'}
+              {editing ? 'Perbarui informasi vendor' : 'Buat data vendor baru'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="name">Nama *</Label>
                 <Input
                   id="name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Vendor name"
+                  placeholder="Nama vendor"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">Kategori</Label>
                 <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
                   <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="supplier">Supplier</SelectItem>
-                    <SelectItem value="contractor">Contractor</SelectItem>
-                    <SelectItem value="service-provider">Service Provider</SelectItem>
+                    <SelectItem value="contractor">Kontraktor</SelectItem>
+                    <SelectItem value="service-provider">Penyedia Layanan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">Telepon</Label>
                 <Input
                   id="phone"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="Phone number"
+                  placeholder="Nomor telepon"
                 />
               </div>
 
@@ -366,99 +366,99 @@ export default function VendorModule() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="Email address"
+                  placeholder="Alamat email"
                 />
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Alamat</Label>
                 <Textarea
                   id="address"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder="Full address"
+                  placeholder="Alamat lengkap"
                   rows={2}
                 />
               </div>
             </div>
 
             <div className="pt-2 border-t">
-              <p className="text-sm font-medium text-foreground mb-3">Person in Charge (PIC)</p>
+              <p className="text-sm font-medium text-foreground mb-3">Penanggung Jawab (PIC)</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="picName">PIC Name</Label>
+                  <Label htmlFor="picName">Nama PIC</Label>
                   <Input
                     id="picName"
                     value={form.picName}
                     onChange={(e) => setForm({ ...form, picName: e.target.value })}
-                    placeholder="Contact person name"
+                    placeholder="Nama kontak person"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="picPhone">PIC Phone</Label>
+                  <Label htmlFor="picPhone">Telepon PIC</Label>
                   <Input
                     id="picPhone"
                     value={form.picPhone}
                     onChange={(e) => setForm({ ...form, picPhone: e.target.value })}
-                    placeholder="PIC phone number"
+                    placeholder="Nomor telepon PIC"
                   />
                 </div>
               </div>
             </div>
 
             <div className="pt-2 border-t">
-              <p className="text-sm font-medium text-foreground mb-3">Bank Information</p>
+              <p className="text-sm font-medium text-foreground mb-3">Informasi Bank</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bankName">Bank Name</Label>
+                  <Label htmlFor="bankName">Nama Bank</Label>
                   <Input
                     id="bankName"
                     value={form.bankName}
                     onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-                    placeholder="Bank name"
+                    placeholder="Nama bank"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bankAccount">Account Number</Label>
+                  <Label htmlFor="bankAccount">Nomor Rekening</Label>
                   <Input
                     id="bankAccount"
                     value={form.bankAccount}
                     onChange={(e) => setForm({ ...form, bankAccount: e.target.value })}
-                    placeholder="Account number"
+                    placeholder="Nomor rekening"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="bankHolder">Account Holder</Label>
+                  <Label htmlFor="bankHolder">Pemilik Rekening</Label>
                   <Input
                     id="bankHolder"
                     value={form.bankHolder}
                     onChange={(e) => setForm({ ...form, bankHolder: e.target.value })}
-                    placeholder="Account holder name"
+                    placeholder="Nama pemilik rekening"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Catatan</Label>
               <Textarea
                 id="notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Additional notes"
+                placeholder="Catatan tambahan"
                 rows={2}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-                Cancel
+                Batal
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</>
                 ) : (
-                  editing ? 'Update Vendor' : 'Create Vendor'
+                  editing ? 'Perbarui Vendor' : 'Buat Vendor'
                 )}
               </Button>
             </div>
@@ -470,15 +470,15 @@ export default function VendorModule() {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Vendor</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleting?.name}</strong>? This action cannot be undone.
+              Apakah Anda yakin ingin menghapus <strong>{deleting?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -34,10 +34,10 @@ interface DashboardLayoutProps {
 }
 
 const navItems: { key: ModuleKey; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'projects', label: 'Projects', icon: FolderKanban },
-  { key: 'clients', label: 'Clients', icon: Users },
-  { key: 'vendors', label: 'Vendors', icon: Building2 },
+  { key: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
+  { key: 'projects', label: 'Proyek', icon: FolderKanban },
+  { key: 'clients', label: 'Klien', icon: Users },
+  { key: 'vendors', label: 'Vendor', icon: Building2 },
 ]
 
 export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProps) {
@@ -92,7 +92,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
             </div>
             <div>
               <span className="font-bold text-sm text-foreground">PT INDO</span>
-              <span className="text-[10px] text-muted-foreground ml-1.5">Staff Portal</span>
+              <span className="text-[10px] text-muted-foreground ml-1.5">Portal Staff</span>
             </div>
           </div>
           <button
@@ -157,7 +157,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
             </button>
             <div className="hidden sm:flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground capitalize">
-                {activeModule === 'dashboard' ? 'Dashboard' : activeModule}
+                {activeModule === 'dashboard' ? 'Beranda' : activeModule === 'projects' ? 'Proyek' : activeModule === 'clients' ? 'Klien' : activeModule === 'vendors' ? 'Vendor' : activeModule}
               </h2>
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
             </div>
             <Button variant="outline" size="sm" onClick={onLogout}>
               <LogOut className="w-4 h-4 mr-1.5" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">Keluar</span>
             </Button>
           </div>
         </header>

@@ -24,12 +24,12 @@ export default function Navigation({
   }, [])
 
   const navLinks = [
-    { label: 'About', href: '#about' },
-    { label: 'Services', href: '#services' },
-    { label: 'Projects', href: '#projects' },
-    { label: 'Partners', href: '#partners' },
-    { label: 'Clients', href: '#clients' },
-    { label: 'Contact', href: '#contact' },
+    { label: 'Tentang', href: '#about' },
+    { label: 'Layanan', href: '#services' },
+    { label: 'Proyek', href: '#projects' },
+    { label: 'Mitra', href: '#partners' },
+    { label: 'Klien', href: '#clients' },
+    { label: 'Kontak', href: '#contact' },
   ]
 
   return (
@@ -84,7 +84,7 @@ export default function Navigation({
                     ? 'text-muted-foreground hover:text-primary'
                     : 'text-white/40 hover:text-white/90'
                 }`}
-                title="Staff Logout"
+                title="Keluar Staff"
               >
                 <LogOut className="w-3 h-3 inline mr-0.5" />
                 Staff
@@ -97,7 +97,7 @@ export default function Navigation({
                     ? 'text-muted-foreground hover:text-primary'
                     : 'text-white/40 hover:text-white/90'
                 }`}
-                title="Staff Login"
+                title="Masuk Staff"
               >
                 <Lock className="w-3 h-3 inline mr-0.5" />
                 Staff
@@ -152,12 +152,12 @@ export default function Navigation({
                 {staff ? (
                   <>
                     <LogOut className="w-3 h-3 inline mr-1" />
-                    Staff Logout
+                    Keluar Staff
                   </>
                 ) : (
                   <>
                     <Lock className="w-3 h-3 inline mr-1" />
-                    Staff Login
+                    Masuk Staff
                   </>
                 )}
               </button>

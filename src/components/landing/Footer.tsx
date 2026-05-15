@@ -20,15 +20,15 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
               </div>
             </div>
             <p className="text-xs text-primary-foreground/60 leading-relaxed max-w-xs">
-              PT Inti Nusa Dinamika Optima — Your trusted IT solutions partner 
-              delivering reliable technology infrastructure from Cilacap to across Indonesia.
+              PT Inti Nusa Dinamika Optima — Mitra solusi IT terpercaya Anda
+              yang menyediakan infrastruktur teknologi andal dari Cilacap ke seluruh Indonesia.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Services</h4>
+            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Layanan</h4>
             <ul className="space-y-2">
-              {['IT Product Sales', 'Service & Maintenance', 'Infrastructure Solutions', 'Security Systems'].map(
+              {['Penjualan Produk IT', 'Layanan & Perawatan', 'Solusi Infrastruktur', 'Sistem Keamanan'].map(
                 (item) => (
                   <li key={item}>
                     <a
@@ -44,13 +44,13 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Company</h4>
+            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Perusahaan</h4>
             <ul className="space-y-2">
               {[
-                { label: 'About Us', href: '#about' },
-                { label: 'Our Projects', href: '#projects' },
-                { label: 'Partners', href: '#partners' },
-                { label: 'Contact', href: '#contact' },
+                { label: 'Tentang Kami', href: '#about' },
+                { label: 'Proyek Kami', href: '#projects' },
+                { label: 'Mitra', href: '#partners' },
+                { label: 'Kontak', href: '#contact' },
               ].map((item) => (
                 <li key={item.label}>
                   <a
@@ -65,7 +65,7 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Contact</h4>
+            <h4 className="font-semibold text-sm text-primary-foreground mb-4">Kontak</h4>
             <div className="space-y-2">
               <p className="text-xs text-primary-foreground/60">
                 Jl. Jend. Ahmad Yani No.77, Cilacap
@@ -80,7 +80,7 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-primary-foreground/40">
-            &copy; {new Date().getFullYear()} PT Inti Nusa Dinamika Optima. All rights reserved.
+            &copy; {new Date().getFullYear()} PT Inti Nusa Dinamika Optima. Hak cipta dilindungi.
           </p>
           <div className="flex items-center gap-4">
             <button
@@ -95,7 +95,7 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
               ) : (
                 <>
                   <Lock className="w-3 h-3 inline mr-0.5" />
-                  Staff Login
+                  Masuk Staff
                 </>
               )}
             </button>

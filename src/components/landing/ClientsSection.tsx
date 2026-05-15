@@ -9,26 +9,26 @@ export default function ClientsSection() {
   const clients = [
     {
       name: 'Pertamina Cilacap',
-      type: 'State-Owned Enterprise',
-      description: 'Refinery & energy infrastructure IT solutions',
+      type: 'BUMN',
+      description: 'Solusi IT untuk infrastruktur kilang & energi',
       icon: Building2,
     },
     {
       name: 'PT SBI — Cilacap',
-      type: 'Industrial',
-      description: 'Industrial IT systems & security deployment',
+      type: 'Industri',
+      description: 'Sistem IT industri & penerapan keamanan',
       icon: Building2,
     },
     {
       name: 'PT SBI — Narogong',
-      type: 'Industrial',
-      description: 'Cross-site infrastructure standardization',
+      type: 'Industri',
+      description: 'Standardisasi infrastruktur lintas lokasi',
       icon: Building2,
     },
     {
       name: 'PT SBI — Tuban',
-      type: 'Industrial',
-      description: 'Facility-wide CCTV & network deployment',
+      type: 'Industri',
+      description: 'Pemasangan CCTV & jaringan fasilitas',
       icon: Building2,
     },
   ]
@@ -45,14 +45,14 @@ export default function ClientsSection() {
         >
           <Badge variant="secondary" className="mb-4">
             <Users className="w-3 h-3 mr-1.5" />
-            Key Clients
+            Klien Utama
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Trusted by <span className="text-primary">Industry Leaders</span>
+            Dipercaya oleh <span className="text-primary">Pemimpin Industri</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            From state-owned energy giants to major industrial players — 
-            our clients trust us with their most critical IT operations.
+            Mulai dari raksasa energi BUMN hingga pemain industri utama —
+            klien kami mempercayakan operasi IT paling kritis kepada kami.
           </p>
         </motion.div>
 

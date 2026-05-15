@@ -110,7 +110,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       const data = await res.json()
       if (data.success) setProject(data.data)
     } catch {
-      toast({ title: 'Error', description: 'Failed to fetch project', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Gagal memuat proyek', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -147,7 +147,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Purchase Added', description: 'RAB purchase has been recorded.' })
+        toast({ title: 'Pembelian Ditambahkan', description: 'Pembelian RAB telah dicatat.' })
         setPurchaseOpen(false)
         setPurchaseForm({ vendorId: '', qty: '1', buyPrice: '0', docUrl: '', notes: '' })
         fetchProject()
@@ -178,7 +178,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Cost Added', description: 'Additional cost has been recorded.' })
+        toast({ title: 'Biaya Ditambahkan', description: 'Biaya tambahan telah dicatat.' })
         setAddCostOpen(false)
         setAddCostForm({ category: 'ACCESSORIES', description: '', amount: '0', vendorId: '', notes: '' })
         fetchProject()
@@ -203,7 +203,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Note Added' })
+        toast({ title: 'Catatan Ditambahkan' })
         setNoteContent('')
         fetchProject()
       } else {
@@ -226,7 +226,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Status Updated', description: `Project status changed to ${newStatus}` })
+        toast({ title: 'Status Diperbarui', description: `Status proyek diubah ke ${newStatus}` })
         fetchProject()
       } else {
         toast({ title: 'Error', description: data.error, variant: 'destructive' })
@@ -249,8 +249,8 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   if (!project) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Project not found.</p>
-        <Button variant="outline" className="mt-4" onClick={onBack}>Go Back</Button>
+        <p className="text-muted-foreground">Proyek tidak ditemukan.</p>
+        <Button variant="outline" className="mt-4" onClick={onBack}>Kembali</Button>
       </div>
     )
   }
@@ -271,7 +271,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       <div className="flex flex-col sm:flex-row items-start gap-4">
         <Button variant="outline" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1.5" />
-          Back
+          Kembali
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -283,18 +283,18 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Client: {project.client?.name || '—'} · PO: {project.poNumber || '—'}
+            Klien: {project.client?.name || '—'} · PO: {project.poNumber || '—'}
           </p>
         </div>
         <div className="flex gap-2">
           {project.status === 'DRAFT' && (
             <Button size="sm" onClick={() => handleStatusUpdate('IN_PROGRESS')} disabled={statusUpdating}>
-              Start Project
+              Mulai Proyek
             </Button>
           )}
           {project.status === 'IN_PROGRESS' && (
             <Button size="sm" onClick={() => handleStatusUpdate('COMPLETED')} disabled={statusUpdating}>
-              Complete
+              Selesai
             </Button>
           )}
         </div>
@@ -305,7 +305,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         <TabsList>
           <TabsTrigger value="info"><FileText className="w-3.5 h-3.5 mr-1.5" />Info</TabsTrigger>
           <TabsTrigger value="rab"><Package className="w-3.5 h-3.5 mr-1.5" />RAB</TabsTrigger>
-          <TabsTrigger value="documents"><ClipboardList className="w-3.5 h-3.5 mr-1.5" />Documents</TabsTrigger>
+          <TabsTrigger value="documents"><ClipboardList className="w-3.5 h-3.5 mr-1.5" />Dokumen</TabsTrigger>
         </TabsList>
 
         {/* ─── TAB: INFO ─── */}
@@ -314,22 +314,22 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             {/* Project Summary */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Project Summary</CardTitle>
+                <CardTitle className="text-base">Ringkasan Proyek</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-muted-foreground">Project Code:</span><p className="font-medium">{project.projectCode}</p></div>
-                  <div><span className="text-muted-foreground">Type:</span><p className="font-medium">{project.type}</p></div>
-                  <div><span className="text-muted-foreground">PO Number:</span><p className="font-medium">{project.poNumber || '—'}</p></div>
-                  <div><span className="text-muted-foreground">Internal PIC:</span><p className="font-medium">{project.internalPic || '—'}</p></div>
-                  <div><span className="text-muted-foreground">Start Date:</span><p className="font-medium">{formatDate(project.startDate)}</p></div>
-                  <div><span className="text-muted-foreground">End Date:</span><p className="font-medium">{formatDate(project.endDate)}</p></div>
+                  <div><span className="text-muted-foreground">Kode Proyek:</span><p className="font-medium">{project.projectCode}</p></div>
+                  <div><span className="text-muted-foreground">Tipe:</span><p className="font-medium">{project.type}</p></div>
+                  <div><span className="text-muted-foreground">Nomor PO:</span><p className="font-medium">{project.poNumber || '—'}</p></div>
+                  <div><span className="text-muted-foreground">PIC Internal:</span><p className="font-medium">{project.internalPic || '—'}</p></div>
+                  <div><span className="text-muted-foreground">Tanggal Mulai:</span><p className="font-medium">{formatDate(project.startDate)}</p></div>
+                  <div><span className="text-muted-foreground">Tanggal Selesai:</span><p className="font-medium">{formatDate(project.endDate)}</p></div>
                 </div>
                 <Separator />
-                <div><span className="text-muted-foreground">Client:</span><p className="font-medium">{project.client?.name}</p></div>
-                <div><span className="text-muted-foreground">Client PIC:</span><p className="font-medium">{project.clientPicName || '—'} {project.clientPicPhone ? `· ${project.clientPicPhone}` : ''}</p></div>
-                {project.clientAddress && <div><span className="text-muted-foreground">Address:</span><p className="font-medium">{project.clientAddress}</p></div>}
-                {project.notes && <div><span className="text-muted-foreground">Notes:</span><p className="font-medium whitespace-pre-wrap">{project.notes}</p></div>}
+                <div><span className="text-muted-foreground">Klien:</span><p className="font-medium">{project.client?.name}</p></div>
+                <div><span className="text-muted-foreground">PIC Klien:</span><p className="font-medium">{project.clientPicName || '—'} {project.clientPicPhone ? `· ${project.clientPicPhone}` : ''}</p></div>
+                {project.clientAddress && <div><span className="text-muted-foreground">Alamat:</span><p className="font-medium">{project.clientAddress}</p></div>}
+                {project.notes && <div><span className="text-muted-foreground">Catatan:</span><p className="font-medium whitespace-pre-wrap">{project.notes}</p></div>}
               </CardContent>
             </Card>
 
@@ -343,20 +343,20 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">PO Total (RAB)</span>
+                  <span className="text-muted-foreground">Total PO (RAB)</span>
                   <span className="font-medium">{formatCurrency(poTotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Purchases</span>
+                  <span className="text-muted-foreground">Total Pembelian</span>
                   <span className="font-medium text-destructive">- {formatCurrency(totalPurchases)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Additional Costs</span>
+                  <span className="text-muted-foreground">Biaya Tambahan</span>
                   <span className="font-medium text-destructive">- {formatCurrency(totalAddCosts)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-bold">
-                  <span>{profit >= 0 ? 'Laba (Profit)' : 'Rugi (Loss)'}</span>
+                  <span>{profit >= 0 ? 'Laba' : 'Rugi'}</span>
                   <span className={profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
                     {formatCurrency(profit)}
                   </span>
@@ -376,7 +376,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                Progress Notes
+                Catatan Progres
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -384,7 +384,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <Textarea
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Add a progress note..."
+                  placeholder="Tambah catatan progres..."
                   rows={2}
                   className="flex-1"
                 />
@@ -393,13 +393,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   disabled={submittingNote || !noteContent.trim()}
                   className="self-end"
                 >
-                  {submittingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                  {submittingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Tambah'}
                 </Button>
               </div>
               <ScrollArea className="max-h-64">
                 <div className="space-y-3">
                   {(project.progressNotes || []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">Belum ada catatan</p>
                   ) : (
                     project.progressNotes.map((note: any) => (
                       <div key={note.id} className="p-3 rounded-lg bg-muted/30 border">
@@ -421,8 +421,8 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           {/* Items with purchases */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">RAB Items & Purchases</CardTitle>
-              <CardDescription>Track purchase costs for each item</CardDescription>
+              <CardTitle className="text-base">Item RAB & Pembelian</CardTitle>
+              <CardDescription>Lacak biaya pembelian setiap item</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -431,18 +431,18 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                     <TableRow>
                       <TableHead>Item</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Sell Price</TableHead>
+                      <TableHead className="text-right">Harga Jual</TableHead>
                       <TableHead className="text-right">Total RAB</TableHead>
-                      <TableHead className="text-right">Total Buy</TableHead>
+                      <TableHead className="text-right">Total Beli</TableHead>
                       <TableHead className="text-right">Margin</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(project.items || []).length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          No items in this project
+                          Tidak ada item dalam proyek ini
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -473,7 +473,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                                   }}
                                 >
                                   <Plus className="w-3 h-3 mr-1" />
-                                  Buy
+                                  Beli
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -485,7 +485,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                                     {item.purchases.map((p: any) => (
                                       <div key={p.id} className="flex items-center gap-3 text-xs text-muted-foreground py-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                                        <span>{p.vendor?.name || 'No vendor'}</span>
+                                        <span>{p.vendor?.name || 'Tanpa vendor'}</span>
                                         <span>× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
                                         <span className="font-medium text-foreground">= {formatCurrency(p.totalBuy)}</span>
                                         {p.docUrl && (
@@ -514,18 +514,18 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Additional Costs</CardTitle>
-                  <CardDescription>Accessories, shipping, operational, etc.</CardDescription>
+                  <CardTitle className="text-base">Biaya Tambahan</CardTitle>
+                  <CardDescription>Aksesoris, pengiriman, operasional, dll.</CardDescription>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => setAddCostOpen(true)}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Add Cost
+                  Tambah Biaya
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {(project.additionalCosts || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No additional costs</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Tidak ada biaya tambahan</p>
               ) : (
                 <div className="space-y-2">
                   {project.additionalCosts.map((cost: any) => (
@@ -536,7 +536,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                           <span className="text-sm font-medium text-foreground">{cost.description}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {cost.vendor?.name || 'No vendor'}
+                          {cost.vendor?.name || 'Tanpa vendor'}
                           {cost.notes && ` · ${cost.notes}`}
                         </p>
                       </div>
@@ -544,7 +544,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                     </div>
                   ))}
                   <div className="flex justify-between p-3 bg-muted/30 rounded-lg">
-                    <span className="text-sm font-medium">Total Additional Costs</span>
+                    <span className="text-sm font-medium">Total Biaya Tambahan</span>
                     <span className="text-sm font-bold text-destructive">{formatCurrency(totalAddCosts)}</span>
                   </div>
                 </div>
@@ -556,14 +556,14 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Purchase</DialogTitle>
-                <DialogDescription>Record a purchase for this item</DialogDescription>
+                <DialogTitle>Tambah Pembelian</DialogTitle>
+                <DialogDescription>Catat pembelian untuk item ini</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddPurchase} className="space-y-4 mt-2">
                 <div className="space-y-2">
                   <Label>Vendor</Label>
                   <Select value={purchaseForm.vendorId} onValueChange={(v) => setPurchaseForm({ ...purchaseForm, vendorId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Pilih vendor" /></SelectTrigger>
                     <SelectContent>
                       {vendors.map((v: any) => (
                         <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
@@ -577,23 +577,23 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                     <Input type="number" min="0" value={purchaseForm.qty} onChange={(e) => setPurchaseForm({ ...purchaseForm, qty: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Buy Price</Label>
+                    <Label>Harga Beli</Label>
                     <Input type="number" min="0" value={purchaseForm.buyPrice} onChange={(e) => setPurchaseForm({ ...purchaseForm, buyPrice: e.target.value })} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Document URL</Label>
+                  <Label>URL Dokumen</Label>
                   <Input value={purchaseForm.docUrl} onChange={(e) => setPurchaseForm({ ...purchaseForm, docUrl: e.target.value })} placeholder="https://..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Input value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Optional notes" />
+                  <Label>Catatan</Label>
+                  <Input value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Catatan opsional" />
                 </div>
                 <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingPurchase}>
                     {submittingPurchase ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Add Purchase
+                    Tambah Pembelian
                   </Button>
                 </div>
               </form>
@@ -604,8 +604,8 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           <Dialog open={addCostOpen} onOpenChange={setAddCostOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Additional Cost</DialogTitle>
-                <DialogDescription>Record an extra cost for this project</DialogDescription>
+                <DialogTitle>Tambah Biaya Tambahan</DialogTitle>
+                <DialogDescription>Catat biaya tambahan untuk proyek ini</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddCost} className="space-y-4 mt-2">
                 <div className="space-y-2">
@@ -613,25 +613,25 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <Select value={addCostForm.category} onValueChange={(v) => setAddCostForm({ ...addCostForm, category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACCESSORIES">Accessories</SelectItem>
-                      <SelectItem value="SHIPPING">Shipping</SelectItem>
-                      <SelectItem value="OPERATIONAL">Operational</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
+                      <SelectItem value="ACCESSORIES">Aksesoris</SelectItem>
+                      <SelectItem value="SHIPPING">Pengiriman</SelectItem>
+                      <SelectItem value="OPERATIONAL">Operasional</SelectItem>
+                      <SelectItem value="OTHER">Lainnya</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Description *</Label>
-                  <Input value={addCostForm.description} onChange={(e) => setAddCostForm({ ...addCostForm, description: e.target.value })} placeholder="Description" required />
+                  <Label>Deskripsi *</Label>
+                  <Input value={addCostForm.description} onChange={(e) => setAddCostForm({ ...addCostForm, description: e.target.value })} placeholder="Deskripsi" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Amount *</Label>
+                  <Label>Jumlah *</Label>
                   <Input type="number" min="0" value={addCostForm.amount} onChange={(e) => setAddCostForm({ ...addCostForm, amount: e.target.value })} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Vendor</Label>
                   <Select value={addCostForm.vendorId} onValueChange={(v) => setAddCostForm({ ...addCostForm, vendorId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select vendor (optional)" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Pilih vendor (opsional)" /></SelectTrigger>
                     <SelectContent>
                       {vendors.map((v: any) => (
                         <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
@@ -640,14 +640,14 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Input value={addCostForm.notes} onChange={(e) => setAddCostForm({ ...addCostForm, notes: e.target.value })} placeholder="Optional notes" />
+                  <Label>Catatan</Label>
+                  <Input value={addCostForm.notes} onChange={(e) => setAddCostForm({ ...addCostForm, notes: e.target.value })} placeholder="Catatan opsional" />
                 </div>
                 <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setAddCostOpen(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => setAddCostOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingCost}>
                     {submittingCost ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Add Cost
+                    Tambah Biaya
                   </Button>
                 </div>
               </form>
@@ -663,13 +663,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Surat Jalan</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setSjFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Create
+                  <Plus className="w-3 h-3 mr-1" />Buat
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {(project.suratJalans || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No surat jalan yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Belum ada surat jalan</p>
               ) : (
                 <div className="space-y-2">
                   {project.suratJalans.map((sj: any) => (
@@ -701,13 +701,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">BAST</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setBastFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Create
+                  <Plus className="w-3 h-3 mr-1" />Buat
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {(project.basts || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No BAST yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Belum ada BAST</p>
               ) : (
                 <div className="space-y-2">
                   {project.basts.map((bast: any) => (
@@ -737,15 +737,15 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Invoices</CardTitle>
+                <CardTitle className="text-base">Invoice</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setInvoiceFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Create
+                  <Plus className="w-3 h-3 mr-1" />Buat
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {(project.invoices || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No invoices yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Belum ada invoice</p>
               ) : (
                 <div className="space-y-2">
                   {project.invoices.map((inv: any) => (
@@ -784,13 +784,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Kuitansi</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setKuitansiFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Create
+                  <Plus className="w-3 h-3 mr-1" />Buat
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {(project.kuitansis || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No kuitansi yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Belum ada kuitansi</p>
               ) : (
                 <div className="space-y-2">
                   {project.kuitansis.map((k: any) => (

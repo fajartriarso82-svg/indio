@@ -42,7 +42,7 @@ export default function HeroSection() {
               className="mb-6 border-primary/40 text-primary-foreground bg-primary/20 backdrop-blur-sm"
             >
               <Globe className="w-3 h-3 mr-1.5" />
-              Trusted IT Partner Since Cilacap
+              Mitra IT Terpercaya dari Cilacap
             </Badge>
           </motion.div>
 
@@ -52,9 +52,9 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.4 }}
             className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6"
           >
-            Powering Your Digital
+            Menggerakkan Infrastruktur
             <br />
-            <span className="text-primary">Infrastructure</span> Forward
+            <span className="text-primary">Digital</span> Anda ke Depan
           </motion.h1>
 
           <motion.p
@@ -63,9 +63,9 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.6 }}
             className="text-lg sm:text-xl text-white/80 mb-10 max-w-2xl leading-relaxed"
           >
-            From IT procurement to infrastructure deployment and security systems — 
-            we deliver end-to-end technology solutions that keep your business running 
-            without compromise.
+            Mulai dari pengadaan IT hingga penerapan infrastruktur dan sistem keamanan —
+            kami menyediakan solusi teknologi menyeluruh yang menjaga bisnis Anda tetap berjalan
+            tanpa kompromi.
           </motion.p>
 
           <motion.div
@@ -76,7 +76,7 @@ export default function HeroSection() {
           >
             <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base" asChild>
               <a href="#contact">
-                Get a Consultation
+                Konsultasi Sekarang
                 <ArrowRight className="w-4 h-4 ml-2" />
               </a>
             </Button>
@@ -86,7 +86,7 @@ export default function HeroSection() {
               className="border-white/30 text-white hover:bg-white/10 px-8 py-6 text-base"
               asChild
             >
-              <a href="#services">Explore Services</a>
+              <a href="#services">Lihat Layanan</a>
             </Button>
           </motion.div>
 
@@ -98,9 +98,9 @@ export default function HeroSection() {
             className="flex flex-wrap gap-8 sm:gap-12 mt-16 pt-8 border-t border-white/10"
           >
             {[
-              { value: '10+', label: 'Years Experience' },
-              { value: '150+', label: 'Projects Delivered' },
-              { value: '50+', label: 'Corporate Clients' },
+              { value: '10+', label: 'Tahun Pengalaman' },
+              { value: '150+', label: 'Proyek Selesai' },
+              { value: '50+', label: 'Klien Korporat' },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className="text-3xl sm:text-4xl font-bold text-primary">{stat.value}</div>

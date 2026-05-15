@@ -9,18 +9,18 @@ export default function PartnersSection() {
   const partners = [
     {
       name: 'Siplah',
-      description: 'Government e-Procurement Platform',
-      detail: 'Official partner for government school & institution IT procurement through the Siplah marketplace.',
+      description: 'Platform e-Pengadaan Pemerintah',
+      detail: 'Mitra resmi untuk pengadaan IT sekolah & instansi pemerintah melalui marketplace Siplah.',
     },
     {
       name: 'eKatalog',
-      description: 'LKPP e-Catalogue System',
-      detail: 'Registered vendor on the national e-catalogue for transparent, compliant government procurement.',
+      description: 'Sistem e-Katalog LKPP',
+      detail: 'Vendor terdaftar di e-katalog nasional untuk pengadaan pemerintah yang transparan dan patuh regulasi.',
     },
     {
       name: 'Padi UMKM',
-      description: 'MSME Digital Platform',
-      detail: 'Supporting digital transformation of micro, small & medium enterprises through the Padi UMKM ecosystem.',
+      description: 'Platform Digital UMKM',
+      detail: 'Mendukung transformasi digital usaha mikro, kecil & menengah melalui ekosistem Padi UMKM.',
     },
   ]
 
@@ -36,14 +36,14 @@ export default function PartnersSection() {
         >
           <Badge variant="secondary" className="mb-4">
             <Award className="w-3 h-3 mr-1.5" />
-            Official Partnerships
+            Kemitraan Resmi
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Licensed <span className="text-primary">Procurement Channels</span>
+            Kanal <span className="text-primary">Pengadaan Berizin</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Officially registered on national procurement platforms, ensuring transparent, 
-            compliant, and streamlined purchasing for government and institutional clients.
+            Terdaftar secara resmi di platform pengadaan nasional, memastikan pembelian yang transparan,
+            patuh regulasi, dan terstruktur bagi klien pemerintah dan institusi.
           </p>
         </motion.div>
 

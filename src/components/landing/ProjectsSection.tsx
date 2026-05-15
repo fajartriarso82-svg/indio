@@ -8,28 +8,28 @@ import { Badge } from '@/components/ui/badge'
 export default function ProjectsSection() {
   const projectCategories = [
     {
-      type: 'Government Projects',
+      type: 'Proyek Pemerintah',
       description:
-        'Licensed procurement partner for government institutions through Siplah and eKatalog platforms. We handle everything from tender documentation to deployment and handover.',
+        'Mitra pengadaan berizin untuk instansi pemerintah melalui platform Siplah dan eKatalog. Kami menangani segalanya mulai dari dokumentasi tender hingga penerapan dan serah terima.',
       icon: Building2,
       count: '40+',
     },
     {
-      type: 'Private Sector Projects',
+      type: 'Proyek Sektor Swasta',
       description:
-        'Trusted by major corporations including state-owned enterprises for IT infrastructure upgrades, security system deployments, and ongoing maintenance contracts.',
+        'Dipercaya oleh korporasi besar termasuk BUMN untuk peningkatan infrastruktur IT, penerapan sistem keamanan, dan kontrak perawatan berkelanjutan.',
       icon: Users,
       count: '110+',
     },
   ]
 
   const projectHighlights = [
-    'Server room design & deployment for industrial facilities',
-    'CCTV & access control systems for refineries',
-    'Campus-wide network infrastructure for government offices',
-    'IT equipment procurement & rollout for regional offices',
-    'UPS & power backup solutions for critical operations',
-    'Ongoing maintenance contracts with SLA guarantees',
+    'Perancangan & penerapan ruang server untuk fasilitas industri',
+    'Sistem CCTV & kontrol akses untuk kilang',
+    'Infrastruktur jaringan kampus untuk kantor pemerintah',
+    'Pengadaan & pemasangan peralatan IT untuk kantor cabang',
+    'Solusi UPS & backup daya untuk operasi kritis',
+    'Kontrak perawatan berkelanjutan dengan jaminan SLA',
   ]
 
   return (
@@ -44,14 +44,14 @@ export default function ProjectsSection() {
         >
           <Badge variant="secondary" className="mb-4">
             <Award className="w-3 h-3 mr-1.5" />
-            Track Record
+            Rekam Jejak
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Proven <span className="text-primary">Project Delivery</span>
+            Rekam Jejak <span className="text-primary">Pengiriman Proyek</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            A decade of delivering mission-critical IT projects for both government 
-            institutions and private enterprises across Indonesia.
+            Satu dekade pengiriman proyek IT misi kritis untuk instansi pemerintah
+            maupun perusahaan swasta di seluruh Indonesia.
           </p>
         </motion.div>
 
@@ -88,7 +88,7 @@ export default function ProjectsSection() {
         >
           <Card className="bg-primary/5 border-primary/10">
             <CardContent className="p-6 lg:p-8">
-              <h3 className="font-bold text-foreground mb-4">Project Highlights</h3>
+              <h3 className="font-bold text-foreground mb-4">Proyek Unggulan</h3>
               <div className="grid sm:grid-cols-2 gap-3">
                 {projectHighlights.map((item) => (
                   <div key={item} className="flex items-start gap-2.5">
