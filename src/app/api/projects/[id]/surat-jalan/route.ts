@@ -41,11 +41,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId } = await context.params
     const body = await request.json()
-    const { sjNumber, date, type, notes, checkerName, driverName, items } = body
+    const { sjNumber, date, type, notes, vehicle, plateNumber, driverName, items } = body
 
-    if (!sjNumber || !date || !type) {
+    if (!date || !type) {
       return NextResponse.json(
-        { success: false, error: 'sjNumber, date, and type are required' },
+        { success: false, error: 'date and type are required' },
         { status: 400 }
       )
     }
@@ -58,8 +58,33 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
+    let finalSjNumber = sjNumber
+    if (!finalSjNumber) {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = now.getMonth()
+      const romawiMonths = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+      
+      const startOfMonth = new Date(year, month, 1)
+      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999)
+      
+      const countThisMonth = await db.suratJalan.count({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth
+          }
+        }
+      })
+      
+      const noUrut = (countThisMonth + 1).toString().padStart(3, '0')
+      finalSjNumber = `${noUrut}/SJ/INDO/${romawiMonths[month]}/${year}`
+    }
+
     const itemsData = Array.isArray(items)
       ? items.map((item: Record<string, unknown>) => ({
+          itemId: (item.itemId as string) || null,
+          itemCode: (item.itemCode as string) || null,
           description: (item.description as string) || '',
           qty: Number(item.qty) || 0,
           unit: (item.unit as string) || '',
@@ -70,11 +95,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const suratJalan = await db.suratJalan.create({
       data: {
         projectId,
-        sjNumber,
+        sjNumber: finalSjNumber,
         date: new Date(date),
         type,
         notes,
-        checkerName,
+        vehicle,
+        plateNumber,
         driverName,
         items: {
           create: itemsData,

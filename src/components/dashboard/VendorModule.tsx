@@ -11,7 +11,7 @@ import {
   Building2,
   AlertCircle,
 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -222,33 +222,37 @@ export default function VendorModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Vendor</h1>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Vendor</h2>
           <p className="text-sm text-muted-foreground mt-1">Kelola daftar vendor Anda</p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Tambah Vendor
+        <Button onClick={handleOpenCreate} className="gap-2">
+          <Plus className="w-4 h-4" /> Tambah Vendor
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Cari vendor..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardHeader className="p-4 sm:px-6 pb-0">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="text-lg">Daftar Vendor</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Cari vendor..."
+                  className="pl-9 h-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+          <div className="border rounded-md overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>Nama</TableHead>
                   <TableHead className="hidden md:table-cell">Kategori</TableHead>
                   <TableHead className="hidden sm:table-cell">PIC</TableHead>

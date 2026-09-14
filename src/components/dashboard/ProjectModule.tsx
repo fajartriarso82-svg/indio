@@ -10,7 +10,7 @@ import {
   FolderKanban,
   ChevronRight,
 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -112,57 +112,59 @@ export default function ProjectModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Proyek</h1>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Proyek</h2>
           <p className="text-sm text-muted-foreground mt-1">Kelola semua proyek</p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Proyek Baru
+        <Button onClick={() => setFormOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> Proyek Baru
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari proyek..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Tipe</SelectItem>
-            <SelectItem value="PENGADAAN">Pengadaan</SelectItem>
-            <SelectItem value="JASA">Jasa</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[170px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
-            <SelectItem value="COMPLETED">Selesai</SelectItem>
-            <SelectItem value="CANCELLED">Dibatalkan</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardHeader className="p-4 sm:px-6 pb-0">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="text-lg">Daftar Proyek</CardTitle>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Cari proyek..."
+                  className="pl-9 h-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full sm:w-[140px] h-9">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tipe</SelectItem>
+                  <SelectItem value="PENGADAAN">Pengadaan</SelectItem>
+                  <SelectItem value="JASA">Jasa</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-[140px] h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
+                  <SelectItem value="COMPLETED">Selesai</SelectItem>
+                  <SelectItem value="CANCELLED">Dibatalkan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+          <div className="border rounded-md overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>Proyek</TableHead>
                   <TableHead className="hidden md:table-cell">Tipe</TableHead>
                   <TableHead className="hidden sm:table-cell">Klien</TableHead>

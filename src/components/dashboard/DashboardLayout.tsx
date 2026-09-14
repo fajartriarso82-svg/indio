@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut,
@@ -11,16 +12,28 @@ import {
   Menu,
   X,
   ChevronLeft,
+  ShoppingCart,
+  Wrench,
+  Package,
+  Wallet,
+  Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import DashboardHome from './DashboardHome'
-import ClientModule from './ClientModule'
-import VendorModule from './VendorModule'
-import ProjectModule from './ProjectModule'
 
-export type ModuleKey = 'dashboard' | 'clients' | 'vendors' | 'projects'
+// Lazy-load dashboard modules for code-splitting (reduces initial bundle size).
+const ClientModule = dynamic(() => import('./ClientModule'), { ssr: false })
+const VendorModule = dynamic(() => import('./VendorModule'), { ssr: false })
+const ProjectModule = dynamic(() => import('./ProjectModule'), { ssr: false })
+const TransactionModule = dynamic(() => import('./TransactionModule'), { ssr: false })
+const ServiceModule = dynamic(() => import('./ServiceModule'), { ssr: false })
+const InventoryModule = dynamic(() => import('./InventoryModule'), { ssr: false })
+const FinanceModule = dynamic(() => import('./FinanceModule'), { ssr: false })
+const SettingsModule = dynamic(() => import('./SettingsModule'), { ssr: false })
+
+export type ModuleKey = 'dashboard' | 'transactions' | 'services' | 'inventory' | 'finance' | 'projects' | 'clients' | 'vendors' | 'settings'
 
 interface DashboardLayoutProps {
   staff: {
@@ -35,9 +48,14 @@ interface DashboardLayoutProps {
 
 const navItems: { key: ModuleKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
+  { key: 'transactions', label: 'POS Transaksi', icon: ShoppingCart },
+  { key: 'services', label: 'POS Service', icon: Wrench },
+  { key: 'inventory', label: 'Stok', icon: Package },
+  { key: 'finance', label: 'Keuangan', icon: Wallet },
   { key: 'projects', label: 'Proyek', icon: FolderKanban },
   { key: 'clients', label: 'Klien', icon: Users },
   { key: 'vendors', label: 'Vendor', icon: Building2 },
+  { key: 'settings', label: 'Setting', icon: Settings },
 ]
 
 export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProps) {
@@ -53,12 +71,22 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
     switch (activeModule) {
       case 'dashboard':
         return <DashboardHome staff={staff} onNavigate={setActiveModule} />
+      case 'transactions':
+        return <TransactionModule />
+      case 'services':
+        return <ServiceModule />
+      case 'inventory':
+        return <InventoryModule />
+      case 'finance':
+        return <FinanceModule />
       case 'clients':
         return <ClientModule />
       case 'vendors':
         return <VendorModule />
       case 'projects':
         return <ProjectModule />
+      case 'settings':
+        return <SettingsModule />
       default:
         return <DashboardHome staff={staff} onNavigate={setActiveModule} />
     }
@@ -157,7 +185,15 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
             </button>
             <div className="hidden sm:flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground capitalize">
-                {activeModule === 'dashboard' ? 'Beranda' : activeModule === 'projects' ? 'Proyek' : activeModule === 'clients' ? 'Klien' : activeModule === 'vendors' ? 'Vendor' : activeModule}
+                {activeModule === 'dashboard' ? 'Beranda' : 
+                 activeModule === 'transactions' ? 'POS Transaksi' :
+                 activeModule === 'services' ? 'POS Service' :
+                 activeModule === 'inventory' ? 'Stok' :
+                 activeModule === 'finance' ? 'Keuangan' :
+                 activeModule === 'projects' ? 'Proyek' : 
+                 activeModule === 'clients' ? 'Klien' : 
+                 activeModule === 'vendors' ? 'Vendor' : 
+                 activeModule === 'settings' ? 'Setting' : activeModule}
               </h2>
             </div>
           </div>

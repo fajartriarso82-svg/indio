@@ -109,11 +109,13 @@ export async function POST(request: NextRequest) {
     const itemsData = Array.isArray(items)
       ? items.map((item: Record<string, unknown>, index: number) => ({
           itemId: (item.itemId as string) || '',
+          itemCode: (item.itemCode as string) || null,
           itemName: (item.itemName as string) || '',
           qty: Number(item.qty) || 0,
           unit: (item.unit as string) || '',
           unitPrice: Number(item.unitPrice) || 0,
           total: (Number(item.qty) || 0) * (Number(item.unitPrice) || 0),
+          deadline: item.deadline ? new Date(item.deadline as string) : null,
           notes: (item.notes as string) || null,
           sortOrder: index,
         }))

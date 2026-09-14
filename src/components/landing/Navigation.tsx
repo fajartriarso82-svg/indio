@@ -37,11 +37,10 @@ export default function Navigation({
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
           ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-border'
           : 'bg-transparent'
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
@@ -52,10 +51,10 @@ export default function Navigation({
             </div>
             <div className="flex flex-col">
               <span className={`font-bold text-sm leading-tight transition-colors ${scrolled ? 'text-foreground' : 'text-white'}`}>
-                PT INDO
+                PT Inti Nusa Dinamika Optima
               </span>
               <span className={`text-[10px] leading-tight transition-colors ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}>
-                Optima
+                IT Solution & Services
               </span>
             </div>
           </a>
@@ -66,11 +65,10 @@ export default function Navigation({
               <a
                 key={link.href}
                 href={link.href}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-primary/10 ${
-                  scrolled
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-primary/10 ${scrolled
                     ? 'text-foreground/80 hover:text-primary'
                     : 'text-white/80 hover:text-white'
-                }`}
+                  }`}
               >
                 {link.label}
               </a>
@@ -79,11 +77,10 @@ export default function Navigation({
             {staff ? (
               <button
                 onClick={onLogout}
-                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-40 hover:opacity-100 ${
-                  scrolled
+                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-40 hover:opacity-100 ${scrolled
                     ? 'text-muted-foreground hover:text-primary'
                     : 'text-white/40 hover:text-white/90'
-                }`}
+                  }`}
                 title="Keluar Staff"
               >
                 <LogOut className="w-3 h-3 inline mr-0.5" />
@@ -92,11 +89,10 @@ export default function Navigation({
             ) : (
               <button
                 onClick={onStaffClick}
-                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-30 hover:opacity-100 ${
-                  scrolled
+                className={`px-2 py-1 text-[10px] font-normal rounded transition-all opacity-30 hover:opacity-100 ${scrolled
                     ? 'text-muted-foreground hover:text-primary'
                     : 'text-white/40 hover:text-white/90'
-                }`}
+                  }`}
                 title="Masuk Staff"
               >
                 <Lock className="w-3 h-3 inline mr-0.5" />
@@ -107,9 +103,8 @@ export default function Navigation({
 
           {/* Mobile menu toggle */}
           <button
-            className={`lg:hidden p-2 rounded-md transition-colors ${
-              scrolled ? 'text-foreground' : 'text-white'
-            }`}
+            className={`lg:hidden p-2 rounded-md transition-colors ${scrolled ? 'text-foreground' : 'text-white'
+              }`}
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >

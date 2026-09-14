@@ -36,9 +36,12 @@ interface ItemRef {
   unitPrice: number
   total: number
   itemId: string
+  itemCode: string
 }
 
 interface DocItem {
+  itemId?: string
+  itemCode?: string
   description: string
   qty: string
   unit: string
@@ -76,7 +79,8 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
   const [sjNumber, setSjNumber] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
-  const [checkerName, setCheckerName] = useState('')
+  const [vehicle, setVehicle] = useState('')
+  const [plateNumber, setPlateNumber] = useState('')
   const [driverName, setDriverName] = useState('')
   const [items, setItems] = useState<DocItem[]>([{ description: '', qty: '1', unit: 'pcs', notes: '' }])
 
@@ -88,10 +92,12 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
     setItems(updated)
   }
 
-  const selectProjectItem = (itemId: string) => {
-    const item = projectItems.find((i) => i.id === itemId)
+  const selectProjectItem = (projectItemId: string) => {
+    const item = projectItems.find((i) => i.id === projectItemId)
     if (item) {
       setItems([...items, {
+        itemId: item.itemId,
+        itemCode: item.itemCode,
         description: item.itemName,
         qty: item.qty.toString(),
         unit: item.unit,
@@ -102,8 +108,8 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!sjNumber || !date) {
-      toast({ title: 'Validasi', description: 'Nomor SJ dan tanggal wajib diisi', variant: 'destructive' })
+    if (!date) {
+      toast({ title: 'Validasi', description: 'Tanggal wajib diisi', variant: 'destructive' })
       return
     }
     setSubmitting(true)
@@ -113,7 +119,7 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sjNumber, date, type: projectType, notes,
-          checkerName, driverName,
+          vehicle, plateNumber, driverName,
           items: items.filter((i) => i.description.trim()),
         }),
       })
@@ -123,7 +129,8 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
         onOpenChange(false)
         setSjNumber('')
         setNotes('')
-        setCheckerName('')
+        setVehicle('')
+        setPlateNumber('')
         setDriverName('')
         setItems([{ description: '', qty: '1', unit: 'pcs', notes: '' }])
         onCreated()
@@ -147,18 +154,22 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nomor SJ *</Label>
-              <Input value={sjNumber} onChange={(e) => setSjNumber(e.target.value)} placeholder="SJ-2024-001" required />
+              <Label>Nomor SJ (Otomatis jika kosong)</Label>
+              <Input value={sjNumber} onChange={(e) => setSjNumber(e.target.value)} placeholder="Auto-generate" />
             </div>
             <div className="space-y-2">
               <Label>Tanggal *</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Nama Pengecek</Label>
-              <Input value={checkerName} onChange={(e) => setCheckerName(e.target.value)} placeholder="Pengecek" />
+              <Label>Kendaraan</Label>
+              <Input value={vehicle} onChange={(e) => setVehicle(e.target.value)} placeholder="Mis. Mobil Pickup" />
+            </div>
+            <div className="space-y-2">
+              <Label>Plat Nomor</Label>
+              <Input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="B 1234 CD" />
             </div>
             <div className="space-y-2">
               <Label>Nama Pengemudi</Label>

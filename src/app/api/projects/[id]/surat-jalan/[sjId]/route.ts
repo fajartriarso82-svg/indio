@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId, sjId } = await context.params
     const body = await request.json()
-    const { sjNumber, date, type, notes, checkerName, driverName, items } = body
+    const { sjNumber, date, type, notes, vehicle, plateNumber, driverName, returnedFileUrl, items } = body
 
     const existing = await db.suratJalan.findFirst({
       where: { id: sjId, projectId },
@@ -61,11 +61,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         ...(date !== undefined && { date: new Date(date) }),
         ...(type !== undefined && { type }),
         ...(notes !== undefined && { notes }),
-        ...(checkerName !== undefined && { checkerName }),
+        ...(vehicle !== undefined && { vehicle }),
+        ...(plateNumber !== undefined && { plateNumber }),
         ...(driverName !== undefined && { driverName }),
+        ...(returnedFileUrl !== undefined && { returnedFileUrl }),
         ...(Array.isArray(items) && {
           items: {
             create: items.map((item: Record<string, unknown>) => ({
+              itemId: (item.itemId as string) || null,
+              itemCode: (item.itemCode as string) || null,
               description: (item.description as string) || '',
               qty: Number(item.qty) || 0,
               unit: (item.unit as string) || '',

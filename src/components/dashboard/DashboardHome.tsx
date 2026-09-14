@@ -11,6 +11,10 @@ import {
   ArrowRight,
   Loader2,
   TrendingUp,
+  ShoppingCart,
+  Wrench,
+  Wallet,
+  Coins
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,6 +39,13 @@ interface DashboardStats {
   pendingInvoices: number
 }
 
+interface AdvancedStats {
+  transactions: { today: number; thisMonth: number }
+  services: { process: number; pending: number; success: number }
+  balanceThisMonth: number
+  pettyCashBalance: number
+}
+
 interface RecentProject {
   id: string
   projectCode: string
@@ -47,6 +58,7 @@ interface RecentProject {
 
 export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [advStats, setAdvStats] = useState<AdvancedStats | null>(null)
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,7 +66,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
     let cancelled = false
     const fetchData = async () => {
       try {
-        const [statsRes, projectsRes] = await Promise.all([
+        const [statsRes, advStatsRes, projectsRes] = await Promise.all([
+          fetch('/api/projects/stats'),
           fetch('/api/dashboard/stats'),
           fetch('/api/projects?limit=5'),
         ])
@@ -67,6 +80,11 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             totalVendors: statsData.stats?.totalVendors ?? 0,
             pendingInvoices: statsData.stats?.pendingInvoices ?? 0,
           })
+        }
+
+        const advStatsData = await advStatsRes.json()
+        if (!cancelled && !advStatsData.error) {
+          setAdvStats(advStatsData)
         }
 
         const projectsData = await projectsRes.json()
@@ -118,6 +136,53 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
     },
   ]
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const businessCards = [
+    {
+      icon: ShoppingCart,
+      label: 'Transaksi POS',
+      value: advStats?.transactions.today ?? 0,
+      change: `${advStats?.transactions.thisMonth ?? 0} bulan ini`,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+      module: 'transactions' as ModuleKey,
+    },
+    {
+      icon: Wrench,
+      label: 'Service Aktif',
+      value: advStats?.services.process ?? 0,
+      change: `${advStats?.services.success ?? 0} Selesai, ${advStats?.services.pending ?? 0} Pending`,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50',
+      module: 'services' as ModuleKey,
+    },
+    {
+      icon: Wallet,
+      label: 'Saldo Bulan Ini',
+      value: advStats ? formatCurrency(advStats.balanceThisMonth) : '—',
+      change: 'Total Pemasukan',
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+      module: 'finance' as ModuleKey,
+    },
+    {
+      icon: Coins,
+      label: 'Kas Kecil',
+      value: advStats ? formatCurrency(advStats.pettyCashBalance) : '—',
+      change: 'Saldo saat ini',
+      color: 'text-orange-600',
+      bg: 'bg-orange-50',
+      module: 'finance' as ModuleKey,
+    },
+  ]
+
   const statusColors: Record<string, string> = {
     DRAFT: 'bg-gray-100 text-gray-700',
     IN_PROGRESS: 'bg-primary/10 text-primary',
@@ -127,8 +192,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
 
   const quickActions = [
     { label: 'Proyek Baru', icon: FolderKanban, module: 'projects' as ModuleKey },
-    { label: 'Tambah Klien', icon: Users, module: 'clients' as ModuleKey },
-    { label: 'Tambah Vendor', icon: Building2, module: 'vendors' as ModuleKey },
+    { label: 'Transaksi Baru', icon: ShoppingCart, module: 'transactions' as ModuleKey },
+    { label: 'Terima Service', icon: Wrench, module: 'services' as ModuleKey },
   ]
 
   if (loading) {
@@ -151,18 +216,46 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
           Selamat datang, {staff.name.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Berikut perkembangan proyek Anda hari ini.
+          Berikut ringkasan aktivitas perusahaan Anda hari ini.
         </p>
       </motion.div>
 
-      {/* Stats cards */}
+      {/* Business Stats cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {businessCards.map((stat, idx) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: idx * 0.1 }}
+            className="cursor-pointer"
+            onClick={() => onNavigate(stat.module)}
+          >
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="p-4 lg:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                    <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+                  </div>
+                </div>
+                <p className="text-xl lg:text-2xl font-bold text-foreground truncate">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-[11px] text-muted-foreground/70 mt-1 truncate">{stat.change}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Project Stats cards */}
+      <h2 className="text-lg font-semibold text-foreground mt-8">Ringkasan Proyek</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: idx * 0.1 }}
+            transition={{ duration: 0.4, delay: 0.2 + (idx * 0.1) }}
           >
             <Card>
               <CardContent className="p-4 lg:p-5">
@@ -180,12 +273,12 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6 pt-4">
         {/* Recent projects */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
           className="lg:col-span-2"
         >
           <Card>
@@ -247,13 +340,13 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
           className="space-y-6"
         >
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Aksi Cepat</CardTitle>
-              <CardDescription>Tugas umum</CardDescription>
+              <CardDescription>Pintasan menu</CardDescription>
             </CardHeader>
             <CardContent className="pt-0 space-y-2">
               {quickActions.map((action) => (
@@ -279,8 +372,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                 <h3 className="font-semibold text-foreground text-sm">Tips</h3>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Gunakan sidebar untuk berpindah modul. Klik proyek untuk melihat detail,
-                RAB, dan dokumen.
+                Gunakan menu di sidebar untuk berpindah antar modul dengan cepat. Anda juga dapat menggunakan pintasan Aksi Cepat untuk tugas sehari-hari.
               </p>
             </CardContent>
           </Card>

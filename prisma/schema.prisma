@@ -6,8 +6,43 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Company ───
+model Company {
+  id         String     @id @default(cuid())
+  name       String
+  address    String?
+  phone      String?
+  email      String?
+  picName    String?
+  picPhone   String?
+  npwpNumber String?
+  nibFile    String?
+  npwpFile   String?
+  aktaFile   String?
+  logoFile   String?
+  kopFile    String?
+  isActive   Boolean    @default(true)
+  employees  Employee[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String // ID Karyawan (input manual)
+  name       String
+  phone      String?
+  position   String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // ─── Auth ───
@@ -36,101 +71,107 @@ model StaffSession {
 
 // ─── Client ───
 model Client {
-  id        String    @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  picName   String?
-  picPhone  String?
-  picEmail  String?
-  type      String    @default("corporate") // corporate, government, individual
-  notes     String?
-  projects  Project[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  address      String?
+  phone        String?
+  email        String?
+  picName      String?
+  picPhone     String?
+  picEmail     String?
+  type         String        @default("corporate") // corporate, government, individual
+  notes        String?
+  projects     Project[]
+  transactions Transaction[]
+  services     Service[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 // ─── Vendor ───
 model Vendor {
-  id          String              @id @default(cuid())
-  name        String
-  address     String?
-  phone       String?
-  email       String?
-  picName     String?
-  picPhone    String?
-  category    String?             // supplier, contractor, service-provider
-  bankName    String?
-  bankAccount String?
-  bankHolder  String?
-  notes       String?
+  id              String                  @id @default(cuid())
+  name            String
+  address         String?
+  phone           String?
+  email           String?
+  picName         String?
+  picPhone        String?
+  category        String? // supplier, contractor, service-provider
+  bankName        String?
+  bankAccount     String?
+  bankHolder      String?
+  notes           String?
   purchases       RABPurchase[]
-  additionalCosts  ProjectAdditionalCost[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  additionalCosts ProjectAdditionalCost[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 }
 
 // ─── Project ───
 model Project {
-  id            String              @id @default(cuid())
-  projectCode   String              @unique
-  name          String
-  type          String              // PENGADAAN, JASA
-  status        String              @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, CANCELLED
-  clientId      String
-  client        Client              @relation(fields: [clientId], references: [id])
-  clientPicName String?
-  clientPicEmail String?
-  clientPicPhone String?
-  clientAddress String?
-  poNumber      String?
-  internalPic   String?
-  poFileUrl     String?
-  rabFileUrl    String?
-  startDate     DateTime?
-  endDate       DateTime?
-  notes         String?
-  items         ProjectItem[]
-  rabPurchases  RABPurchase[]
+  id              String                  @id @default(cuid())
+  projectCode     String                  @unique
+  name            String
+  type            String // PENGADAAN, JASA
+  status          String                  @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, CANCELLED
+  clientId        String
+  client          Client                  @relation(fields: [clientId], references: [id])
+  clientPicName   String?
+  clientPicEmail  String?
+  clientPicPhone  String?
+  clientAddress   String?
+  poNumber        String?
+  internalPic     String?
+  poFileUrl       String?
+  rabFileUrl      String?
+  startDate       DateTime?
+  endDate         DateTime?
+  notes           String?
+  items           ProjectItem[]
+  rabPurchases    RABPurchase[]
   additionalCosts ProjectAdditionalCost[]
-  progressNotes ProjectNote[]
-  documents     ProjectDocument[]
-  suratJalans   SuratJalan[]
-  basts         BAST[]
-  invoices      Invoice[]
-  kuitansis     Kuitansi[]
-  createdBy     String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  progressNotes   ProjectNote[]
+  documents       ProjectDocument[]
+  suratJalans     SuratJalan[]
+  basts           BAST[]
+  invoices        Invoice[]
+  kuitansis       Kuitansi[]
+  createdBy       String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 }
 
 model ProjectItem {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  itemId      String   // ID Item dari PO
-  itemName    String
-  qty         Float
-  unit        String
-  unitPrice   Float
-  total       Float    // auto kalkulasi: qty * unitPrice
-  notes       String?
-  sortOrder   Int      @default(0)
-  purchases   RABPurchase[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String        @id @default(cuid())
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  itemId    String // ID Item dari PO
+  itemCode  String? // Kode Barang
+  itemName  String
+  qty       Float
+  unit      String
+  unitPrice Float
+  total     Float // auto kalkulasi: qty * unitPrice
+  deadline  DateTime? // Batas waktu kirim / deadline per item
+  notes     String?
+  sortOrder Int           @default(0)
+  purchases RABPurchase[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model ProjectAdditionalCost {
   id          String   @id @default(cuid())
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  category    String   // ACCESSORIES, SHIPPING, OPERATIONAL, OTHER
+  category    String // ACCESSORIES, SHIPPING, OPERATIONAL, OTHER
   description String
   amount      Float
   vendorId    String?
   vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  vendorName  String?
+  date        DateTime @default(now())
   docUrl      String?
   notes       String?
   createdAt   DateTime @default(now())
@@ -152,7 +193,7 @@ model ProjectDocument {
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name      String
-  type      String   // PO, RAB, NOTA, KUITANSI, OTHER
+  type      String // PO, RAB, NOTA, KUITANSI, OTHER
   fileUrl   String
   fileSize  Int?
   notes     String?
@@ -162,20 +203,24 @@ model ProjectDocument {
 
 // ─── RAB (Rencana Anggaran Biaya) ───
 model RABPurchase {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   projectId     String
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectItemId String
   projectItem   ProjectItem @relation(fields: [projectItemId], references: [id], onDelete: Cascade)
   vendorId      String?
-  vendor        Vendor?  @relation(fields: [vendorId], references: [id])
-  qty           Float    // qty yang dibeli dari vendor ini (split)
-  buyPrice      Float    // harga beli aktual per unit
-  totalBuy      Float    // qty * buyPrice
-  docUrl        String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  vendor        Vendor?     @relation(fields: [vendorId], references: [id])
+  qty           Float // qty yang dibeli dari vendor ini (split)
+  buyPrice      Float // harga beli aktual per unit
+  totalBuy      Float // qty * buyPrice
+  docUrl          String? // Nota dari seller (Referesi awal)
+  notes           String?
+  status          String    @default("REQUEST") // REQUEST, SUCCESS
+  requestDate     DateTime  @default(now())
+  paymentDate     DateTime?
+  paymentProofUrl String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // ─── Surat Jalan ───
@@ -185,19 +230,23 @@ model SuratJalan {
   project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sjNumber    String
   date        DateTime
-  type        String           // PENGADAAN, JASA
-  notes       String?
-  checkerName String?
-  driverName  String?
-  items       SuratJalanItem[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  type            String // PENGADAAN, JASA
+  notes           String?
+  vehicle         String?
+  plateNumber     String?
+  driverName      String?
+  returnedFileUrl String?
+  items           SuratJalanItem[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model SuratJalanItem {
   id           String     @id @default(cuid())
   suratJalanId String
   suratJalan   SuratJalan @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
+  itemId       String?
+  itemCode     String?
   description  String
   qty          Float
   unit         String
@@ -208,45 +257,45 @@ model SuratJalanItem {
 
 // ─── BAST ───
 model BAST {
-  id          String       @id @default(cuid())
-  projectId   String
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  bastNumber  String
-  date        DateTime
-  type        String       // PENGADAAN, JASA
-  notes       String?
-  items       BASTItem[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String     @id @default(cuid())
+  projectId  String
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bastNumber String
+  date       DateTime
+  type       String // PENGADAAN, JASA
+  notes      String?
+  items      BASTItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 model BASTItem {
-  id         String  @id @default(cuid())
-  bastId     String
-  bast       BAST    @relation(fields: [bastId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  bastId      String
+  bast        BAST     @relation(fields: [bastId], references: [id], onDelete: Cascade)
   description String
-  qty        Float
-  unit       String
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  qty         Float
+  unit        String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ─── Invoice ───
 model Invoice {
-  id            String        @id @default(cuid())
+  id            String          @id @default(cuid())
   projectId     String
-  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   invoiceNumber String
   date          DateTime
   dueDate       DateTime?
-  paymentMethod String        // CASH, TEMPO, TERMIN
-  status        String        @default("UNPAID") // UNPAID, PARTIAL, PAID
+  paymentMethod String // CASH, TEMPO, TERMIN
+  status        String          @default("UNPAID") // UNPAID, PARTIAL, PAID
   notes         String?
   items         InvoiceItem[]
   termins       InvoiceTermin[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model InvoiceItem {
@@ -261,18 +310,18 @@ model InvoiceItem {
 }
 
 model InvoiceTermin {
-  id          String   @id @default(cuid())
-  invoiceId   String
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  terminNo    Int
-  percentage  Float
-  amount      Float
-  dueDate     DateTime?
-  status      String   @default("UNPAID") // UNPAID, PAID
-  paidAt      DateTime?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  terminNo   Int
+  percentage Float
+  amount     Float
+  dueDate    DateTime?
+  status     String    @default("UNPAID") // UNPAID, PAID
+  paidAt     DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 // ─── Kuitansi ───
@@ -285,7 +334,7 @@ model Kuitansi {
   kuitansiNumber String
   date           DateTime
   amount         Float
-  paymentMethod  String         // CASH, TRANSFER, TEMPO
+  paymentMethod  String // CASH, TRANSFER, TEMPO
   notes          String?
   items          KuitansiItem[]
   createdAt      DateTime       @default(now())
@@ -293,12 +342,122 @@ model Kuitansi {
 }
 
 model KuitansiItem {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   kuitansiId  String
-  kuitansi    Kuitansi  @relation(fields: [kuitansiId], references: [id], onDelete: Cascade)
+  kuitansi    Kuitansi @relation(fields: [kuitansiId], references: [id], onDelete: Cascade)
   description String
   amount      Float
   notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Stok / Product ───
+model Product {
+  id               String            @id @default(cuid())
+  productId        String            @unique // ID Barang (e.g., SKU)
+  category         String
+  subCategory      String?
+  name             String
+  spec             String?
+  qty              Float             @default(0)
+  sellPrice        Float             @default(0) // harga jual
+  costPrice        Float             @default(0) // harga pokok
+  retailPrice      Float             @default(0) // harga eceran
+  warranty         String?           // garansi
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  transactionItems TransactionItem[]
+}
+
+// ─── POS Transaksi / Sales ───
+model Transaction {
+  id              String            @id @default(cuid())
+  transactionId   String            @unique // Nomor Transaksi
+  date            DateTime          @default(now())
+  clientId        String?
+  client          Client?           @relation(fields: [clientId], references: [id])
+  clientName      String?
+  clientPhone     String?
+  clientAddress   String?
+  clientEmail     String?
+  discount        Float             @default(0)
+  shippingCost    Float             @default(0)
+  tax             Float             @default(0) // PPN
+  subTotal        Float             @default(0)
+  grandTotal      Float             @default(0)
+  paymentMethod   String // CASH, TRANSFER, QRIS
+  paymentProofUrl String? // Bukti bayar
+  status          String            @default("SUCCESS") // SUCCESS, PENDING, CANCELLED
+  items           TransactionItem[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model TransactionItem {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?    @relation(fields: [productId], references: [id])
+  name          String
+  modelType     String?
+  spec          String?
+  serialNumber  String? // Input manual
+  qty           Float
+  unitPrice     Float
+  totalPrice    Float // qty * unitPrice
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// ─── POS Service ───
+model Service {
+  id            String          @id @default(cuid())
+  serviceId     String          @unique // Nomor Service
+  date          DateTime        @default(now())
+  clientId      String?
+  client        Client?         @relation(fields: [clientId], references: [id])
+  clientName    String?
+  clientPhone   String?
+  clientAddress String?
+  itemName      String
+  brand         String?
+  modelType     String?
+  serialNumber  String?
+  completeness  String? // Kelengkapan
+  complaint     String // Keluhan
+  photoUrl      String? // Foto (auto compress)
+  status        String          @default("PENDING") // PENDING, PROSES, DIKIRIM_KE_SERVICE_CENTER, SELESAI, CANCELLED
+  actions          ServiceAction[]
+  sparepartDetails String?         // JSON string array of { name: string, price: number }
+  sparepartCost    Float           @default(0)
+  serviceFee       Float           @default(0)
+  shippingCost     Float           @default(0)
+  totalCost        Float           @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model ServiceAction {
+  id         String   @id @default(cuid())
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  technician String? // Nama teknisi
+  action     String // Tindakan yang dilakukan
+  note       String? // Catatan
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Keuangan / Petty Cash ───
+model PettyCash {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  type        String // INCOME (Tambah Saldo), EXPENSE (Pengeluaran)
+  description String
+  amount      Float
+  proofUrl    String? // Bukti bayar
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

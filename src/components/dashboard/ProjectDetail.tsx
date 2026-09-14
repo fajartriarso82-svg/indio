@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -82,13 +82,22 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   // RAB Purchase dialog
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState('')
-  const [purchaseForm, setPurchaseForm] = useState({ vendorId: '', qty: '1', buyPrice: '0', docUrl: '', notes: '' })
+  const [vendorType, setVendorType] = useState<'EXISTING' | 'NEW'>('EXISTING')
+  const [purchaseForm, setPurchaseForm] = useState({ vendorId: '', vendorName: '', qty: '1', buyPrice: '0', notes: '' })
+  const [purchaseDocFile, setPurchaseDocFile] = useState<File | null>(null)
   const [vendors, setVendors] = useState<any[]>([])
   const [submittingPurchase, setSubmittingPurchase] = useState(false)
 
+  // RAB Pay dialog
+  const [payOpen, setPayOpen] = useState(false)
+  const [selectedPurchaseId, setSelectedPurchaseId] = useState('')
+  const [payProofFile, setPayProofFile] = useState<File | null>(null)
+  const [submittingPay, setSubmittingPay] = useState(false)
+
   // Additional cost dialog
   const [addCostOpen, setAddCostOpen] = useState(false)
-  const [addCostForm, setAddCostForm] = useState({ category: 'ACCESSORIES', description: '', amount: '0', vendorId: '', notes: '' })
+  const [addCostForm, setAddCostForm] = useState({ category: 'ACCESSORIES', description: '', amount: '0', vendorName: '', notes: '', date: new Date().toISOString().split('T')[0] })
+  const [addCostFile, setAddCostFile] = useState<File | null>(null)
   const [submittingCost, setSubmittingCost] = useState(false)
 
   // Progress note
@@ -131,25 +140,50 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (vendorType === 'NEW' && !purchaseForm.vendorName.trim()) {
+      toast({ title: 'Error', description: 'Nama vendor baru wajib diisi', variant: 'destructive' })
+      return
+    }
+    if (vendorType === 'EXISTING' && !purchaseForm.vendorId) {
+      toast({ title: 'Error', description: 'Pilih vendor dari daftar', variant: 'destructive' })
+      return
+    }
+
     setSubmittingPurchase(true)
     try {
+      let docUrl = ''
+      if (purchaseDocFile) {
+        const formData = new FormData()
+        formData.append('file', purchaseDocFile)
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        const uploadData = await uploadRes.json()
+        if (uploadData.success) docUrl = uploadData.url
+      }
+
       const res = await fetch(`/api/projects/${projectId}/rab`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectItemId: selectedItemId,
-          vendorId: purchaseForm.vendorId || null,
+          vendorId: vendorType === 'EXISTING' ? purchaseForm.vendorId : null,
+          vendorName: vendorType === 'NEW' ? purchaseForm.vendorName : undefined,
           qty: parseFloat(purchaseForm.qty) || 0,
           buyPrice: parseFloat(purchaseForm.buyPrice) || 0,
-          docUrl: purchaseForm.docUrl || null,
+          docUrl,
           notes: purchaseForm.notes || null,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Pembelian Ditambahkan', description: 'Pembelian RAB telah dicatat.' })
+        toast({ title: 'Pembelian Ditambahkan', description: 'Request pembelian RAB telah dicatat.' })
         setPurchaseOpen(false)
-        setPurchaseForm({ vendorId: '', qty: '1', buyPrice: '0', docUrl: '', notes: '' })
+        setVendorType('EXISTING')
+        setPurchaseForm({ vendorId: '', vendorName: '', qty: '1', buyPrice: '0', notes: '' })
+        setPurchaseDocFile(null)
         fetchProject()
       } else {
         toast({ title: 'Error', description: data.error, variant: 'destructive' })
@@ -161,10 +195,90 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     }
   }
 
+  const handlePayPurchase = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmittingPay(true)
+    try {
+      let paymentProofUrl = ''
+      if (payProofFile) {
+        const formData = new FormData()
+        formData.append('file', payProofFile)
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        const uploadData = await uploadRes.json()
+        if (uploadData.success) paymentProofUrl = uploadData.url
+      }
+
+      const res = await fetch(`/api/projects/${projectId}/rab/${selectedPurchaseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'SUCCESS',
+          paymentProofUrl: paymentProofUrl || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Pembayaran Dikonfirmasi' })
+        setPayOpen(false)
+        setPayProofFile(null)
+        fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+    } finally {
+      setSubmittingPay(false)
+    }
+  }
+
+  const handleUploadSjReturn = async (sjId: string, file: File) => {
+    try {
+      toast({ title: 'Mengupload...', description: 'Mohon tunggu.' })
+      const formData = new FormData()
+      formData.append('file', file)
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+      const uploadData = await uploadRes.json()
+      if (uploadData.success) {
+        const updateRes = await fetch(`/api/projects/${projectId}/surat-jalan/${sjId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ returnedFileUrl: uploadData.url })
+        })
+        const updateData = await updateRes.json()
+        if (updateData.success) {
+          toast({ title: 'Upload Berhasil', description: 'Dokumen SJ kembali telah disimpan.' })
+          fetchProject()
+        } else {
+          toast({ title: 'Error', description: 'Gagal menyimpan URL dokumen', variant: 'destructive' })
+        }
+      } else {
+        toast({ title: 'Error', description: 'Gagal mengupload file', variant: 'destructive' })
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Terjadi kesalahan jaringan', variant: 'destructive' })
+    }
+  }
+
   const handleAddCost = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmittingCost(true)
     try {
+      let docUrl = ''
+      if (addCostFile) {
+        const formData = new FormData()
+        formData.append('file', addCostFile)
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        const uploadData = await uploadRes.json()
+        if (uploadData.success) docUrl = uploadData.url
+      }
+
       const res = await fetch(`/api/projects/${projectId}/additional-costs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,7 +286,9 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           category: addCostForm.category,
           description: addCostForm.description,
           amount: parseFloat(addCostForm.amount) || 0,
-          vendorId: addCostForm.vendorId || null,
+          vendorName: addCostForm.vendorName || null,
+          date: addCostForm.date,
+          docUrl: docUrl || null,
           notes: addCostForm.notes || null,
         }),
       })
@@ -180,7 +296,8 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       if (data.success) {
         toast({ title: 'Biaya Ditambahkan', description: 'Biaya tambahan telah dicatat.' })
         setAddCostOpen(false)
-        setAddCostForm({ category: 'ACCESSORIES', description: '', amount: '0', vendorId: '', notes: '' })
+        setAddCostForm({ category: 'ACCESSORIES', description: '', amount: '0', vendorName: '', notes: '', date: new Date().toISOString().split('T')[0] })
+        setAddCostFile(null)
         fetchProject()
       } else {
         toast({ title: 'Error', description: data.error, variant: 'destructive' })
@@ -320,7 +437,17 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <div className="grid grid-cols-2 gap-3">
                   <div><span className="text-muted-foreground">Kode Proyek:</span><p className="font-medium">{project.projectCode}</p></div>
                   <div><span className="text-muted-foreground">Tipe:</span><p className="font-medium">{project.type}</p></div>
-                  <div><span className="text-muted-foreground">Nomor PO:</span><p className="font-medium">{project.poNumber || '—'}</p></div>
+                  <div>
+                    <span className="text-muted-foreground">Nomor PO:</span>
+                    <p className="font-medium">
+                      {project.poNumber || '—'}
+                      {project.poFileUrl && (
+                        <a href={project.poFileUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">
+                          [Lihat File]
+                        </a>
+                      )}
+                    </p>
+                  </div>
                   <div><span className="text-muted-foreground">PIC Internal:</span><p className="font-medium">{project.internalPic || '—'}</p></div>
                   <div><span className="text-muted-foreground">Tanggal Mulai:</span><p className="font-medium">{formatDate(project.startDate)}</p></div>
                   <div><span className="text-muted-foreground">Tanggal Selesai:</span><p className="font-medium">{formatDate(project.endDate)}</p></div>
@@ -432,6 +559,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                       <TableHead>Item</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">Harga Jual</TableHead>
+                      <TableHead className="text-center">Deadline</TableHead>
                       <TableHead className="text-right">Total RAB</TableHead>
                       <TableHead className="text-right">Total Beli</TableHead>
                       <TableHead className="text-right">Margin</TableHead>
@@ -441,7 +569,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <TableBody>
                     {(project.items || []).length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           Tidak ada item dalam proyek ini
                         </TableCell>
                       </TableRow>
@@ -450,14 +578,15 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                         const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
                         const margin = item.total - itemBuyTotal
                         return (
-                          <>
-                            <TableRow key={item.id}>
+                          <Fragment key={item.id}>
+                            <TableRow>
                               <TableCell>
                                 <div className="font-medium text-foreground text-sm">{item.itemName}</div>
-                                <div className="text-[10px] text-muted-foreground">{item.itemId}</div>
+                                <div className="text-[10px] text-muted-foreground">ID: {item.itemId} {item.itemCode ? `| Kode: ${item.itemCode}` : ''}</div>
                               </TableCell>
                               <TableCell className="text-right text-sm">{item.qty} {item.unit}</TableCell>
                               <TableCell className="text-right text-sm">{formatCurrency(item.unitPrice)}</TableCell>
+                              <TableCell className="text-center text-sm">{formatDate(item.deadline)}</TableCell>
                               <TableCell className="text-right text-sm font-medium">{formatCurrency(item.total)}</TableCell>
                               <TableCell className="text-right text-sm font-medium text-destructive">{formatCurrency(itemBuyTotal)}</TableCell>
                               <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -480,26 +609,45 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                             {/* Purchase details */}
                             {item.purchases?.length > 0 && (
                               <TableRow key={`${item.id}-purchases`} className="bg-muted/20">
-                                <TableCell colSpan={7} className="p-2">
+                                <TableCell colSpan={8} className="p-2">
                                   <div className="pl-6 space-y-1">
                                     {item.purchases.map((p: any) => (
-                                      <div key={p.id} className="flex items-center gap-3 text-xs text-muted-foreground py-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                                        <span>{p.vendor?.name || 'Tanpa vendor'}</span>
-                                        <span>× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
+                                      <div key={p.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/50 last:border-0">
+                                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                                          {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
+                                        </Badge>
+                                        <span className="text-muted-foreground">{p.vendor?.name || 'Tanpa vendor'}</span>
+                                        <span className="text-muted-foreground">× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
                                         <span className="font-medium text-foreground">= {formatCurrency(p.totalBuy)}</span>
-                                        {p.docUrl && (
-                                          <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                            [doc]
-                                          </a>
-                                        )}
+                                        
+                                        {/* Actions & Links */}
+                                        <div className="flex items-center gap-2 ml-auto">
+                                          {p.docUrl && (
+                                            <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                              [Inv/Referensi]
+                                            </a>
+                                          )}
+                                          {p.paymentProofUrl && (
+                                            <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
+                                              [Bukti Transfer]
+                                            </a>
+                                          )}
+                                          {p.status === 'REQUEST' && (
+                                            <Button size="sm" className="h-6 text-[10px] px-2 ml-2" onClick={() => {
+                                              setSelectedPurchaseId(p.id)
+                                              setPayOpen(true)
+                                            }}>
+                                              Konfirmasi Bayar
+                                            </Button>
+                                          )}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </Fragment>
                         )
                       })
                     )}
@@ -534,11 +682,17 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">{cost.category}</Badge>
                           <span className="text-sm font-medium text-foreground">{cost.description}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{formatDate(cost.date)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {cost.vendor?.name || 'Tanpa vendor'}
+                          {cost.vendorName || 'Tanpa vendor'}
                           {cost.notes && ` · ${cost.notes}`}
                         </p>
+                        {cost.docUrl && (
+                          <a href={cost.docUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline mt-1 inline-block">
+                            [Lihat Bukti]
+                          </a>
+                        )}
                       </div>
                       <span className="text-sm font-medium text-destructive">{formatCurrency(cost.amount)}</span>
                     </div>
@@ -561,39 +715,81 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               </DialogHeader>
               <form onSubmit={handleAddPurchase} className="space-y-4 mt-2">
                 <div className="space-y-2">
-                  <Label>Vendor</Label>
-                  <Select value={purchaseForm.vendorId} onValueChange={(v) => setPurchaseForm({ ...purchaseForm, vendorId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Pilih vendor" /></SelectTrigger>
+                  <Label>Tipe Vendor</Label>
+                  <Select value={vendorType} onValueChange={(v: any) => setVendorType(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {vendors.map((v: any) => (
-                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                      ))}
+                      <SelectItem value="EXISTING">Pilih dari Database</SelectItem>
+                      <SelectItem value="NEW">Buat Vendor Baru</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {vendorType === 'EXISTING' ? (
+                  <div className="space-y-2">
+                    <Label>Vendor</Label>
+                    <Select value={purchaseForm.vendorId} onValueChange={(v) => setPurchaseForm({ ...purchaseForm, vendorId: v })}>
+                      <SelectTrigger><SelectValue placeholder="Pilih vendor" /></SelectTrigger>
+                      <SelectContent>
+                        {vendors.map((v: any) => (
+                          <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Nama Vendor Baru</Label>
+                    <Input value={purchaseForm.vendorName} onChange={(e) => setPurchaseForm({ ...purchaseForm, vendorName: e.target.value })} placeholder="Ketik nama vendor" required />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Qty</Label>
-                    <Input type="number" min="0" value={purchaseForm.qty} onChange={(e) => setPurchaseForm({ ...purchaseForm, qty: e.target.value })} />
+                    <Input type="number" min="0" step="any" value={purchaseForm.qty} onChange={(e) => setPurchaseForm({ ...purchaseForm, qty: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <Label>Harga Beli</Label>
-                    <Input type="number" min="0" value={purchaseForm.buyPrice} onChange={(e) => setPurchaseForm({ ...purchaseForm, buyPrice: e.target.value })} />
+                    <Label>Harga Beli (Satuan)</Label>
+                    <Input type="number" min="0" step="any" value={purchaseForm.buyPrice} onChange={(e) => setPurchaseForm({ ...purchaseForm, buyPrice: e.target.value })} required />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>URL Dokumen</Label>
-                  <Input value={purchaseForm.docUrl} onChange={(e) => setPurchaseForm({ ...purchaseForm, docUrl: e.target.value })} placeholder="https://..." />
+                  <Label>Upload Proforma Invoice / Referensi (Opsional)</Label>
+                  <Input type="file" accept=".pdf,image/*" onChange={(e) => setPurchaseDocFile(e.target.files?.[0] || null)} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Upload nota dari seller sebagai referensi harga / tagihan.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Catatan</Label>
-                  <Input value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Catatan opsional" />
+                  <Label>Catatan (No Rekening / Info Pembayaran)</Label>
+                  <Textarea value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Masukkan nomor rekening atau catatan transfer jika tidak ada invoice..." rows={2} />
                 </div>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingPurchase}>
-                    {submittingPurchase ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Tambah Pembelian
+                    {submittingPurchase ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Ajukan Request'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* RAB Pay Dialog */}
+          <Dialog open={payOpen} onOpenChange={setPayOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
+                <DialogDescription>Konfirmasi pelunasan request pembelian ini</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handlePayPurchase} className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label>Upload Bukti Transfer</Label>
+                  <Input type="file" accept=".pdf,image/*" onChange={(e) => setPayProofFile(e.target.files?.[0] || null)} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Struk resi transfer dari bank / e-wallet.</p>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setPayOpen(false)}>Batal</Button>
+                  <Button type="submit" disabled={submittingPay}>
+                    {submittingPay ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Konfirmasi & Lunas'}
                   </Button>
                 </div>
               </form>
@@ -624,24 +820,28 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <Label>Deskripsi *</Label>
                   <Input value={addCostForm.description} onChange={(e) => setAddCostForm({ ...addCostForm, description: e.target.value })} placeholder="Deskripsi" required />
                 </div>
-                <div className="space-y-2">
-                  <Label>Jumlah *</Label>
-                  <Input type="number" min="0" value={addCostForm.amount} onChange={(e) => setAddCostForm({ ...addCostForm, amount: e.target.value })} required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Jumlah *</Label>
+                    <Input type="number" min="0" value={addCostForm.amount} onChange={(e) => setAddCostForm({ ...addCostForm, amount: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tanggal *</Label>
+                    <Input type="date" value={addCostForm.date} onChange={(e) => setAddCostForm({ ...addCostForm, date: e.target.value })} required />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Vendor</Label>
-                  <Select value={addCostForm.vendorId} onValueChange={(v) => setAddCostForm({ ...addCostForm, vendorId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Pilih vendor (opsional)" /></SelectTrigger>
-                    <SelectContent>
-                      {vendors.map((v: any) => (
-                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Vendor / Toko (Opsional)</Label>
+                  <Input value={addCostForm.vendorName} onChange={(e) => setAddCostForm({ ...addCostForm, vendorName: e.target.value })} placeholder="Nama toko, warung, SPBU, dll" />
                 </div>
                 <div className="space-y-2">
                   <Label>Catatan</Label>
                   <Input value={addCostForm.notes} onChange={(e) => setAddCostForm({ ...addCostForm, notes: e.target.value })} placeholder="Catatan opsional" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload Bukti Biaya (Opsional)</Label>
+                  <Input type="file" accept=".pdf,image/*" onChange={(e) => setAddCostFile(e.target.files?.[0] || null)} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Struk / nota dari pembelian atau pengeluaran.</p>
                 </div>
                 <div className="flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={() => setAddCostOpen(false)}>Batal</Button>
@@ -688,6 +888,26 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                           ))}
                         </div>
                       )}
+                      
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.open(`/print/surat-jalan/${sj.id}`, '_blank')}>
+                          Cetak SJ
+                        </Button>
+                        <div className="flex items-center gap-2">
+                          {sj.returnedFileUrl ? (
+                            <a href={sj.returnedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline font-medium">
+                              Lihat SJ Kembali
+                            </a>
+                          ) : (
+                            <Label className="cursor-pointer text-xs text-primary hover:underline flex items-center gap-1 font-medium">
+                              <span>+ Upload SJ Kembali (TTD Klien)</span>
+                              <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => {
+                                if (e.target.files?.[0]) handleUploadSjReturn(sj.id, e.target.files[0])
+                              }} />
+                            </Label>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

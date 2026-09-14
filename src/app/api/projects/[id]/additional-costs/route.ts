@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId } = await context.params
     const body = await request.json()
-    const { category, description, amount, vendorId, docUrl, notes } = body
+    const { category, description, amount, vendorName, date, docUrl, notes } = body
 
     if (!category || !description || amount === undefined) {
       return NextResponse.json(
@@ -70,8 +70,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         category,
         description,
         amount: Number(amount),
-        vendorId: vendorId || null,
-        docUrl,
+        vendorName: vendorName || null,
+        date: date ? new Date(date) : undefined,
+        docUrl: docUrl || null,
         notes,
       },
       include: {

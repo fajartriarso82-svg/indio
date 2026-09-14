@@ -1,46 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { NextResponse } from 'next/server'
+import { db as prisma } from '@/lib/db'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Verify staff is authenticated
-    const token = request.cookies.get('staff_token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const session = await db.staffSession.findUnique({
-      where: { token },
-      include: { staff: true },
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    
+    // Transactions
+    const todayTransactions = await prisma.transaction.count({
+      where: { date: { gte: today } }
     })
-
-    if (!session || session.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Return dashboard stats
-    const totalStaff = await db.staff.count({ where: { isActive: true } })
-    const activeSessions = await db.staffSession.count({
-      where: { expiresAt: { gt: new Date() } },
+    
+    const monthTransactions = await prisma.transaction.count({
+      where: { date: { gte: startOfMonth } }
     })
-
-    // Clean up expired sessions
-    await db.staffSession.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    })
-
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalStaff,
-        activeSessions,
-        recentLogins: [], // Placeholder for future implementation
+    
+    // Services this month
+    const servicesThisMonth = await prisma.service.groupBy({
+      by: ['status'],
+      where: { date: { gte: startOfMonth } },
+      _count: {
+        id: true,
       },
     })
+    
+    const serviceStats = {
+      process: 0,
+      pending: 0,
+      success: 0,
+    }
+    
+    servicesThisMonth.forEach((s) => {
+      if (s.status === 'PROSES' || s.status === 'DIKIRIM_KE_SERVICE_CENTER') serviceStats.process += s._count.id
+      else if (s.status === 'PENDING') serviceStats.pending += s._count.id
+      else if (s.status === 'SELESAI') serviceStats.success += s._count.id
+    })
+
+    // Balances this month
+    const monthSalesTransactions = await prisma.transaction.aggregate({
+      where: { date: { gte: startOfMonth }, status: 'SUCCESS' },
+      _sum: { grandTotal: true }
+    })
+    const monthServices = await prisma.service.aggregate({
+      where: { date: { gte: startOfMonth }, status: 'SELESAI' },
+      _sum: { totalCost: true }
+    })
+    
+    const balanceThisMonth = (monthSalesTransactions._sum.grandTotal || 0) + (monthServices._sum.totalCost || 0)
+    
+    // Petty Cash Balance
+    const pettyCashIncome = await prisma.pettyCash.aggregate({
+      where: { type: 'INCOME' },
+      _sum: { amount: true }
+    })
+    const pettyCashExpense = await prisma.pettyCash.aggregate({
+      where: { type: 'EXPENSE' },
+      _sum: { amount: true }
+    })
+    const pettyCashBalance = (pettyCashIncome._sum.amount || 0) - (pettyCashExpense._sum.amount || 0)
+
+    return NextResponse.json({
+      transactions: {
+        today: todayTransactions,
+        thisMonth: monthTransactions
+      },
+      services: serviceStats,
+      balanceThisMonth,
+      pettyCashBalance
+    })
+
   } catch (error) {
-    console.error('Dashboard stats error:', error)
+    console.error('Error fetching dashboard stats:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { error: 'Failed to fetch dashboard stats' },
       { status: 500 }
     )
   }

@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { verifyPassword, rehashIfNeeded } from '@/lib/auth'
 import { randomUUID } from 'crypto'
-
-// Simple password hashing using Web Crypto API
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password)
-  return passwordHash === hash
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,11 +15,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid credentials' },
+        { status: 400 }
+      )
+    }
+
     // Find staff member
     const staff = await db.staff.findUnique({
       where: { username },
     })
 
+    // Same error for unknown user and wrong password (prevents user enumeration)
     if (!staff || !staff.isActive) {
       return NextResponse.json(
         { success: false, error: 'Invalid credentials' },
@@ -40,13 +35,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify password
+    // Verify password (bcrypt, with legacy SHA-256 fallback)
     const valid = await verifyPassword(password, staff.passwordHash)
     if (!valid) {
       return NextResponse.json(
         { success: false, error: 'Invalid credentials' },
         { status: 401 }
       )
+    }
+
+    // Upgrade legacy SHA-256 hash to bcrypt transparently
+    const newHash = await rehashIfNeeded(password, staff.passwordHash)
+    if (newHash) {
+      await db.staff.update({
+        where: { id: staff.id },
+        data: { passwordHash: newHash },
+      })
     }
 
     // Create session token

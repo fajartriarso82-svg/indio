@@ -217,33 +217,37 @@ export default function ClientModule() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Klien</h1>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Klien</h2>
           <p className="text-sm text-muted-foreground mt-1">Kelola daftar klien Anda</p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Tambah Klien
+        <Button onClick={handleOpenCreate} className="gap-2">
+          <Plus className="w-4 h-4" /> Tambah Klien
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Cari klien..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardHeader className="p-4 sm:px-6 pb-0">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="text-lg">Daftar Klien</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Cari klien..."
+                  className="pl-9 h-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+          <div className="border rounded-md overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>Nama</TableHead>
                   <TableHead className="hidden md:table-cell">Tipe</TableHead>
                   <TableHead className="hidden sm:table-cell">PIC</TableHead>

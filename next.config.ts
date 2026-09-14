@@ -1,12 +1,24 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  // Pastikan Turbopack memakai root project ini (bukan parent dir)
+  turbopack: {
+    root: process.cwd(),
+  },
+  // TypeScript errors wajib terdeteksi agar tidak ada bug tersembunyi di production
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   reactStrictMode: false,
+  images: {
+    remotePatterns: [
+      {
+        // Supabase Storage public URLs
+        protocol: "https",
+        hostname: "*.supabase.co",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -44,10 +44,12 @@ interface ClientOption {
 
 interface ItemRow {
   itemId: string
+  itemCode: string
   itemName: string
   qty: string
   unit: string
   unitPrice: string
+  deadline: string
 }
 
 export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFormProps) {
@@ -63,10 +65,11 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
   const [clientPicPhone, setClientPicPhone] = useState('')
   const [clientAddress, setClientAddress] = useState('')
   const [poNumber, setPoNumber] = useState('')
+  const [poFile, setPoFile] = useState<File | null>(null)
   const [internalPic, setInternalPic] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>([
-    { itemId: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0' },
+    { itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' },
   ])
 
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
   }
 
   const addItemRow = () => {
-    setItems([...items, { itemId: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0' }])
+    setItems([...items, { itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' }])
   }
 
   const removeItemRow = (index: number) => {
@@ -125,9 +128,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     setClientPicPhone('')
     setClientAddress('')
     setPoNumber('')
+    setPoFile(null)
     setInternalPic('')
     setNotes('')
-    setItems([{ itemId: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0' }])
+    setItems([{ itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' }])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,6 +157,18 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
     setSubmitting(true)
     try {
+      let uploadedPoUrl = ''
+      if (poFile) {
+        const formData = new FormData()
+        formData.append('file', poFile)
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        const uploadData = await uploadRes.json()
+        if (uploadData.success) uploadedPoUrl = uploadData.url
+      }
+
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,14 +181,17 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           clientPicPhone,
           clientAddress,
           poNumber,
+          poFileUrl: uploadedPoUrl || null,
           internalPic,
           notes,
           items: validItems.map((item) => ({
             itemId: item.itemId,
+            itemCode: item.itemCode,
             itemName: item.itemName,
             qty: parseFloat(item.qty) || 0,
             unit: item.unit,
             unitPrice: parseFloat(item.unitPrice) || 0,
+            deadline: item.deadline ? new Date(item.deadline).toISOString() : null
           })),
         }),
       })
@@ -205,7 +224,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[90vw] md:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Buat Proyek Baru</DialogTitle>
           <DialogDescription>
@@ -263,6 +282,16 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 value={poNumber}
                 onChange={(e) => setPoNumber(e.target.value)}
                 placeholder="Nomor purchase order"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="poFile">Upload Dokumen PO</Label>
+              <Input
+                id="poFile"
+                type="file"
+                accept=".pdf,image/*"
+                onChange={(e) => setPoFile(e.target.files?.[0] || null)}
               />
             </div>
 
@@ -336,12 +365,14 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">ID Item</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">Nama Item *</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-28">ID Item</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-28">Kode Barang</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[200px]">Nama Item *</th>
                     <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-20">Qty</th>
                     <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-20">Satuan</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32">Harga Satuan</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32">Total</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-28">Harga Satuan</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-32">Deadline</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-28">Total</th>
                     <th className="px-3 py-2 w-10"></th>
                   </tr>
                 </thead>
@@ -353,6 +384,14 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                           value={item.itemId}
                           onChange={(e) => updateItem(idx, 'itemId', e.target.value)}
                           placeholder="ID"
+                          className="h-8 text-xs"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={item.itemCode}
+                          onChange={(e) => updateItem(idx, 'itemCode', e.target.value)}
+                          placeholder="Kode"
                           className="h-8 text-xs"
                         />
                       </td>
@@ -391,6 +430,14 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                           min="0"
                         />
                       </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="date"
+                          value={item.deadline}
+                          onChange={(e) => updateItem(idx, 'deadline', e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </td>
                       <td className="px-3 py-2 text-right font-medium text-xs text-foreground">
                         {formatCurrency(getItemTotal(item))}
                       </td>
@@ -411,7 +458,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 </tbody>
                 <tfoot className="border-t bg-muted/30">
                   <tr>
-                    <td colSpan={5} className="px-3 py-2 text-right font-medium text-sm">
+                    <td colSpan={6} className="px-3 py-2 text-right font-medium text-sm">
                       Total Keseluruhan:
                     </td>
                     <td className="px-3 py-2 text-right font-bold text-sm text-primary">

@@ -15,8 +15,8 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
                 <span className="text-primary-foreground font-bold text-sm">IN</span>
               </div>
               <div>
-                <p className="font-bold text-sm text-primary-foreground">PT INDO</p>
-                <p className="text-[10px] text-primary-foreground/50">Optima</p>
+                <p className="font-bold text-sm text-primary-foreground">PT INTI NUSA DINAMIKA OPTIMA</p>
+                <p className="text-[10px] text-primary-foreground/50">Cilacap</p>
               </div>
             </div>
             <p className="text-xs text-primary-foreground/60 leading-relaxed max-w-xs">

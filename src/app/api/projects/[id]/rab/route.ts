@@ -68,7 +68,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId } = await context.params
     const body = await request.json()
-    const { projectItemId, vendorId, qty, buyPrice, docUrl, notes } = body
+    const { projectItemId, vendorId, vendorName, qty, buyPrice, docUrl, notes } = body
 
     if (!projectItemId || qty === undefined || buyPrice === undefined) {
       return NextResponse.json(
@@ -95,18 +95,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
+    let finalVendorId = vendorId
+    if (!finalVendorId && vendorName) {
+      const newVendor = await db.vendor.create({
+        data: { name: vendorName }
+      })
+      finalVendorId = newVendor.id
+    }
+
     const totalBuy = Number(qty) * Number(buyPrice)
 
     const purchase = await db.rABPurchase.create({
       data: {
         projectId,
         projectItemId,
-        vendorId: vendorId || null,
+        vendorId: finalVendorId || null,
         qty: Number(qty),
         buyPrice: Number(buyPrice),
         totalBuy,
         docUrl,
         notes,
+        status: 'REQUEST',
+        requestDate: new Date(),
       },
       include: {
         vendor: { select: { id: true, name: true } },
