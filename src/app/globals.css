@@ -124,6 +124,39 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Cegah scroll horizontal tak diinginkan pada perangkat mobile/PWA */
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Target sentuh minimal nyaman di mobile */
+  @media (max-width: 767px) {
+    button,
+    [role='button'],
+    a {
+      touch-action: manipulation;
+    }
+  }
+}
+
+/* ===== Mobile / PWA helpers ===== */
+/* Tinggi layar dinamis (aman untuk address bar browser mobile) */
+@supports (height: 100dvh) {
+  .min-h-dvh-safe {
+    min-height: 100dvh;
+  }
+}
+
+/* Scrollbar tipis untuk area dengan scroll horizontal (tabel desktop) */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* Hindari iOS auto-zoom saat fokus input (font minimal 16px di mobile) */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

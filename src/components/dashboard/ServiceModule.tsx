@@ -166,85 +166,146 @@ export default function ServiceModule() {
             <div className="flex items-center justify-center h-48">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : (
-            <div className="border rounded-md overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[120px]">ID Service</TableHead>
-                    <TableHead className="w-[140px]">Tanggal</TableHead>
-                    <TableHead>Pelanggan</TableHead>
-                    <TableHead>Barang & Keluhan</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="w-[80px] text-center">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredServices.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Wrench className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                          <p className="font-medium text-foreground">Belum ada data service</p>
-                          <p className="text-sm">Klik 'Terima Service' untuk menambah data.</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredServices.map((svc) => (
-                      <TableRow key={svc.id}>
-                        <TableCell className="font-medium">{svc.serviceId}</TableCell>
-                        <TableCell>
-                          {format(new Date(svc.date), 'dd MMM yyyy', { locale: id })}
-                        </TableCell>
-                        <TableCell>{svc.clientName || 'Pelanggan Umum'}</TableCell>
-                        <TableCell>
-                          <div className="font-medium">{svc.itemName}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{svc.complaint}</div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge 
-                            variant="outline" 
-                            className={
-                              svc.status === 'SELESAI' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                              svc.status === 'PROSES' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                              svc.status === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                              svc.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                              'bg-purple-50 text-purple-600 border-purple-200'
-                            }
-                          >
-                            {svc.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-blue-500"
-                              onClick={() => {
-                                setSelectedService(svc)
-                                setDetailModalOpen(true)
-                              }}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-rose-500 hover:bg-rose-100"
-                              onClick={() => handleDelete(svc.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+          ) : filteredServices.length === 0 ? (
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4">
+              <Wrench className="w-8 h-8 mb-2 text-muted-foreground/50" />
+              <p className="font-medium text-foreground">Belum ada data service</p>
+              <p className="text-sm">Klik 'Terima Service' untuk menambah data.</p>
             </div>
+          ) : (
+            <>
+              {/* ===== MOBILE: Card list ===== */}
+              <div className="md:hidden divide-y divide-border border-t border-border">
+                {filteredServices.map((svc) => (
+                  <div key={svc.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{svc.serviceId}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {format(new Date(svc.date), 'dd MMM yyyy', { locale: id })}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`shrink-0 ${
+                          svc.status === 'SELESAI' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                          svc.status === 'PROSES' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                          svc.status === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                          svc.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                          'bg-purple-50 text-purple-600 border-purple-200'
+                        }`}
+                      >
+                        {svc.status}
+                      </Badge>
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Pelanggan</p>
+                      <p className="text-sm truncate">{svc.clientName || 'Pelanggan Umum'}</p>
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Barang</p>
+                      <p className="text-sm font-medium truncate">{svc.itemName}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{svc.complaint}</p>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => {
+                          setSelectedService(svc)
+                          setDetailModalOpen(true)
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        Detail
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-rose-600 hover:bg-rose-50"
+                        onClick={() => handleDelete(svc.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ===== DESKTOP: Tabel ===== */}
+              <div className="hidden md:block border rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="min-w-[120px]">ID Service</TableHead>
+                        <TableHead className="min-w-[140px]">Tanggal</TableHead>
+                        <TableHead className="min-w-[140px]">Pelanggan</TableHead>
+                        <TableHead className="min-w-[200px]">Barang & Keluhan</TableHead>
+                        <TableHead className="text-center min-w-[100px]">Status</TableHead>
+                        <TableHead className="min-w-[80px] text-center">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredServices.map((svc) => (
+                        <TableRow key={svc.id}>
+                          <TableCell className="font-medium">{svc.serviceId}</TableCell>
+                          <TableCell>
+                            {format(new Date(svc.date), 'dd MMM yyyy', { locale: id })}
+                          </TableCell>
+                          <TableCell>{svc.clientName || 'Pelanggan Umum'}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{svc.itemName}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">{svc.complaint}</div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant="outline"
+                              className={
+                                svc.status === 'SELESAI' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                svc.status === 'PROSES' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                svc.status === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                svc.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                'bg-purple-50 text-purple-600 border-purple-200'
+                              }
+                            >
+                              {svc.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-blue-500"
+                                onClick={() => {
+                                  setSelectedService(svc)
+                                  setDetailModalOpen(true)
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-rose-500 hover:bg-rose-100"
+                                onClick={() => handleDelete(svc.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

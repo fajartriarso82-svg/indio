@@ -376,88 +376,172 @@ export default function TransactionFormModal({
                 </div>
               </div>
 
-              <div className="border rounded-md overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="min-w-[200px]">Nama Barang</TableHead>
-                      <TableHead className="w-[100px]">QTY</TableHead>
-                      <TableHead className="min-w-[150px]">Harga Satuan</TableHead>
-                      <TableHead className="min-w-[150px]">Total</TableHead>
-                      <TableHead className="w-[60px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                          Belum ada barang yang ditambahkan
-                        </TableCell>
+              {/* ===== MOBILE: Kartu item (md ke bawah) ===== */}
+              <div className="md:hidden space-y-3">
+                {items.length === 0 ? (
+                  <div className="border rounded-md text-center text-muted-foreground py-8 text-sm">
+                    Belum ada barang yang ditambahkan
+                  </div>
+                ) : (
+                  items.map((item, idx) => (
+                    <div key={item.id} className="border rounded-lg p-3 space-y-3 bg-muted/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Barang #{idx + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-rose-500"
+                          onClick={() => handleRemoveItem(item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <Select
+                        value={item.productId}
+                        onValueChange={(val) => {
+                          const prod = products.find((p) => p.id === val)
+                          if (prod) {
+                            handleUpdateItem(item.id, {
+                              productId: prod.id,
+                              name: prod.name,
+                              unitPrice: prod.sellPrice,
+                            })
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Pilih barang..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} - {formatCurrency(p.sellPrice)} (Stok: {p.qty})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">QTY</Label>
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={formatNumberInput(item.qty)}
+                            onChange={(e) => handleUpdateItem(item.id, { qty: parseNumberInput(e.target.value) })}
+                            className="h-10 text-center"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Harga Satuan</Label>
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={formatNumberInput(item.unitPrice)}
+                            onChange={(e) => handleUpdateItem(item.id, { unitPrice: parseNumberInput(e.target.value) })}
+                            className="h-10 text-right"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t pt-2.5">
+                        <span className="text-xs text-muted-foreground">Total</span>
+                        <span className="font-semibold text-sm">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* ===== DESKTOP: Tabel ===== */}
+              <div className="hidden md:block border rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="min-w-[200px]">Nama Barang</TableHead>
+                        <TableHead className="w-[100px]">QTY</TableHead>
+                        <TableHead className="min-w-[150px]">Harga Satuan</TableHead>
+                        <TableHead className="min-w-[150px]">Total</TableHead>
+                        <TableHead className="w-[60px]"></TableHead>
                       </TableRow>
-                    ) : (
-                      items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="p-2 min-w-[200px]">
-                            <Select
-                              value={item.productId}
-                              onValueChange={(val) => {
-                                const prod = products.find(p => p.id === val)
-                                if (prod) {
-                                  handleUpdateItem(item.id, {
-                                    productId: prod.id,
-                                    name: prod.name,
-                                    unitPrice: prod.sellPrice
-                                  })
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Pilih barang..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map(p => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name} - {formatCurrency(p.sellPrice)} (Stok: {p.qty})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="p-2 min-w-[80px]">
-                            <Input
-                              type="text"
-                              value={formatNumberInput(item.qty)}
-                              onChange={(e) => handleUpdateItem(item.id, { qty: parseNumberInput(e.target.value) })}
-                              className="h-8 text-center"
-                            />
-                          </TableCell>
-                          <TableCell className="p-2 min-w-[150px]">
-                            <Input
-                              type="text"
-                              value={formatNumberInput(item.unitPrice)}
-                              onChange={(e) => handleUpdateItem(item.id, { unitPrice: parseNumberInput(e.target.value) })}
-                              className="h-8 text-right"
-                            />
-                          </TableCell>
-                          <TableCell className="p-2 font-medium">
-                            {formatCurrency(item.totalPrice)}
-                          </TableCell>
-                          <TableCell className="p-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-rose-500"
-                              onClick={() => handleRemoveItem(item.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                    </TableHeader>
+                    <TableBody>
+                      {items.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Belum ada barang yang ditambahkan
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        items.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="p-2 min-w-[200px]">
+                              <Select
+                                value={item.productId}
+                                onValueChange={(val) => {
+                                  const prod = products.find(p => p.id === val)
+                                  if (prod) {
+                                    handleUpdateItem(item.id, {
+                                      productId: prod.id,
+                                      name: prod.name,
+                                      unitPrice: prod.sellPrice
+                                    })
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Pilih barang..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      {p.name} - {formatCurrency(p.sellPrice)} (Stok: {p.qty})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="p-2 min-w-[80px]">
+                              <Input
+                                type="text"
+                                value={formatNumberInput(item.qty)}
+                                onChange={(e) => handleUpdateItem(item.id, { qty: parseNumberInput(e.target.value) })}
+                                className="h-8 text-center"
+                              />
+                            </TableCell>
+                            <TableCell className="p-2 min-w-[150px]">
+                              <Input
+                                type="text"
+                                value={formatNumberInput(item.unitPrice)}
+                                onChange={(e) => handleUpdateItem(item.id, { unitPrice: parseNumberInput(e.target.value) })}
+                                className="h-8 text-right"
+                              />
+                            </TableCell>
+                            <TableCell className="p-2 font-medium">
+                              {formatCurrency(item.totalPrice)}
+                            </TableCell>
+                            <TableCell className="p-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-rose-500"
+                                onClick={() => handleRemoveItem(item.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
 

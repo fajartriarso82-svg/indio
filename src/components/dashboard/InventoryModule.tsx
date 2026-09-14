@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import * as XLSX from 'xlsx'
 import { ProductFormModal } from './ProductFormModal'
 
@@ -253,87 +254,149 @@ export default function InventoryModule() {
             <div className="flex items-center justify-center h-48">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : (
-            <div className="border rounded-md overflow-hidden overflow-x-auto">
-              <Table className="whitespace-nowrap">
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Nomor / ID</TableHead>
-                    <TableHead>Nama Barang & Spek</TableHead>
-                    <TableHead>Kategori</TableHead>
-                    <TableHead className="text-right">QTY</TableHead>
-                    <TableHead className="text-right">Harga Pokok</TableHead>
-                    <TableHead className="text-right">Harga Jual</TableHead>
-                    <TableHead className="text-right">Harga Eceran</TableHead>
-                    <TableHead>Garansi</TableHead>
-                    <TableHead className="text-center w-[100px]">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="h-32 text-center">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Package className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                          <p className="font-medium text-foreground">Stok kosong</p>
-                          <p className="text-sm">Klik 'Tambah Barang' atau 'Import Excel' untuk mengisi stok.</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredProducts.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.productId}</TableCell>
-                        <TableCell>
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-xs text-muted-foreground max-w-[200px] truncate" title={p.spec}>{p.spec || '-'}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{p.category}</div>
-                          <div className="text-xs text-muted-foreground">{p.subCategory || '-'}</div>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatNumber(p.qty)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(p.costPrice)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-emerald-600">
-                          {formatCurrency(p.sellPrice)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-blue-600">
-                          {formatCurrency(p.retailPrice)}
-                        </TableCell>
-                        <TableCell className="text-xs">{p.warranty || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => {
-                                setEditingProduct(p)
-                                setIsModalOpen(true)
-                              }}
-                            >
-                              <Edit className="w-4 h-4 text-blue-500" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 hover:bg-red-100"
-                              onClick={() => handleDelete(p.id)}
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+          ) : filteredProducts.length === 0 ? (
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4">
+              <Package className="w-8 h-8 mb-2 text-muted-foreground/50" />
+              <p className="font-medium text-foreground">Stok kosong</p>
+              <p className="text-sm text-center">Klik 'Tambah Barang' atau 'Import Excel' untuk mengisi stok.</p>
             </div>
+          ) : (
+            <>
+              {/* ===== MOBILE: Card list ===== */}
+              <div className="md:hidden divide-y divide-border border-t border-border">
+                {filteredProducts.map((p) => (
+                  <div key={p.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">{p.productId}</p>
+                        <p className="font-semibold text-sm mt-0.5">{p.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{p.spec || '-'}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-xs text-muted-foreground">Stok</p>
+                        <p className="font-bold text-base">{formatNumber(p.qty)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="text-xs">{p.category}</Badge>
+                      {p.subCategory && <Badge variant="outline" className="text-xs">{p.subCategory}</Badge>}
+                      {p.warranty && <Badge variant="outline" className="text-xs">Garansi {p.warranty}</Badge>}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs bg-muted/40 rounded-md p-2.5">
+                      <div>
+                        <p className="text-muted-foreground">Pokok</p>
+                        <p className="font-medium mt-0.5">{formatCurrency(p.costPrice)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Jual</p>
+                        <p className="font-medium text-emerald-600 mt-0.5">{formatCurrency(p.sellPrice)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Eceran</p>
+                        <p className="font-medium text-blue-600 mt-0.5">{formatCurrency(p.retailPrice)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => {
+                          setEditingProduct(p)
+                          setIsModalOpen(true)
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-1.5 text-blue-500" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-rose-600 hover:bg-rose-50"
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ===== DESKTOP: Tabel ===== */}
+              <div className="hidden md:block border rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table className="whitespace-nowrap">
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Nomor / ID</TableHead>
+                        <TableHead>Nama Barang & Spek</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead className="text-right">QTY</TableHead>
+                        <TableHead className="text-right">Harga Pokok</TableHead>
+                        <TableHead className="text-right">Harga Jual</TableHead>
+                        <TableHead className="text-right">Harga Eceran</TableHead>
+                        <TableHead>Garansi</TableHead>
+                        <TableHead className="text-center w-[100px]">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.productId}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{p.name}</div>
+                            <div className="text-xs text-muted-foreground max-w-[200px] truncate" title={p.spec}>{p.spec || '-'}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div>{p.category}</div>
+                            <div className="text-xs text-muted-foreground">{p.subCategory || '-'}</div>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatNumber(p.qty)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(p.costPrice)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-emerald-600">
+                            {formatCurrency(p.sellPrice)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-blue-600">
+                            {formatCurrency(p.retailPrice)}
+                          </TableCell>
+                          <TableCell className="text-xs">{p.warranty || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingProduct(p)
+                                  setIsModalOpen(true)
+                                }}
+                              >
+                                <Edit className="w-4 h-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-red-100"
+                                onClick={() => handleDelete(p.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -161,74 +161,122 @@ export default function ProjectModule() {
           </div>
         </CardHeader>
         <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Proyek</TableHead>
-                  <TableHead className="hidden md:table-cell">Tipe</TableHead>
-                  <TableHead className="hidden sm:table-cell">Klien</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Item</TableHead>
-                  <TableHead className="text-right">Lihat</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                    </TableCell>
-                  </TableRow>
-                ) : projects.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      Tidak ada proyek. Buat proyek pertama Anda!
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  projects.map((project) => (
-                    <TableRow
-                      key={project.id}
-                      className="cursor-pointer hover:bg-primary/5"
-                      onClick={() => setSelectedProjectId(project.id)}
-                    >
-                      <TableCell>
-                        <div className="font-medium text-foreground">{project.name}</div>
-                        <div className="text-xs text-muted-foreground">
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-muted-foreground px-4 text-center">
+              Tidak ada proyek. Buat proyek pertama Anda!
+            </div>
+          ) : (
+            <>
+              {/* ===== MOBILE: Card list ===== */}
+              <div className="md:hidden divide-y divide-border border-t border-border">
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => setSelectedProjectId(project.id)}
+                    className="w-full text-left p-4 space-y-3 active:bg-muted/60"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm">{project.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {project.projectCode}
                           {project.poNumber && ` · PO: ${project.poNumber}`}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {project.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm">
-                        {project.client?.name || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
-                          {statusLabels[project.status] || project.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Badge variant="secondary" className="text-[11px]">
-                          {project._count?.items ?? 0}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5" />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
+                        {statusLabels[project.status] || project.status}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {project.type}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Klien</p>
+                        <p className="truncate mt-0.5">{project.client?.name || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Item</p>
+                        <p className="mt-0.5">
+                          <Badge variant="secondary" className="text-[11px]">
+                            {project._count?.items ?? 0}
+                          </Badge>
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* ===== DESKTOP: Tabel ===== */}
+              <div className="hidden md:block border rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Proyek</TableHead>
+                        <TableHead className="hidden md:table-cell">Tipe</TableHead>
+                        <TableHead className="hidden sm:table-cell">Klien</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden lg:table-cell">Item</TableHead>
+                        <TableHead className="text-right">Lihat</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {projects.map((project) => (
+                        <TableRow
+                          key={project.id}
+                          className="cursor-pointer hover:bg-primary/5"
+                          onClick={() => setSelectedProjectId(project.id)}
+                        >
+                          <TableCell>
+                            <div className="font-medium text-foreground">{project.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {project.projectCode}
+                              {project.poNumber && ` · PO: ${project.poNumber}`}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {project.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm">
+                            {project.client?.name || '—'}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
+                              {statusLabels[project.status] || project.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <Badge variant="secondary" className="text-[11px]">
+                              {project._count?.items ?? 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

@@ -218,7 +218,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6">
+        <main className="flex-1 p-3 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] overflow-x-hidden">
           <motion.div
             key={activeModule}
             initial={{ opacity: 0, y: 8 }}

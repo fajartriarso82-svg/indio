@@ -334,41 +334,91 @@ export default function SettingsModule() {
                   <p>Belum ada data karyawan</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID / NIK</TableHead>
-                      <TableHead>Nama Karyawan</TableHead>
-                      <TableHead>Jabatan</TableHead>
-                      <TableHead>No HP</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employees.map(emp => (
-                      <TableRow key={emp.id}>
-                        <TableCell className="font-medium">{emp.employeeId}</TableCell>
-                        <TableCell>{emp.name}</TableCell>
-                        <TableCell>{emp.position || '-'}</TableCell>
-                        <TableCell>{emp.phone || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          {emp.isActive ? <Badge variant="outline" className="bg-emerald-50 text-emerald-600">Aktif</Badge> : <Badge variant="outline" className="bg-rose-50 text-rose-600">Non-Aktif</Badge>}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openEmpModal(emp)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600" onClick={() => handleDeleteEmployee(emp.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                <>
+                  {/* ===== MOBILE: Card list ===== */}
+                  <div className="md:hidden divide-y divide-border">
+                    {employees.map((emp) => (
+                      <div key={emp.id} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm">{emp.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{emp.employeeId}</p>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                          {emp.isActive ? (
+                            <Badge variant="outline" className="shrink-0 bg-emerald-50 text-emerald-600">Aktif</Badge>
+                          ) : (
+                            <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-600">Non-Aktif</Badge>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Jabatan</p>
+                            <p className="truncate mt-0.5">{emp.position || '-'}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">No HP</p>
+                            <p className="truncate mt-0.5">{emp.phone || '-'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          <Button variant="outline" size="sm" className="h-9" onClick={() => openEmpModal(emp)}>
+                            <Edit className="w-4 h-4 mr-1.5 text-blue-600" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 text-rose-600 hover:bg-rose-50"
+                            onClick={() => handleDeleteEmployee(emp.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+
+                  {/* ===== DESKTOP: Tabel ===== */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID / NIK</TableHead>
+                          <TableHead>Nama Karyawan</TableHead>
+                          <TableHead>Jabatan</TableHead>
+                          <TableHead>No HP</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                          <TableHead className="text-center">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {employees.map(emp => (
+                          <TableRow key={emp.id}>
+                            <TableCell className="font-medium">{emp.employeeId}</TableCell>
+                            <TableCell>{emp.name}</TableCell>
+                            <TableCell>{emp.position || '-'}</TableCell>
+                            <TableCell>{emp.phone || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              {emp.isActive ? <Badge variant="outline" className="bg-emerald-50 text-emerald-600">Aktif</Badge> : <Badge variant="outline" className="bg-rose-50 text-rose-600">Non-Aktif</Badge>}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openEmpModal(emp)}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600" onClick={() => handleDeleteEmployee(emp.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

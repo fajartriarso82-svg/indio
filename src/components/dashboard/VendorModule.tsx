@@ -249,70 +249,125 @@ export default function VendorModule() {
           </div>
         </CardHeader>
         <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Nama</TableHead>
-                  <TableHead className="hidden md:table-cell">Kategori</TableHead>
-                  <TableHead className="hidden sm:table-cell">PIC</TableHead>
-                  <TableHead className="hidden lg:table-cell">Telepon</TableHead>
-                  <TableHead className="hidden lg:table-cell">Bank</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                    </TableCell>
-                  </TableRow>
-                ) : filteredVendors.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      {search ? 'Tidak ada vendor yang cocok.' : 'Belum ada vendor. Buat vendor pertama Anda!'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredVendors.map((vendor) => (
-                    <TableRow key={vendor.id}>
-                      <TableCell>
-                        <div className="font-medium text-foreground">{vendor.name}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[200px]">{vendor.email || '—'}</div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${categoryColors[vendor.category || ''] || ''}`}>
-                          {categoryLabels[vendor.category || ''] || vendor.category}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm">{vendor.picName || '—'}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{vendor.phone || '—'}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{vendor.bankName || '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(vendor)}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setDeleting(vendor)
-                              setDeleteOpen(true)
-                            }}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : filteredVendors.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-muted-foreground px-4 text-center">
+              {search ? 'Tidak ada vendor yang cocok.' : 'Belum ada vendor. Buat vendor pertama Anda!'}
+            </div>
+          ) : (
+            <>
+              {/* ===== MOBILE: Card list ===== */}
+              <div className="md:hidden divide-y divide-border border-t border-border">
+                {filteredVendors.map((vendor) => (
+                  <div key={vendor.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{vendor.name}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{vendor.email || '—'}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                          categoryColors[vendor.category || ''] || ''
+                        }`}
+                      >
+                        {categoryLabels[vendor.category || ''] || vendor.category}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">PIC</p>
+                        <p className="truncate mt-0.5">{vendor.picName || '—'}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Telepon</p>
+                        <p className="truncate mt-0.5">{vendor.phone || '—'}</p>
+                      </div>
+                      <div className="min-w-0 col-span-2">
+                        <p className="text-muted-foreground">Bank</p>
+                        <p className="truncate mt-0.5">{vendor.bankName || '—'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button variant="outline" size="sm" className="h-9" onClick={() => handleOpenEdit(vendor)}>
+                        <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setDeleting(vendor)
+                          setDeleteOpen(true)
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ===== DESKTOP: Tabel ===== */}
+              <div className="hidden md:block border rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Nama</TableHead>
+                        <TableHead className="hidden md:table-cell">Kategori</TableHead>
+                        <TableHead className="hidden sm:table-cell">PIC</TableHead>
+                        <TableHead className="hidden lg:table-cell">Telepon</TableHead>
+                        <TableHead className="hidden lg:table-cell">Bank</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredVendors.map((vendor) => (
+                        <TableRow key={vendor.id}>
+                          <TableCell>
+                            <div className="font-medium text-foreground">{vendor.name}</div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">{vendor.email || '—'}</div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${categoryColors[vendor.category || ''] || ''}`}>
+                              {categoryLabels[vendor.category || ''] || vendor.category}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm">{vendor.picName || '—'}</TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm">{vendor.phone || '—'}</TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm">{vendor.bankName || '—'}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(vendor)}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDeleting(vendor)
+                                  setDeleteOpen(true)
+                                }}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
