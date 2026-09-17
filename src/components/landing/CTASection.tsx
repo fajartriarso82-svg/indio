@@ -30,7 +30,7 @@ export default function CTASection() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     size="lg"
-                    className="bg-white text-primary hover:bg-white/90 px-8 py-6 text-base font-semibold"
+                    className="h-12 px-8 text-base font-semibold bg-white text-primary hover:bg-white/90"
                     asChild
                   >
                     <a href="mailto:info@intinusadinamika.co.id">
@@ -41,7 +41,7 @@ export default function CTASection() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-8 py-6 text-base"
+                    className="h-12 px-8 text-base border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground hover:border-primary-foreground/70"
                     asChild
                   >
                     <a href="tel:+622821234567">

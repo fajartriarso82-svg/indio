@@ -4,18 +4,24 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, LogOut, Menu, X } from 'lucide-react'
 import type { StaffUser } from './StaffLoginDialog'
+import type { CompanyProfile } from '@/hooks/use-company-profile'
 
 export default function Navigation({
   onStaffClick,
   staff,
   onLogout,
+  company,
 }: {
   onStaffClick: () => void
   staff: StaffUser | null
   onLogout: () => void
+  company?: CompanyProfile | null
 }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const companyName = company?.name?.trim() || 'PT Inti Nusa Dinamika Optima'
+  const logoUrl = company?.logoFile?.trim() || ''
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -44,14 +50,28 @@ export default function Navigation({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
+          {/* Logo — diambil dari logo perusahaan yang diunggah di menu Setting */}
           <a href="#" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">IN</span>
-            </div>
+            {logoUrl ? (
+              <span
+                className={`w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden transition-colors shrink-0 ${
+                  scrolled ? 'bg-transparent' : 'bg-white/95 p-0.5 shadow-sm'
+                }`}
+              >
+                <img
+                  src={logoUrl}
+                  alt={`Logo ${companyName}`}
+                  className="w-full h-full object-contain"
+                />
+              </span>
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground font-bold text-sm">IN</span>
+              </div>
+            )}
             <div className="flex flex-col">
               <span className={`font-bold text-sm leading-tight transition-colors ${scrolled ? 'text-foreground' : 'text-white'}`}>
-                PT Inti Nusa Dinamika Optima
+                {companyName}
               </span>
               <span className={`text-[10px] leading-tight transition-colors ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}>
                 IT Solution & Services

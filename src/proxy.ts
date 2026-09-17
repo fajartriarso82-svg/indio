@@ -20,10 +20,15 @@ import { db } from '@/lib/db'
 const PUBLIC_API_PATHS = [
   '/api/auth/login',
   '/api/auth/logout',
-  '/api/auth/me', // mengembalikan 401 sendiri bila tidak ada session valid
+  '/api/auth/me', // mengembalikan 200 { authenticated: false } bila tidak ada session valid
   '/api/auth/seed', // tetap di-routing, tapi handler-nya sudah dinonaktifkan
-  '/api', // root health check endpoint
+  '/api/company/public', // hanya data publik perusahaan (nama, alamat, telp, email, logo) untuk home page
 ]
+
+// Path publik yang hanya cocok PERSIS (tidak boleh mencakup sub-path).
+// PENTING: jangan pernah memasukkan "/api" ke PUBLIC_API_PATHS — dengan
+// pencocokan prefix, "/api" akan membuat SEMUA route /api/* menjadi publik.
+const PUBLIC_API_EXACT = ['/api'] // root health check saja
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -38,7 +43,8 @@ export async function proxy(request: NextRequest) {
 
   // Cek apakah ini endpoint publik (hanya relevan untuk /api/*)
   const isPublic = isApi
-    ? PUBLIC_API_PATHS.some(
+    ? PUBLIC_API_EXACT.includes(pathname) ||
+      PUBLIC_API_PATHS.some(
         (path) => pathname === path || pathname.startsWith(path + '/')
       )
     : false

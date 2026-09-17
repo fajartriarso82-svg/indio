@@ -6,10 +6,10 @@ export async function GET(request: NextRequest) {
     const token = request.cookies.get('staff_token')?.value
 
     if (!token) {
-      return NextResponse.json(
-        { success: false, authenticated: false },
-        { status: 401 }
-      )
+      // Session probe: "belum login" bukan error. Mengembalikan 200 di sini
+      // mencegah browser mencatat "Failed to load resource: 401" di console
+      // pada setiap kunjungan publik (landing page).
+      return NextResponse.json({ success: true, authenticated: false })
     }
 
     const session = await db.staffSession.findUnique({
@@ -22,10 +22,7 @@ export async function GET(request: NextRequest) {
       if (session) {
         await db.staffSession.delete({ where: { id: session.id } })
       }
-      return NextResponse.json(
-        { success: false, authenticated: false },
-        { status: 401 }
-      )
+      return NextResponse.json({ success: true, authenticated: false })
     }
 
     return NextResponse.json({

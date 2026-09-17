@@ -3,24 +3,47 @@
 import { Lock, LayoutDashboard } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import type { StaffUser } from './StaffLoginDialog'
+import type { CompanyProfile } from '@/hooks/use-company-profile'
 
-export default function Footer({ onStaffClick, staff }: { onStaffClick: () => void; staff: StaffUser | null }) {
+export default function Footer({
+  onStaffClick,
+  staff,
+  company,
+}: {
+  onStaffClick: () => void
+  staff: StaffUser | null
+  company?: CompanyProfile | null
+}) {
+  const companyName = company?.name?.trim() || 'PT Inti Nusa Dinamika Optima'
+  const logoUrl = company?.logoFile?.trim() || ''
+
   return (
     <footer className="bg-foreground text-primary-foreground/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">IN</span>
-              </div>
+              {/* Logo — diambil dari logo perusahaan yang diunggah di menu Setting */}
+              {logoUrl ? (
+                <span className="w-9 h-9 rounded-lg bg-white/95 p-0.5 flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={logoUrl}
+                    alt={`Logo ${companyName}`}
+                    className="w-full h-full object-contain"
+                  />
+                </span>
+              ) : (
+                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                  <span className="text-primary-foreground font-bold text-sm">IN</span>
+                </div>
+              )}
               <div>
-                <p className="font-bold text-sm text-primary-foreground">PT INTI NUSA DINAMIKA OPTIMA</p>
+                <p className="font-bold text-sm text-primary-foreground uppercase">{companyName}</p>
                 <p className="text-[10px] text-primary-foreground/50">Cilacap</p>
               </div>
             </div>
             <p className="text-xs text-primary-foreground/60 leading-relaxed max-w-xs">
-              PT Inti Nusa Dinamika Optima — Mitra solusi IT terpercaya Anda
+              {companyName} — Mitra solusi IT terpercaya Anda
               yang menyediakan infrastruktur teknologi andal dari Cilacap ke seluruh Indonesia.
             </p>
           </div>
@@ -80,7 +103,7 @@ export default function Footer({ onStaffClick, staff }: { onStaffClick: () => vo
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-primary-foreground/40">
-            &copy; {new Date().getFullYear()} PT Inti Nusa Dinamika Optima. Hak cipta dilindungi.
+            &copy; {new Date().getFullYear()} {companyName}. Hak cipta dilindungi.
           </p>
           <div className="flex items-center gap-4">
             <button

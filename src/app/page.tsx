@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
+import { useCompanyProfile } from '@/hooks/use-company-profile'
 import {
   HeroSection,
   AboutSection,
@@ -18,6 +19,8 @@ import {
 
 export default function Home() {
   const { staff, loading, showLogin, setShowLogin, login, logout } = useStaffAuth()
+  // Logo & nama perusahaan diambil dari profil perusahaan (menu Setting)
+  const { company } = useCompanyProfile()
 
   const handleStaffClick = () => {
     if (!staff) {
@@ -55,7 +58,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation onStaffClick={handleStaffClick} staff={staff} onLogout={handleLogout} />
+      <Navigation onStaffClick={handleStaffClick} staff={staff} onLogout={handleLogout} company={company} />
       <main className="flex-1">
         <HeroSection />
         <AboutSection />
@@ -65,7 +68,7 @@ export default function Home() {
         <ClientsSection />
         <CTASection />
       </main>
-      <Footer onStaffClick={handleStaffClick} staff={staff} />
+      <Footer onStaffClick={handleStaffClick} staff={staff} company={company} />
       <StaffLoginDialog
         open={showLogin}
         onOpenChange={setShowLogin}

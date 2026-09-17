@@ -8,9 +8,9 @@ import { Badge } from '@/components/ui/badge'
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background image with overlay */}
-      <div className="absolute inset-0">
+    <section className="relative isolate min-h-screen flex items-center overflow-hidden">
+      {/* Background image with overlay (layer paling bawah, tidak menerima klik) */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <Image
           src="/images/hero-bg.png"
           alt="Technology infrastructure"
@@ -22,8 +22,8 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
       </div>
 
-      {/* Animated grid overlay */}
-      <div className="absolute inset-0 opacity-10">
+      {/* Animated grid overlay (dekoratif, di atas background & di bawah konten) */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
         <div
           className="w-full h-full"
           style={{
@@ -34,7 +34,8 @@ export default function HeroSection() {
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+      {/* Konten: selalu di atas seluruh layer dekoratif */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
         <div className="max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -78,7 +79,11 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.8 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base" asChild>
+            <Button
+              size="lg"
+              className="h-12 px-8 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+              asChild
+            >
               <a href="#contact">
                 Konsultasi Sekarang
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -87,7 +92,7 @@ export default function HeroSection() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 px-8 py-6 text-base"
+              className="h-12 px-8 text-base border-white/40 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white hover:border-white/60"
               asChild
             >
               <a href="#services">Lihat Layanan</a>
@@ -119,7 +124,7 @@ export default function HeroSection() {
       <motion.div
         animate={{ y: [0, 8, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
       >
         <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
           <div className="w-1.5 h-3 bg-white/60 rounded-full mt-2" />
