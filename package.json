@@ -3,9 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev -p 3000 --turbopack",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev -p 3005 --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3005",
     "lint": "eslint .",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",

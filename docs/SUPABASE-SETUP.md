@@ -107,4 +107,4 @@ npm run db:seed
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key | ✅ |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (rahasia) | ❌ |
 | `SUPABASE_BUCKET` | Nama bucket storage (default: `indio-uploads`) | ❌ |
-| `NEXT_PUBLIC_APP_URL` | URL aplikasi | ✅ |
+| `NEXT_PUBLIC_APP_URL` | URL aplikasi (dev: `http://localhost:3005`) | ✅ |
