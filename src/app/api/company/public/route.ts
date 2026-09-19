@@ -23,6 +23,9 @@ export async function GET() {
         siplahUrl: true,
         ekatalogUrl: true,
         padiUmkmUrl: true,
+        siplahIcon: true,
+        ekatalogIcon: true,
+        padiUmkmIcon: true,
       },
     })
 

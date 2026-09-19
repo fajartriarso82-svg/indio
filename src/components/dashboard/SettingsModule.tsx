@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Images,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,10 +45,14 @@ export default function SettingsModule() {
   const [picName, setPicName] = useState('')
   const [picPhone, setPicPhone] = useState('')
 
-  // Procurement Channel Links
+  // Procurement Channel Links & Icons
   const [siplahUrl, setSiplahUrl] = useState('')
   const [ekatalogUrl, setEkatalogUrl] = useState('')
   const [padiUmkmUrl, setPadiUmkmUrl] = useState('')
+  const [siplahIcon, setSiplahIcon] = useState('')
+  const [ekatalogIcon, setEkatalogIcon] = useState('')
+  const [padiUmkmIcon, setPadiUmkmIcon] = useState('')
+  const [uploadingChannel, setUploadingChannel] = useState<string | null>(null)
   const [channelsLoading, setChannelsLoading] = useState(false)
   const [channelsSuccess, setChannelsSuccess] = useState('')
   const [channelsError, setChannelsError] = useState('')
@@ -109,6 +114,9 @@ export default function SettingsModule() {
         setSiplahUrl(c.siplahUrl || '')
         setEkatalogUrl(c.ekatalogUrl || '')
         setPadiUmkmUrl(c.padiUmkmUrl || '')
+        setSiplahIcon(c.siplahIcon || '')
+        setEkatalogIcon(c.ekatalogIcon || '')
+        setPadiUmkmIcon(c.padiUmkmIcon || '')
       }
     } catch (e) {
       console.error(e)
@@ -159,7 +167,8 @@ export default function SettingsModule() {
       const payload = {
         name, npwpNumber, address, phone, email, picName, picPhone,
         logoFile: currentLogo, kopFile: currentKop, nibFile: currentNib, npwpFile: currentNpwp, aktaFile: currentAkta,
-        siplahUrl, ekatalogUrl, padiUmkmUrl
+        siplahUrl, ekatalogUrl, padiUmkmUrl,
+        siplahIcon, ekatalogIcon, padiUmkmIcon
       }
 
       const res = await fetch('/api/company', {
@@ -196,11 +205,14 @@ export default function SettingsModule() {
           siplahUrl: siplahUrl.trim(),
           ekatalogUrl: ekatalogUrl.trim(),
           padiUmkmUrl: padiUmkmUrl.trim(),
+          siplahIcon: siplahIcon.trim(),
+          ekatalogIcon: ekatalogIcon.trim(),
+          padiUmkmIcon: padiUmkmIcon.trim(),
         }),
       })
       const data = await res.json()
       if (data.success) {
-        setChannelsSuccess('Link kanal pengadaan berizin berhasil disimpan dan disinkronkan ke Landing Page.')
+        setChannelsSuccess('Link dan icon kanal pengadaan berizin berhasil disimpan dan disinkronkan ke Landing Page.')
         setTimeout(() => setChannelsSuccess(''), 5000)
       } else {
         setChannelsError(data.error || 'Gagal menyimpan kanal pengadaan.')
@@ -210,6 +222,21 @@ export default function SettingsModule() {
       setChannelsError('Terjadi kesalahan saat menyimpan kanal pengadaan.')
     } finally {
       setChannelsLoading(false)
+    }
+  }
+
+  const handleUploadChannelIcon = async (channel: 'siplah' | 'ekatalog' | 'padi', file: File) => {
+    setUploadingChannel(channel)
+    try {
+      const url = await uploadFile(file)
+      if (channel === 'siplah') setSiplahIcon(url)
+      if (channel === 'ekatalog') setEkatalogIcon(url)
+      if (channel === 'padi') setPadiUmkmIcon(url)
+    } catch (err) {
+      console.error(err)
+      alert('Gagal mengunggah icon kanal')
+    } finally {
+      setUploadingChannel(null)
     }
   }
 
@@ -578,10 +605,17 @@ export default function SettingsModule() {
 
                 <div className="grid gap-6">
                   {/* Siplah */}
-                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">S</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0">
+                          {siplahIcon ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={siplahIcon} alt="Icon Siplah" className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <span className="text-primary font-bold text-sm">S</span>
+                          )}
+                        </div>
                         <div>
                           <Label className="text-sm font-semibold">Kanal Siplah (Kemdikbud)</Label>
                           <p className="text-xs text-muted-foreground">Platform e-Pengadaan Sekolah & Instansi Pendidikan</p>
@@ -599,20 +633,73 @@ export default function SettingsModule() {
                         </a>
                       )}
                     </div>
-                    <Input
-                      type="url"
-                      value={siplahUrl}
-                      onChange={(e) => setSiplahUrl(e.target.value)}
-                      placeholder="https://siplah.kemdikbud.go.id/..."
-                      className="font-mono text-xs"
-                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">URL Tautan Etalase</Label>
+                        <Input
+                          type="url"
+                          value={siplahUrl}
+                          onChange={(e) => setSiplahUrl(e.target.value)}
+                          placeholder="https://siplah.kemdikbud.go.id/..."
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Icon / Logo Kanal</Label>
+                        <div className="flex gap-2">
+                          <label className="cursor-pointer shrink-0">
+                            <span className="inline-flex items-center px-3 py-2 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium border transition-colors">
+                              <Upload className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                              {uploadingChannel === 'siplah' ? 'Mengunggah...' : 'Upload Icon'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingChannel === 'siplah'}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) handleUploadChannelIcon('siplah', f)
+                              }}
+                            />
+                          </label>
+                          <Input
+                            type="url"
+                            value={siplahIcon}
+                            onChange={(e) => setSiplahIcon(e.target.value)}
+                            placeholder="Atau URL gambar icon"
+                            className="font-mono text-xs flex-1"
+                          />
+                          {siplahIcon && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSiplahIcon('')}
+                              className="text-destructive px-2"
+                              title="Hapus icon"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* eKatalog */}
-                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">E</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0">
+                          {ekatalogIcon ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={ekatalogIcon} alt="Icon eKatalog" className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <span className="text-primary font-bold text-sm">E</span>
+                          )}
+                        </div>
                         <div>
                           <Label className="text-sm font-semibold">Kanal e-Katalog (LKPP)</Label>
                           <p className="text-xs text-muted-foreground">Platform Pengadaan Nasional Pemerintah</p>
@@ -630,20 +717,73 @@ export default function SettingsModule() {
                         </a>
                       )}
                     </div>
-                    <Input
-                      type="url"
-                      value={ekatalogUrl}
-                      onChange={(e) => setEkatalogUrl(e.target.value)}
-                      placeholder="https://e-katalog.lkpp.go.id/..."
-                      className="font-mono text-xs"
-                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">URL Tautan Etalase</Label>
+                        <Input
+                          type="url"
+                          value={ekatalogUrl}
+                          onChange={(e) => setEkatalogUrl(e.target.value)}
+                          placeholder="https://e-katalog.lkpp.go.id/..."
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Icon / Logo Kanal</Label>
+                        <div className="flex gap-2">
+                          <label className="cursor-pointer shrink-0">
+                            <span className="inline-flex items-center px-3 py-2 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium border transition-colors">
+                              <Upload className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                              {uploadingChannel === 'ekatalog' ? 'Mengunggah...' : 'Upload Icon'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingChannel === 'ekatalog'}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) handleUploadChannelIcon('ekatalog', f)
+                              }}
+                            />
+                          </label>
+                          <Input
+                            type="url"
+                            value={ekatalogIcon}
+                            onChange={(e) => setEkatalogIcon(e.target.value)}
+                            placeholder="Atau URL gambar icon"
+                            className="font-mono text-xs flex-1"
+                          />
+                          {ekatalogIcon && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEkatalogIcon('')}
+                              className="text-destructive px-2"
+                              title="Hapus icon"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Padi UMKM */}
-                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">P</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0">
+                          {padiUmkmIcon ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={padiUmkmIcon} alt="Icon Padi UMKM" className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <span className="text-primary font-bold text-sm">P</span>
+                          )}
+                        </div>
                         <div>
                           <Label className="text-sm font-semibold">Kanal PaDi UMKM</Label>
                           <p className="text-xs text-muted-foreground">Platform Pengadaan BUMN & Ekosistem UMKM</p>
@@ -661,13 +801,59 @@ export default function SettingsModule() {
                         </a>
                       )}
                     </div>
-                    <Input
-                      type="url"
-                      value={padiUmkmUrl}
-                      onChange={(e) => setPadiUmkmUrl(e.target.value)}
-                      placeholder="https://padiumkm.id/..."
-                      className="font-mono text-xs"
-                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">URL Tautan Etalase</Label>
+                        <Input
+                          type="url"
+                          value={padiUmkmUrl}
+                          onChange={(e) => setPadiUmkmUrl(e.target.value)}
+                          placeholder="https://padiumkm.id/..."
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Icon / Logo Kanal</Label>
+                        <div className="flex gap-2">
+                          <label className="cursor-pointer shrink-0">
+                            <span className="inline-flex items-center px-3 py-2 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium border transition-colors">
+                              <Upload className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                              {uploadingChannel === 'padi' ? 'Mengunggah...' : 'Upload Icon'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingChannel === 'padi'}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) handleUploadChannelIcon('padi', f)
+                              }}
+                            />
+                          </label>
+                          <Input
+                            type="url"
+                            value={padiUmkmIcon}
+                            onChange={(e) => setPadiUmkmIcon(e.target.value)}
+                            placeholder="Atau URL gambar icon"
+                            className="font-mono text-xs flex-1"
+                          />
+                          {padiUmkmIcon && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPadiUmkmIcon('')}
+                              className="text-destructive px-2"
+                              title="Hapus icon"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

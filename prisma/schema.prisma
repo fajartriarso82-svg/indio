@@ -29,6 +29,9 @@ model Company {
   siplahUrl   String?
   ekatalogUrl String?
   padiUmkmUrl String?
+  siplahIcon   String?
+  ekatalogIcon String?
+  padiUmkmIcon String?
   isActive   Boolean    @default(true)
   employees  Employee[]
   createdAt  DateTime   @default(now())
@@ -84,6 +87,8 @@ model Client {
   picEmail     String?
   type         String        @default("corporate") // corporate, government, individual
   notes        String?
+  isStarred    Boolean       @default(false)
+  iconUrl      String?
   projects     Project[]
   transactions Transaction[]
   services     Service[]

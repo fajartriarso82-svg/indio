@@ -13,6 +13,8 @@ import {
   Mail,
   User,
   AlertCircle,
+  Star,
+  Upload,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -65,6 +67,8 @@ interface Client {
   picEmail: string | null
   type: string
   notes: string | null
+  isStarred?: boolean
+  iconUrl?: string | null
   _count?: { projects: number }
   createdAt: string
 }
@@ -79,6 +83,8 @@ interface ClientForm {
   picEmail: string
   type: string
   notes: string
+  isStarred: boolean
+  iconUrl: string
 }
 
 const emptyForm: ClientForm = {
@@ -91,6 +97,8 @@ const emptyForm: ClientForm = {
   picEmail: '',
   type: 'corporate',
   notes: '',
+  isStarred: false,
+  iconUrl: '',
 }
 
 const typeLabels: Record<string, string> = {
@@ -116,6 +124,7 @@ export default function ClientModule() {
   const [deleting, setDeleting] = useState<Client | null>(null)
   const [form, setForm] = useState<ClientForm>(emptyForm)
   const [submitting, setSubmitting] = useState(false)
+  const [uploadingIcon, setUploadingIcon] = useState(false)
 
   const fetchClients = useCallback(async () => {
     try {
@@ -158,8 +167,67 @@ export default function ClientModule() {
       picEmail: client.picEmail || '',
       type: client.type,
       notes: client.notes || '',
+      isStarred: Boolean(client.isStarred),
+      iconUrl: client.iconUrl || '',
     })
     setFormOpen(true)
+  }
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingIcon(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (data.success && data.url) {
+        setForm((prev) => ({ ...prev, iconUrl: data.url }))
+        toast({ title: 'Berhasil', description: 'Logo/icon klien berhasil diunggah' })
+      } else {
+        toast({ title: 'Gagal', description: data.error || 'Gagal mengunggah logo', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Gagal', description: 'Terjadi kesalahan saat mengunggah logo', variant: 'destructive' })
+    } finally {
+      setUploadingIcon(false)
+    }
+  }
+
+  const handleToggleStar = async (client: Client) => {
+    const newStarred = !client.isStarred
+    // Optimistic update
+    setClients((prev) =>
+      prev.map((c) => (c.id === client.id ? { ...c, isStarred: newStarred } : c))
+    )
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isStarred: newStarred }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setClients((prev) =>
+          prev.map((c) => (c.id === client.id ? { ...c, isStarred: !newStarred } : c))
+        )
+        toast({ title: 'Gagal', description: 'Gagal mengubah status bintang', variant: 'destructive' })
+      } else {
+        toast({
+          title: newStarred ? 'Bintang Diberikan ⭐' : 'Bintang Dihapus',
+          description: `${client.name} ${newStarred ? 'akan tampil di landing page.' : 'tidak akan tampil di landing page.'}`,
+        })
+      }
+    } catch {
+      setClients((prev) =>
+        prev.map((c) => (c.id === client.id ? { ...c, isStarred: !newStarred } : c))
+      )
+      toast({ title: 'Gagal', description: 'Kesalahan jaringan', variant: 'destructive' })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -264,17 +332,44 @@ export default function ClientModule() {
                 {filteredClients.map((client) => (
                   <div key={client.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{client.name}</p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{client.email || '—'}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                          {client.iconUrl ? (
+                            <img src={client.iconUrl} alt={client.name} className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <Building2 className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate flex items-center gap-1.5">
+                            {client.name}
+                            {client.isStarred && (
+                              <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-600 px-1.5 py-0.2 rounded border border-amber-500/30 shrink-0">
+                                ⭐ Landing
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{client.email || '—'}</p>
+                        </div>
                       </div>
-                      <span
-                        className={`shrink-0 text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                          typeColors[client.type] || ''
-                        }`}
-                      >
-                        {typeLabels[client.type] || client.type}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                          onClick={() => handleToggleStar(client)}
+                          title={client.isStarred ? 'Hapus dari landing page' : 'Beri bintang & tampilkan di landing page'}
+                        >
+                          <Star className={`w-4 h-4 ${client.isStarred ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/40'}`} />
+                        </Button>
+                        <span
+                          className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                            typeColors[client.type] || ''
+                          }`}
+                        >
+                          {typeLabels[client.type] || client.type}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
@@ -323,7 +418,8 @@ export default function ClientModule() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>Nama</TableHead>
+                        <TableHead className="w-12 text-center">Bintang</TableHead>
+                        <TableHead>Klien & Logo</TableHead>
                         <TableHead className="hidden md:table-cell">Tipe</TableHead>
                         <TableHead className="hidden sm:table-cell">PIC</TableHead>
                         <TableHead className="hidden lg:table-cell">Telepon</TableHead>
@@ -334,9 +430,38 @@ export default function ClientModule() {
                     <TableBody>
                       {filteredClients.map((client) => (
                         <TableRow key={client.id}>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
+                              onClick={() => handleToggleStar(client)}
+                              title={client.isStarred ? 'Klien Unggulan (Tampil di Landing Page) - Klik untuk batalkan' : 'Klik untuk beri bintang & tampilkan di Landing Page'}
+                            >
+                              <Star className={`w-4 h-4 ${client.isStarred ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/40 hover:text-amber-400'}`} />
+                            </Button>
+                          </TableCell>
                           <TableCell>
-                            <div className="font-medium text-foreground">{client.name}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">{client.email || '—'}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg border bg-muted/20 flex items-center justify-center overflow-hidden shrink-0">
+                                {client.iconUrl ? (
+                                  <img src={client.iconUrl} alt={client.name} className="w-full h-full object-contain p-0.5" />
+                                ) : (
+                                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-foreground flex items-center gap-1.5">
+                                  {client.name}
+                                  {client.isStarred && (
+                                    <span className="inline-flex items-center text-[10px] font-semibold bg-amber-500/15 text-amber-600 px-1.5 py-0.2 rounded border border-amber-500/30">
+                                      ⭐ Landing
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">{client.email || '—'}</div>
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${typeColors[client.type] || ''}`}>
@@ -394,6 +519,78 @@ export default function ClientModule() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* Star badge toggle banner */}
+            <div className="flex items-center space-x-3 p-3 rounded-lg border bg-amber-500/5 border-amber-500/25">
+              <input
+                type="checkbox"
+                id="isStarred"
+                checked={form.isStarred}
+                onChange={(e) => setForm({ ...form, isStarred: e.target.checked })}
+                className="h-4 w-4 rounded border-amber-400 text-amber-500 focus:ring-amber-400 cursor-pointer accent-amber-500"
+              />
+              <div className="space-y-0.5">
+                <Label htmlFor="isStarred" className="font-semibold text-foreground cursor-pointer flex items-center gap-1.5 text-sm">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+                  Beri Bintang ⭐ (Tampilkan di Landing Page)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Klien yang diberi bintang akan tampil di carousel &quot;Dipercaya oleh Pemimpin Industri&quot; pada landing page.
+                </p>
+              </div>
+            </div>
+
+            {/* Logo / Icon Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="iconUrl">Logo / Icon Klien</Label>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-lg border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                  {form.iconUrl ? (
+                    <img src={form.iconUrl} alt="Logo preview" className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <Building2 className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex gap-2">
+                    <label className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 cursor-pointer">
+                      {uploadingIcon ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Mengunggah...</>
+                      ) : (
+                        <><Upload className="w-3.5 h-3.5 mr-1.5" /> Unggah File Logo</>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingIcon}
+                        onChange={handleIconUpload}
+                      />
+                    </label>
+                    {form.iconUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                        onClick={() => setForm({ ...form, iconUrl: '' })}
+                      >
+                        Hapus Logo
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    value={form.iconUrl}
+                    onChange={(e) => setForm({ ...form, iconUrl: e.target.value })}
+                    placeholder="Atau tempel URL icon (https://...)"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Format PNG, JPG, SVG, atau WebP. Logo ini akan ditampilkan di carousel landing page.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="name">Nama *</Label>
@@ -488,12 +685,12 @@ export default function ClientModule() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Catatan</Label>
+              <Label htmlFor="notes">Catatan / Deskripsi Singkat</Label>
               <Textarea
                 id="notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Catatan tambahan"
+                placeholder="Catatan tambahan atau keterangan industri (tampil di landing page)"
                 rows={2}
               />
             </div>

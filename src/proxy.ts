@@ -24,6 +24,7 @@ const PUBLIC_API_PATHS = [
   '/api/auth/seed', // tetap di-routing, tapi handler-nya sudah dinonaktifkan
   '/api/company/public', // hanya data publik perusahaan (nama, alamat, telp, email, logo) untuk home page
   '/api/gallery/public', // data publik galeri rekam jejak pengiriman proyek
+  '/api/clients/public', // data publik klien dengan badge bintang untuk landing page
 ]
 
 // Path publik yang hanya cocok PERSIS (tidak boleh mencakup sub-path).

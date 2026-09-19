@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params
     const body = await request.json()
-    const { name, address, phone, email, picName, picPhone, picEmail, type, notes } = body
+    const { name, address, phone, email, picName, picPhone, picEmail, type, notes, isStarred, iconUrl } = body
 
     const existing = await db.client.findUnique({ where: { id } })
     if (!existing) {
@@ -54,15 +54,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const client = await db.client.update({
       where: { id },
       data: {
-        name,
-        address,
-        phone,
-        email,
-        picName,
-        picPhone,
-        picEmail,
-        type,
-        notes,
+        ...(name !== undefined ? { name } : {}),
+        ...(address !== undefined ? { address } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(email !== undefined ? { email } : {}),
+        ...(picName !== undefined ? { picName } : {}),
+        ...(picPhone !== undefined ? { picPhone } : {}),
+        ...(picEmail !== undefined ? { picEmail } : {}),
+        ...(type !== undefined ? { type } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(isStarred !== undefined ? { isStarred: Boolean(isStarred) } : {}),
+        ...(iconUrl !== undefined ? { iconUrl: iconUrl ? String(iconUrl).trim() : null } : {}),
       },
     })
 

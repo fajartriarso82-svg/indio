@@ -16,6 +16,9 @@ export interface CompanyProfile {
   siplahUrl?: string | null
   ekatalogUrl?: string | null
   padiUmkmUrl?: string | null
+  siplahIcon?: string | null
+  ekatalogIcon?: string | null
+  padiUmkmIcon?: string | null
 }
 
 /**

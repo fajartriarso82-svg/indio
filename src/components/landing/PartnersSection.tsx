@@ -16,6 +16,7 @@ export default function PartnersSection() {
       description: 'Platform e-Pengadaan Pemerintah',
       detail: 'Mitra resmi untuk pengadaan IT sekolah & instansi pemerintah melalui marketplace Siplah.',
       url: company?.siplahUrl || '',
+      iconUrl: company?.siplahIcon || '',
     },
     {
       name: 'eKatalog',
@@ -23,6 +24,7 @@ export default function PartnersSection() {
       description: 'Sistem e-Katalog LKPP',
       detail: 'Vendor terdaftar di e-katalog nasional untuk pengadaan pemerintah yang transparan dan patuh regulasi.',
       url: company?.ekatalogUrl || '',
+      iconUrl: company?.ekatalogIcon || '',
     },
     {
       name: 'Padi UMKM',
@@ -30,6 +32,7 @@ export default function PartnersSection() {
       description: 'Platform Digital UMKM',
       detail: 'Mendukung transformasi digital usaha mikro, kecil & menengah melalui ekosistem Padi UMKM.',
       url: company?.padiUmkmUrl || '',
+      iconUrl: company?.padiUmkmIcon || '',
     },
   ]
 
@@ -68,8 +71,13 @@ export default function PartnersSection() {
               <Card className="group text-center hover:shadow-xl hover:border-primary/40 transition-all duration-300 h-full flex flex-col justify-between">
                 <CardContent className="p-6 lg:p-8 flex flex-col items-center flex-1 justify-between">
                   <div>
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center mx-auto mb-5 group-hover:from-primary/20 group-hover:to-primary/10 group-hover:scale-105 transition-all">
-                      <span className="text-2xl font-bold text-primary">{partner.name.charAt(0)}</span>
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center mx-auto mb-5 group-hover:from-primary/20 group-hover:to-primary/10 group-hover:scale-105 transition-all p-3 border border-border/40 overflow-hidden">
+                      {partner.iconUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={partner.iconUrl} alt={partner.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <span className="text-2xl font-bold text-primary">{partner.name.charAt(0)}</span>
+                      )}
                     </div>
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <h3 className="text-lg font-bold text-foreground">{partner.name}</h3>
