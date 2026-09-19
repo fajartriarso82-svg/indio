@@ -1,7 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, Building, Users, Eye, Plus, Trash2, Edit } from 'lucide-react'
+import {
+  Save,
+  Building,
+  Users,
+  Eye,
+  EyeOff,
+  Plus,
+  Trash2,
+  Edit,
+  Lock,
+  Link2,
+  ExternalLink,
+  KeyRound,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Images,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import GalleryModule from './GalleryModule'
 
 export default function SettingsModule() {
   const [activeTab, setActiveTab] = useState('profile')
@@ -25,6 +43,25 @@ export default function SettingsModule() {
   const [email, setEmail] = useState('')
   const [picName, setPicName] = useState('')
   const [picPhone, setPicPhone] = useState('')
+
+  // Procurement Channel Links
+  const [siplahUrl, setSiplahUrl] = useState('')
+  const [ekatalogUrl, setEkatalogUrl] = useState('')
+  const [padiUmkmUrl, setPadiUmkmUrl] = useState('')
+  const [channelsLoading, setChannelsLoading] = useState(false)
+  const [channelsSuccess, setChannelsSuccess] = useState('')
+  const [channelsError, setChannelsError] = useState('')
+
+  // Password Change States
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPass, setShowCurrentPass] = useState(false)
+  const [showNewPass, setShowNewPass] = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
+  const [changePassLoading, setChangePassLoading] = useState(false)
+  const [passSuccessMsg, setPassSuccessMsg] = useState('')
+  const [passErrorMsg, setPassErrorMsg] = useState('')
 
   // Files
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -69,6 +106,9 @@ export default function SettingsModule() {
         setNibUrl(c.nibFile || '')
         setNpwpUrl(c.npwpFile || '')
         setAktaUrl(c.aktaFile || '')
+        setSiplahUrl(c.siplahUrl || '')
+        setEkatalogUrl(c.ekatalogUrl || '')
+        setPadiUmkmUrl(c.padiUmkmUrl || '')
       }
     } catch (e) {
       console.error(e)
@@ -118,7 +158,8 @@ export default function SettingsModule() {
 
       const payload = {
         name, npwpNumber, address, phone, email, picName, picPhone,
-        logoFile: currentLogo, kopFile: currentKop, nibFile: currentNib, npwpFile: currentNpwp, aktaFile: currentAkta
+        logoFile: currentLogo, kopFile: currentKop, nibFile: currentNib, npwpFile: currentNpwp, aktaFile: currentAkta,
+        siplahUrl, ekatalogUrl, padiUmkmUrl
       }
 
       const res = await fetch('/api/company', {
@@ -139,6 +180,86 @@ export default function SettingsModule() {
       alert('Terjadi kesalahan saat menyimpan.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveChannels = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setChannelsLoading(true)
+    setChannelsSuccess('')
+    setChannelsError('')
+    try {
+      const res = await fetch('/api/company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siplahUrl: siplahUrl.trim(),
+          ekatalogUrl: ekatalogUrl.trim(),
+          padiUmkmUrl: padiUmkmUrl.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setChannelsSuccess('Link kanal pengadaan berizin berhasil disimpan dan disinkronkan ke Landing Page.')
+        setTimeout(() => setChannelsSuccess(''), 5000)
+      } else {
+        setChannelsError(data.error || 'Gagal menyimpan kanal pengadaan.')
+      }
+    } catch (err) {
+      console.error(err)
+      setChannelsError('Terjadi kesalahan saat menyimpan kanal pengadaan.')
+    } finally {
+      setChannelsLoading(false)
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPassSuccessMsg('')
+    setPassErrorMsg('')
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPassErrorMsg('Semua kolom password wajib diisi.')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPassErrorMsg('Password baru minimal harus 6 karakter.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassErrorMsg('Konfirmasi password baru tidak cocok.')
+      return
+    }
+
+    setChangePassLoading(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setPassSuccessMsg('Password berhasil diperbarui!')
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setTimeout(() => setPassSuccessMsg(''), 5000)
+      } else {
+        setPassErrorMsg(data.error || 'Gagal mengubah password.')
+      }
+    } catch (err) {
+      console.error(err)
+      setPassErrorMsg('Terjadi kesalahan koneksi saat mengubah password.')
+    } finally {
+      setChangePassLoading(false)
     }
   }
 
@@ -190,16 +311,19 @@ export default function SettingsModule() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">Pengaturan Perusahaan</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Pengaturan Sistem & Perusahaan</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Kelola profil, dokumen legalitas, dan karyawan perusahaan.
+          Kelola profil perusahaan, link kanal pengadaan, karyawan, dan keamanan akun dashboard.
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
+        <TabsList className="grid w-full sm:w-[750px] grid-cols-5">
           <TabsTrigger value="profile">Profil & Dokumen</TabsTrigger>
+          <TabsTrigger value="channels">Kanal Pengadaan</TabsTrigger>
+          <TabsTrigger value="gallery">Galeri Proyek</TabsTrigger>
           <TabsTrigger value="members">Karyawan</TabsTrigger>
+          <TabsTrigger value="security">Ganti Password</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -258,7 +382,7 @@ export default function SettingsModule() {
                   <Input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
                   {logoUrl && (
                     <Button type="button" variant="link" size="sm" className="absolute top-1 right-2 text-blue-600 p-0" onClick={() => window.open(logoUrl, '_blank')}>
-                      <Eye className="w-3 h-3 mr-1"/> Lihat Logo
+                      <Eye className="w-3 h-3"/> Lihat Logo
                     </Button>
                   )}
                 </div>
@@ -268,7 +392,7 @@ export default function SettingsModule() {
                   <Input type="file" accept="image/*,.pdf" onChange={e => setKopFile(e.target.files?.[0] || null)} />
                   {kopUrl && (
                     <Button type="button" variant="link" size="sm" className="absolute top-1 right-2 text-blue-600 p-0" onClick={() => window.open(kopUrl, '_blank')}>
-                      <Eye className="w-3 h-3 mr-1"/> Lihat Kop
+                      <Eye className="w-3 h-3"/> Lihat Kop
                     </Button>
                   )}
                 </div>
@@ -278,7 +402,7 @@ export default function SettingsModule() {
                   <Input type="file" accept=".pdf,image/*" onChange={e => setNibFile(e.target.files?.[0] || null)} />
                   {nibUrl && (
                     <Button type="button" variant="link" size="sm" className="absolute top-1 right-2 text-blue-600 p-0" onClick={() => window.open(nibUrl, '_blank')}>
-                      <Eye className="w-3 h-3 mr-1"/> Lihat NIB
+                      <Eye className="w-3 h-3"/> Lihat NIB
                     </Button>
                   )}
                 </div>
@@ -288,7 +412,7 @@ export default function SettingsModule() {
                   <Input type="file" accept=".pdf,image/*" onChange={e => setNpwpFile(e.target.files?.[0] || null)} />
                   {npwpUrl && (
                     <Button type="button" variant="link" size="sm" className="absolute top-1 right-2 text-blue-600 p-0" onClick={() => window.open(npwpUrl, '_blank')}>
-                      <Eye className="w-3 h-3 mr-1"/> Lihat NPWP
+                      <Eye className="w-3 h-3"/> Lihat NPWP
                     </Button>
                   )}
                 </div>
@@ -298,7 +422,7 @@ export default function SettingsModule() {
                   <Input type="file" accept=".pdf,image/*" onChange={e => setAktaFile(e.target.files?.[0] || null)} />
                   {aktaUrl && (
                     <Button type="button" variant="link" size="sm" className="absolute top-1 right-2 text-blue-600 p-0" onClick={() => window.open(aktaUrl, '_blank')}>
-                      <Eye className="w-3 h-3 mr-1"/> Lihat Akta
+                      <Eye className="w-3 h-3"/> Lihat Akta
                     </Button>
                   )}
                 </div>
@@ -306,7 +430,7 @@ export default function SettingsModule() {
               </div>
               <div className="pt-4 flex justify-end">
                 <Button onClick={handleSaveProfile} disabled={loading} className="bg-violet-600 hover:bg-violet-700 text-white">
-                  {loading ? 'Menyimpan...' : <><Save className="w-4 h-4 mr-2" /> Simpan Perubahan</>}
+                  {loading ? 'Menyimpan...' : <><Save className="w-4 h-4" /> Simpan Perubahan</>}
                 </Button>
               </div>
             </CardContent>
@@ -324,19 +448,20 @@ export default function SettingsModule() {
                 <CardDescription>Kelola data karyawan & teknisi.</CardDescription>
               </div>
               <Button size="sm" onClick={() => openEmpModal()} className="bg-violet-600 hover:bg-violet-700">
-                <Plus className="w-4 h-4 mr-2" /> Tambah Karyawan
+                <Plus className="w-4 h-4" /> Tambah Karyawan
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               {employees.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground m-6 border border-dashed rounded-lg">
+                <div className="h-48 m-6 flex flex-col items-center justify-center text-muted-foreground border border-dashed rounded-lg px-4 text-center">
                   <Users className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                  <p>Belum ada data karyawan</p>
+                  <p className="font-medium text-foreground">Belum ada data karyawan</p>
+                  <p className="text-sm">Tambahkan karyawan pertama Anda untuk memulai.</p>
                 </div>
               ) : (
                 <>
                   {/* ===== MOBILE: Card list ===== */}
-                  <div className="md:hidden divide-y divide-border">
+                  <div className="md:hidden divide-y divide-border border-t border-border">
                     {employees.map((emp) => (
                       <div key={emp.id} className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-3">
@@ -364,13 +489,13 @@ export default function SettingsModule() {
 
                         <div className="flex justify-end gap-2 pt-1">
                           <Button variant="outline" size="sm" className="h-9" onClick={() => openEmpModal(emp)}>
-                            <Edit className="w-4 h-4 mr-1.5 text-blue-600" />
+                            <Edit className="w-4 h-4 text-blue-600" />
                             Edit
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-9 text-rose-600 hover:bg-rose-50"
+                            className="h-9 text-destructive hover:bg-destructive/10"
                             onClick={() => handleDeleteEmployee(emp.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -420,6 +545,254 @@ export default function SettingsModule() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── TAB: Kanal Pengadaan Berizin ─── */}
+        <TabsContent value="channels" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-primary" />
+                Tautan Kanal Pengadaan Berizin
+              </CardTitle>
+              <CardDescription>
+                Tautan ini akan langsung terhubung ke kartu kanal di Landing Page, sehingga klien dan instansi dapat langsung mengunjungi etalase pengadaan resmi Anda.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveChannels} className="space-y-6">
+                {channelsSuccess && (
+                  <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-2.5 text-sm">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{channelsSuccess}</span>
+                  </div>
+                )}
+                {channelsError && (
+                  <div className="p-3.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-2.5 text-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{channelsError}</span>
+                  </div>
+                )}
+
+                <div className="grid gap-6">
+                  {/* Siplah */}
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">S</span>
+                        <div>
+                          <Label className="text-sm font-semibold">Kanal Siplah (Kemdikbud)</Label>
+                          <p className="text-xs text-muted-foreground">Platform e-Pengadaan Sekolah & Instansi Pendidikan</p>
+                        </div>
+                      </div>
+                      {siplahUrl && (
+                        <a
+                          href={siplahUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Tes Tautan
+                        </a>
+                      )}
+                    </div>
+                    <Input
+                      type="url"
+                      value={siplahUrl}
+                      onChange={(e) => setSiplahUrl(e.target.value)}
+                      placeholder="https://siplah.kemdikbud.go.id/..."
+                      className="font-mono text-xs"
+                    />
+                  </div>
+
+                  {/* eKatalog */}
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">E</span>
+                        <div>
+                          <Label className="text-sm font-semibold">Kanal e-Katalog (LKPP)</Label>
+                          <p className="text-xs text-muted-foreground">Platform Pengadaan Nasional Pemerintah</p>
+                        </div>
+                      </div>
+                      {ekatalogUrl && (
+                        <a
+                          href={ekatalogUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Tes Tautan
+                        </a>
+                      )}
+                    </div>
+                    <Input
+                      type="url"
+                      value={ekatalogUrl}
+                      onChange={(e) => setEkatalogUrl(e.target.value)}
+                      placeholder="https://e-katalog.lkpp.go.id/..."
+                      className="font-mono text-xs"
+                    />
+                  </div>
+
+                  {/* Padi UMKM */}
+                  <div className="p-4 rounded-xl border bg-card/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">P</span>
+                        <div>
+                          <Label className="text-sm font-semibold">Kanal PaDi UMKM</Label>
+                          <p className="text-xs text-muted-foreground">Platform Pengadaan BUMN & Ekosistem UMKM</p>
+                        </div>
+                      </div>
+                      {padiUmkmUrl && (
+                        <a
+                          href={padiUmkmUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Tes Tautan
+                        </a>
+                      )}
+                    </div>
+                    <Input
+                      type="url"
+                      value={padiUmkmUrl}
+                      onChange={(e) => setPadiUmkmUrl(e.target.value)}
+                      placeholder="https://padiumkm.id/..."
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button type="submit" disabled={channelsLoading} className="min-w-[160px]">
+                    <Save className="w-4 h-4 mr-2" />
+                    {channelsLoading ? 'Menyimpan...' : 'Simpan Link Kanal'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── TAB: Galeri Rekam Jejak Proyek ─── */}
+        <TabsContent value="gallery" className="space-y-6">
+          <GalleryModule isEmbedded={true} />
+        </TabsContent>
+
+        {/* ─── TAB: Keamanan & Ganti Password ─── */}
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+                Ganti Kata Sandi Akun
+              </CardTitle>
+              <CardDescription>
+                Perbarui kata sandi login Anda secara berkala untuk menjaga keamanan data dashboard dan transaksi.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-5 max-w-lg">
+                {passSuccessMsg && (
+                  <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-2.5 text-sm">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{passSuccessMsg}</span>
+                  </div>
+                )}
+                {passErrorMsg && (
+                  <div className="p-3.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-2.5 text-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{passErrorMsg}</span>
+                  </div>
+                )}
+
+                {/* Password Saat Ini */}
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Password Saat Ini</Label>
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPass ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Masukkan password yang sedang digunakan"
+                      className="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPass(!showCurrentPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Baru */}
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Password Baru</Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPass ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      className="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Gunakan minimal 6 karakter dengan variasi huruf dan angka.
+                  </p>
+                </div>
+
+                {/* Konfirmasi Password Baru */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Konfirmasi Password Baru</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPass ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Ulangi password baru Anda"
+                      className="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPass(!showConfirmPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button type="submit" disabled={changePassLoading} className="min-w-[160px]">
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    {changePassLoading ? 'Menyimpan...' : 'Perbarui Password'}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>

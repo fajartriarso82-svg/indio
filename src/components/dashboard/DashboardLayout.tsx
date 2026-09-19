@@ -17,6 +17,7 @@ import {
   Package,
   Wallet,
   Settings,
+  Images,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -33,7 +34,16 @@ const InventoryModule = dynamic(() => import('./InventoryModule'), { ssr: false 
 const FinanceModule = dynamic(() => import('./FinanceModule'), { ssr: false })
 const SettingsModule = dynamic(() => import('./SettingsModule'), { ssr: false })
 
-export type ModuleKey = 'dashboard' | 'transactions' | 'services' | 'inventory' | 'finance' | 'projects' | 'clients' | 'vendors' | 'settings'
+export type ModuleKey =
+  | 'dashboard'
+  | 'transactions'
+  | 'services'
+  | 'inventory'
+  | 'finance'
+  | 'projects'
+  | 'clients'
+  | 'vendors'
+  | 'settings'
 
 interface DashboardLayoutProps {
   staff: {
@@ -211,7 +221,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={onLogout}>
-              <LogOut className="w-4 h-4 mr-1.5" />
+              <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Keluar</span>
             </Button>
           </div>

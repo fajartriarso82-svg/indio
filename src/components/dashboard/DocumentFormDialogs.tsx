@@ -193,7 +193,7 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
             <div className="flex items-center justify-between">
               <Label>Item</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-3 h-3 mr-1" />Tambah
+                <Plus className="w-3 h-3" />Tambah
               </Button>
             </div>
             {items.map((item, idx) => (
@@ -231,7 +231,7 @@ export function SuratJalanForm({ open, onOpenChange, projectId, projectType, pro
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Buat
             </Button>
           </div>
@@ -352,7 +352,7 @@ export function BASTForm({ open, onOpenChange, projectId, projectType, suratJala
             <div className="flex items-center justify-between">
               <Label>Item</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-3 h-3 mr-1" />Tambah
+                <Plus className="w-3 h-3" />Tambah
               </Button>
             </div>
             {items.map((item, idx) => (
@@ -390,7 +390,7 @@ export function BASTForm({ open, onOpenChange, projectId, projectType, suratJala
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Buat
             </Button>
           </div>
@@ -554,7 +554,7 @@ export function InvoiceForm({ open, onOpenChange, projectId, projectItems, onCre
             <div className="flex items-center justify-between">
               <Label>Item</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-3 h-3 mr-1" />Tambah
+                <Plus className="w-3 h-3" />Tambah
               </Button>
             </div>
             {items.map((item, idx) => (
@@ -589,7 +589,7 @@ export function InvoiceForm({ open, onOpenChange, projectId, projectItems, onCre
               <div className="flex items-center justify-between">
                 <Label>Jadwal Termin</Label>
                 <Button type="button" variant="outline" size="sm" onClick={addTermin}>
-                  <Plus className="w-3 h-3 mr-1" />Tambah Termin
+                  <Plus className="w-3 h-3" />Tambah Termin
                 </Button>
               </div>
               {termins.map((t, idx) => (
@@ -627,7 +627,7 @@ export function InvoiceForm({ open, onOpenChange, projectId, projectItems, onCre
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Buat
             </Button>
           </div>
@@ -797,7 +797,7 @@ export function KuitansiForm({ open, onOpenChange, projectId, invoices, basts, o
             <div className="flex items-center justify-between">
               <Label>Item</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-3 h-3 mr-1" />Tambah
+                <Plus className="w-3 h-3" />Tambah
               </Button>
             </div>
             {items.map((item, idx) => (
@@ -831,7 +831,7 @@ export function KuitansiForm({ open, onOpenChange, projectId, invoices, basts, o
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Buat
             </Button>
           </div>

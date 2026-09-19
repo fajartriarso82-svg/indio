@@ -23,6 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
@@ -52,6 +53,9 @@ interface ItemRow {
   deadline: string
 }
 
+// Sentinel value for "create new client" option in the client dropdown.
+const NEW_CLIENT_VALUE = '__new_client__'
+
 export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFormProps) {
   const { toast } = useToast()
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -60,6 +64,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
   const [type, setType] = useState('PENGADAAN')
   const [name, setName] = useState('')
   const [clientId, setClientId] = useState('')
+  const [newClientName, setNewClientName] = useState('')
   const [clientPicName, setClientPicName] = useState('')
   const [clientPicEmail, setClientPicEmail] = useState('')
   const [clientPicPhone, setClientPicPhone] = useState('')
@@ -83,8 +88,19 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     }
   }, [open])
 
+  const isNewClient = clientId === NEW_CLIENT_VALUE
+
   const handleClientChange = (id: string) => {
     setClientId(id)
+    if (id === NEW_CLIENT_VALUE) {
+      // Clear PIC fields so user can fill in data for the new client.
+      setClientPicName('')
+      setClientPicEmail('')
+      setClientPicPhone('')
+      setClientAddress('')
+      return
+    }
+    setNewClientName('')
     const client = clients.find((c) => c.id === id)
     if (client) {
       setClientPicName(client.picName || '')
@@ -123,6 +139,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     setType('PENGADAAN')
     setName('')
     setClientId('')
+    setNewClientName('')
     setClientPicName('')
     setClientPicEmail('')
     setClientPicPhone('')
@@ -145,6 +162,15 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
       return
     }
 
+    if (isNewClient && !newClientName.trim()) {
+      toast({
+        title: 'Kesalahan Validasi',
+        description: 'Nama klien baru wajib diisi',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const validItems = items.filter((item) => item.itemName.trim())
     if (validItems.length === 0) {
       toast({
@@ -157,6 +183,33 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
     setSubmitting(true)
     try {
+      // If the user typed a new client name, create the client first so it
+      // also shows up in the client list afterwards.
+      let resolvedClientId = clientId
+      if (isNewClient) {
+        const clientRes = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newClientName.trim(),
+            address: clientAddress || null,
+            picName: clientPicName || null,
+            picEmail: clientPicEmail || null,
+            picPhone: clientPicPhone || null,
+          }),
+        })
+        const clientData = await clientRes.json()
+        if (!clientData.success || !clientData.data?.id) {
+          toast({
+            title: 'Error',
+            description: clientData.error || 'Gagal membuat klien baru',
+            variant: 'destructive',
+          })
+          return
+        }
+        resolvedClientId = clientData.data.id
+      }
+
       let uploadedPoUrl = ''
       if (poFile) {
         const formData = new FormData()
@@ -175,7 +228,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
         body: JSON.stringify({
           name,
           type,
-          clientId,
+          clientId: resolvedClientId,
           clientPicName,
           clientPicEmail,
           clientPicPhone,
@@ -200,7 +253,9 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
       if (data.success) {
         toast({
           title: 'Proyek Dibuat',
-          description: `${name} telah berhasil dibuat.`,
+          description: isNewClient
+            ? `${name} telah berhasil dibuat dan klien ${newClientName.trim()} ditambahkan ke daftar klien.`
+            : `${name} telah berhasil dibuat.`,
         })
         resetForm()
         onCreated()
@@ -221,6 +276,113 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
       minimumFractionDigits: 0,
     }).format(value)
   }
+
+  // Mobile-friendly editor card for one RAB item row (table is desktop-only).
+  const renderItemCard = (item: ItemRow, idx: number) => (
+    <div key={idx} className="p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-foreground">Item #{idx + 1}</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => removeItemRow(idx)}
+          disabled={items.length <= 1}
+          className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor={`m-itemId-${idx}`} className="text-xs">ID Item</Label>
+          <Input
+            id={`m-itemId-${idx}`}
+            value={item.itemId}
+            onChange={(e) => updateItem(idx, 'itemId', e.target.value)}
+            placeholder="ID"
+            className="h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`m-itemCode-${idx}`} className="text-xs">Kode Barang</Label>
+          <Input
+            id={`m-itemCode-${idx}`}
+            value={item.itemCode}
+            onChange={(e) => updateItem(idx, 'itemCode', e.target.value)}
+            placeholder="Kode"
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`m-itemName-${idx}`} className="text-xs">Nama Item *</Label>
+        <Input
+          id={`m-itemName-${idx}`}
+          value={item.itemName}
+          onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
+          placeholder="Item name"
+          className="h-9 text-sm"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor={`m-qty-${idx}`} className="text-xs">Qty</Label>
+          <Input
+            id={`m-qty-${idx}`}
+            type="number"
+            min="0"
+            value={item.qty}
+            onChange={(e) => updateItem(idx, 'qty', e.target.value)}
+            className="h-9 text-sm text-right"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`m-unit-${idx}`} className="text-xs">Satuan</Label>
+          <Input
+            id={`m-unit-${idx}`}
+            value={item.unit}
+            onChange={(e) => updateItem(idx, 'unit', e.target.value)}
+            placeholder="pcs"
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor={`m-price-${idx}`} className="text-xs">Harga Satuan</Label>
+          <Input
+            id={`m-price-${idx}`}
+            type="number"
+            min="0"
+            value={item.unitPrice}
+            onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
+            className="h-9 text-sm text-right"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`m-deadline-${idx}`} className="text-xs">Deadline</Label>
+          <Input
+            id={`m-deadline-${idx}`}
+            type="date"
+            value={item.deadline}
+            onChange={(e) => updateItem(idx, 'deadline', e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <span className="text-xs text-muted-foreground">Total</span>
+        <span className="text-sm font-semibold text-foreground">{formatCurrency(getItemTotal(item))}</span>
+      </div>
+    </div>
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -266,6 +428,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                   <SelectValue placeholder="Pilih klien" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NEW_CLIENT_VALUE} className="text-primary font-medium">
+                    + Klien Baru...
+                  </SelectItem>
+                  {clients.length > 0 && <SelectSeparator />}
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
@@ -274,6 +440,23 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 </SelectContent>
               </Select>
             </div>
+
+            {isNewClient && (
+              <div className="space-y-2">
+                <Label htmlFor="newClientName">Nama Klien Baru *</Label>
+                <Input
+                  id="newClientName"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Masukkan nama klien baru"
+                  autoFocus
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Klien akan otomatis ditambahkan ke daftar klien saat proyek disimpan.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="poNumber">Nomor PO</Label>
@@ -308,7 +491,9 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
           {/* Client PIC Info */}
           <div className="border rounded-lg p-4 bg-muted/30">
-            <p className="text-sm font-medium text-foreground mb-3">PIC Klien (otomatis dari data klien)</p>
+            <p className="text-sm font-medium text-foreground mb-3">
+              {isNewClient ? 'Data Klien Baru & PIC' : 'PIC Klien (otomatis dari data klien)'}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cpName">Nama PIC</Label>
@@ -356,23 +541,33 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-foreground">Item RAB</p>
               <Button type="button" variant="outline" size="sm" onClick={addItemRow}>
-                <Plus className="w-3.5 h-3.5 mr-1" />
+                <Plus className="w-3.5 h-3.5" />
                 Tambah Item
               </Button>
             </div>
 
-            <div className="overflow-x-auto border rounded-lg">
+            {/* ===== MOBILE: editor cards ===== */}
+            <div className="md:hidden border rounded-lg divide-y divide-border">
+              {items.map((item, idx) => renderItemCard(item, idx))}
+              <div className="flex items-center justify-between p-4 bg-muted/30">
+                <span className="text-sm font-medium text-foreground">Total Keseluruhan</span>
+                <span className="text-sm font-bold text-primary">{formatCurrency(getGrandTotal())}</span>
+              </div>
+            </div>
+
+            {/* ===== DESKTOP: Tabel ===== */}
+            <div className="hidden md:block overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-28">ID Item</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-28">Kode Barang</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[200px]">Nama Item *</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-20">Qty</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-20">Satuan</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-28">Harga Satuan</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs w-32">Deadline</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-28">Total</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[100px]">ID Item</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[100px]">Kode Barang</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[180px]">Nama Item *</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[70px]">Qty</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[70px]">Satuan</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[110px]">Harga Satuan</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[120px]">Deadline</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[110px]">Total</th>
                     <th className="px-3 py-2 w-10"></th>
                   </tr>
                 </thead>
@@ -458,7 +653,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                 </tbody>
                 <tfoot className="border-t bg-muted/30">
                   <tr>
-                    <td colSpan={6} className="px-3 py-2 text-right font-medium text-sm">
+                    <td colSpan={7} className="px-3 py-2 text-right font-medium text-sm">
                       Total Keseluruhan:
                     </td>
                     <td className="px-3 py-2 text-right font-bold text-sm text-primary">
@@ -489,7 +684,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Membuat...</>
+                <><Loader2 className="w-4 h-4 animate-spin" />Membuat...</>
               ) : (
                 'Buat Proyek'
               )}

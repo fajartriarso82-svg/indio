@@ -198,7 +198,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-48">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
@@ -212,7 +212,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Selamat datang, {staff.name.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -248,7 +248,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       </div>
 
       {/* Project Stats cards */}
-      <h2 className="text-lg font-semibold text-foreground mt-8">Ringkasan Proyek</h2>
+      <h2 className="text-lg font-semibold text-foreground">Ringkasan Proyek</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
           <motion.div
@@ -273,7 +273,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 pt-4">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent projects */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -294,14 +294,15 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                   onClick={() => onNavigate('projects')}
                 >
                   Lihat Semua
-                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
               {recentProjects.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Belum ada proyek. Buat proyek pertama Anda!
+                <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+                  <p className="font-medium text-foreground">Belum ada proyek</p>
+                  <p className="text-sm">Buat proyek pertama Anda untuk memulai.</p>
                 </div>
               ) : (
                 <div className="space-y-3">

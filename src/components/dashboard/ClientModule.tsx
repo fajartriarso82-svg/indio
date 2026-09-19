@@ -246,11 +246,16 @@ export default function ClientModule() {
         <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : filteredClients.length === 0 ? (
-            <div className="h-32 flex items-center justify-center text-muted-foreground px-4 text-center">
-              {search ? 'Tidak ada klien yang cocok.' : 'Belum ada klien. Buat klien pertama Anda!'}
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+              <p className="font-medium text-foreground">
+                {search ? 'Tidak ada klien yang cocok' : 'Belum ada klien'}
+              </p>
+              <p className="text-sm">
+                {search ? 'Coba kata kunci lain.' : 'Buat klien pertama Anda untuk memulai.'}
+              </p>
             </div>
           ) : (
             <>
@@ -293,7 +298,7 @@ export default function ClientModule() {
 
                     <div className="flex justify-end gap-2 pt-1">
                       <Button variant="outline" size="sm" className="h-9" onClick={() => handleOpenEdit(client)}>
-                        <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                        <Pencil className="w-3.5 h-3.5" />
                         Edit
                       </Button>
                       <Button
@@ -499,7 +504,7 @@ export default function ClientModule() {
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
                 ) : (
                   editing ? 'Perbarui Klien' : 'Buat Klien'
                 )}

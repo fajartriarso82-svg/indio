@@ -214,11 +214,11 @@ export default function InventoryModule() {
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
           >
-            {isImporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileUp className="w-4 h-4 mr-2" />}
+            {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
             Import Excel
           </Button>
           <Button variant="outline" onClick={handleExportExcel}>
-            <FileDown className="w-4 h-4 mr-2" />
+            <FileDown className="w-4 h-4" />
             Export Excel
           </Button>
           <Button 
@@ -228,7 +228,7 @@ export default function InventoryModule() {
               setIsModalOpen(true)
             }}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Tambah Barang
           </Button>
         </div>
@@ -309,13 +309,13 @@ export default function InventoryModule() {
                           setIsModalOpen(true)
                         }}
                       >
-                        <Edit className="w-4 h-4 mr-1.5 text-blue-500" />
+                        <Edit className="w-4 h-4 text-blue-500" />
                         Edit
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 text-rose-600 hover:bg-rose-50"
+                        className="h-9 text-destructive hover:bg-destructive/10"
                         onClick={() => handleDelete(p.id)}
                       >
                         <Trash2 className="w-4 h-4" />

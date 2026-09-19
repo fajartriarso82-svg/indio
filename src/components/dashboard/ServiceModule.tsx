@@ -136,11 +136,11 @@ export default function ServiceModule() {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleExportExcel}>
-            <FileDown className="w-4 h-4 mr-2" />
+            <FileDown className="w-4 h-4" />
             Export Excel
           </Button>
           <Button className="flex-1 sm:flex-none bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setIsModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Terima Service
           </Button>
         </div>
@@ -220,13 +220,13 @@ export default function ServiceModule() {
                           setDetailModalOpen(true)
                         }}
                       >
-                        <Eye className="w-4 h-4 mr-1.5" />
+                        <Eye className="w-4 h-4" />
                         Detail
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 text-rose-600 hover:bg-rose-50"
+                        className="h-9 text-destructive hover:bg-destructive/10"
                         onClick={() => handleDelete(svc.id)}
                       >
                         <Trash2 className="w-4 h-4" />

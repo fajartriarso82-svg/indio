@@ -214,7 +214,7 @@ export default function TransactionDetailModal({
               className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200"
               onClick={() => window.open(`/print/transaction/${transaction.id}`, '_blank')}
             >
-              <Printer className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4" />
               Cetak Ulang Invoice
             </Button>
           </div>

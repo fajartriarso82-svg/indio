@@ -156,11 +156,11 @@ export default function TransactionModule() {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleExportExcel}>
-            <FileDown className="w-4 h-4 mr-2" />
+            <FileDown className="w-4 h-4" />
             Export Excel
           </Button>
           <Button className="flex-1 sm:flex-none" onClick={() => setIsModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Transaksi Baru
           </Button>
         </div>
@@ -230,13 +230,13 @@ export default function TransactionModule() {
                             setDetailModalOpen(true)
                           }}
                         >
-                          <Eye className="w-4 h-4 mr-1.5" />
+                          <Eye className="w-4 h-4" />
                           Detail
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 text-rose-600 hover:bg-rose-50"
+                          className="h-9 text-destructive hover:bg-destructive/10"
                           onClick={() => handleDelete(tx.id)}
                         >
                           <Trash2 className="w-4 h-4" />

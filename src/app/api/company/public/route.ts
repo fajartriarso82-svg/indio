@@ -20,6 +20,9 @@ export async function GET() {
         phone: true,
         email: true,
         logoFile: true,
+        siplahUrl: true,
+        ekatalogUrl: true,
+        padiUmkmUrl: true,
       },
     })
 

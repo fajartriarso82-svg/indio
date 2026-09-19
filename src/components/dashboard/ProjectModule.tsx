@@ -163,11 +163,12 @@ export default function ProjectModule() {
         <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : projects.length === 0 ? (
-            <div className="h-32 flex items-center justify-center text-muted-foreground px-4 text-center">
-              Tidak ada proyek. Buat proyek pertama Anda!
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+              <p className="font-medium text-foreground">Belum ada proyek</p>
+              <p className="text-sm">Buat proyek pertama Anda untuk memulai.</p>
             </div>
           ) : (
             <>

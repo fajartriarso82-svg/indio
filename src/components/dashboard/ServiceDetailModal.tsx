@@ -299,7 +299,7 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
                   <div className="flex justify-between items-center">
                     <Label>Daftar Sparepart</Label>
                     <Button type="button" variant="outline" size="sm" onClick={handleAddSparepart} className="h-7 text-xs">
-                      <Plus className="w-3 h-3 mr-1" /> Tambah
+                      <Plus className="w-3 h-3" /> Tambah
                     </Button>
                   </div>
                   {spareparts.length === 0 && <p className="text-xs text-muted-foreground italic">Tidak ada sparepart.</p>}
@@ -400,7 +400,7 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
               className="border-blue-200 text-blue-600 hover:bg-blue-50"
               onClick={() => window.open(`/print/service/${service.id}/ticket`, '_blank')}
             >
-              <Printer className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4" />
               Cetak Tiket
             </Button>
             <Button 
@@ -408,12 +408,12 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
               className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200"
               onClick={() => window.open(`/print/service/${service.id}/invoice`, '_blank')}
             >
-              <Printer className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4" />
               Cetak Ringkasan
             </Button>
             <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              <Save className="w-4 h-4 mr-2" />
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Save className="w-4 h-4" />
               Simpan Perubahan
             </Button>
           </div>

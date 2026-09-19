@@ -29,13 +29,13 @@ export default async function PrintServiceTicketPage({ params }: { params: Promi
                 <div className="w-12 h-12 bg-slate-200 rounded flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">LOGO</div>
               )}
               <div className="font-bold text-sm text-blue-900 uppercase leading-none">
-                {company?.name || 'Toko Berkah Bersama'}
+                {company?.name || 'PT. INTI NUSA DINAMIKA OPTIMA'}
               </div>
             </div>
             <div className="text-[10px] text-slate-700">
-              <span className="font-bold">Contact info:</span><br/>
-              {company?.address || '-'}<br/>
-              {company?.phone || '-'}
+              <span className="font-bold">Kontak:</span><br/>
+              {company?.address || 'Jl. A. Yani No. 77 Cilacap'}<br/>
+              {company?.phone || '0282-531042'}
             </div>
           </div>
 

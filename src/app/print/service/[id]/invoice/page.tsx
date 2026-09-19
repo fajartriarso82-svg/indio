@@ -30,6 +30,17 @@ export default async function PrintServiceInvoicePage({ params }: { params: Prom
     }
   } catch (e) {}
 
+  const hasBreakdown = service.serviceFee > 0 || spareparts.length > 0
+
+  const statusStyles: Record<string, { label: string; color: string }> = {
+    PENDING: { label: 'Menunggu', color: 'text-amber-600' },
+    PROSES: { label: 'Diproses', color: 'text-blue-600' },
+    DIKIRIM_KE_SERVICE_CENTER: { label: 'Di Service Center', color: 'text-purple-600' },
+    SELESAI: { label: 'Selesai', color: 'text-emerald-600' },
+    CANCELLED: { label: 'Dibatalkan', color: 'text-rose-600' },
+  }
+  const currentStatus = statusStyles[service.status] ?? { label: service.status, color: 'text-slate-600' }
+
   return (
     <div className="bg-white min-h-screen print:bg-white text-slate-900 font-sans">
       <div className="w-full max-w-[105mm] mx-auto p-4 sm:p-6 print:p-0 print:max-w-none box-border text-[11px] leading-tight" id="printable-area">
@@ -44,13 +55,13 @@ export default async function PrintServiceInvoicePage({ params }: { params: Prom
                 <div className="w-12 h-12 bg-slate-200 rounded flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">LOGO</div>
               )}
               <div className="font-bold text-sm text-blue-900 uppercase leading-none">
-                {company?.name || 'Toko Berkah Bersama'}
+                {company?.name || 'PT. INTI NUSA DINAMIKA OPTIMA'}
               </div>
             </div>
             <div className="text-[10px] text-slate-700">
-              <span className="font-bold">Contact info:</span><br/>
-              {company?.address || '-'}<br/>
-              {company?.phone || '-'}
+              <span className="font-bold">Kontak:</span><br/>
+              {company?.address || 'Jl. A. Yani No. 77 Cilacap'}<br/>
+              {company?.phone || '0282-531042'}
             </div>
           </div>
 
@@ -87,6 +98,14 @@ export default async function PrintServiceInvoicePage({ params }: { params: Prom
               </tr>
             </thead>
             <tbody>
+              {!hasBreakdown && (
+                <tr className="text-slate-500">
+                  <td colSpan={3} className="border border-blue-900/30 py-3 px-2 text-center italic">
+                    Belum ada rincian biaya
+                  </td>
+                </tr>
+              )}
+
               {/* Jasa Service */}
               {service.serviceFee > 0 && (
                 <tr className="text-slate-800">
@@ -114,10 +133,12 @@ export default async function PrintServiceInvoicePage({ params }: { params: Prom
         {/* Totals */}
         <div className="flex justify-end mb-6 text-[10px]">
           <div className="w-64 space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-slate-600">Subtotal Sparepart:</span>
-              <span className="font-medium text-slate-900">{formatCurrency(service.sparepartCost)}</span>
-            </div>
+            {spareparts.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Subtotal Sparepart:</span>
+                <span className="font-medium text-slate-900">{formatCurrency(service.sparepartCost)}</span>
+              </div>
+            )}
             {service.shippingCost > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-600">Ongkos Kirim:</span>
@@ -131,7 +152,7 @@ export default async function PrintServiceInvoicePage({ params }: { params: Prom
             </div>
             <div className="flex justify-between font-bold text-[10px] text-slate-800">
               <span className="uppercase">STATUS:</span>
-              <span className="uppercase text-emerald-600">{service.status}</span>
+              <span className={`uppercase ${currentStatus.color}`}>{currentStatus.label}</span>
             </div>
           </div>
         </div>

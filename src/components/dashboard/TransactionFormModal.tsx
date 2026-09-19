@@ -370,7 +370,7 @@ export default function TransactionFormModal({
                     Kosongkan Form
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4" />
                     Tambah Baris
                   </Button>
                 </div>
@@ -627,11 +627,11 @@ export default function TransactionFormModal({
           </Button>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200">
-              <Printer className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4" />
               Cetak Invoice
             </Button>
             <Button type="submit" form="transaction-form" disabled={loading || items.length === 0}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               Simpan Transaksi
             </Button>
           </div>

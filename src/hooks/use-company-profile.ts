@@ -13,6 +13,9 @@ export interface CompanyProfile {
   phone?: string | null
   email?: string | null
   logoFile?: string | null
+  siplahUrl?: string | null
+  ekatalogUrl?: string | null
+  padiUmkmUrl?: string | null
 }
 
 /**

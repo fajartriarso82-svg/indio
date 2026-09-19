@@ -191,3 +191,24 @@ input[type='number']::-webkit-outer-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* Infinite Marquee Slide Animation */
+@keyframes marquee-slide {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-infinite {
+  display: flex;
+  width: max-content;
+  animation: marquee-slide 40s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-infinite:hover {
+  animation-play-state: paused;
+}

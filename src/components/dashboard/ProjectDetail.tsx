@@ -46,6 +46,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   SuratJalanForm,
@@ -112,6 +122,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
   // Status update
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [completeOpen, setCompleteOpen] = useState(false)
 
   const fetchProject = useCallback(async () => {
     try {
@@ -357,7 +368,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-48">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
@@ -387,12 +398,12 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start gap-4">
         <Button variant="outline" size="sm" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1.5" />
+          <ArrowLeft className="w-4 h-4" />
           Kembali
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
             <Badge variant="outline" className="text-[10px]">{project.projectCode}</Badge>
             <Badge variant="outline" className="text-[10px]">{project.type}</Badge>
             <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
@@ -410,19 +421,50 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             </Button>
           )}
           {project.status === 'IN_PROGRESS' && (
-            <Button size="sm" onClick={() => handleStatusUpdate('COMPLETED')} disabled={statusUpdating}>
+            <Button size="sm" onClick={() => setCompleteOpen(true)} disabled={statusUpdating}>
               Selesai
             </Button>
           )}
         </div>
       </div>
 
+      {/* Confirm: Selesaikan Proyek */}
+      <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Selesaikan Proyek</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menandai proyek <strong>{project.name}</strong>
+              {project.projectCode ? ` (${project.projectCode})` : ''} sebagai <strong>selesai</strong>?
+              Setelah selesai, item RAB tidak dapat ditambah atau diproses lagi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault()
+                await handleStatusUpdate('COMPLETED')
+                setCompleteOpen(false)
+              }}
+              disabled={statusUpdating}
+            >
+              {statusUpdating ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Menyelesaikan...</>
+              ) : (
+                'Ya, Selesaikan'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="info"><FileText className="w-3.5 h-3.5 mr-1.5" />Info</TabsTrigger>
-          <TabsTrigger value="rab"><Package className="w-3.5 h-3.5 mr-1.5" />RAB</TabsTrigger>
-          <TabsTrigger value="documents"><ClipboardList className="w-3.5 h-3.5 mr-1.5" />Dokumen</TabsTrigger>
+          <TabsTrigger value="info"><FileText className="w-3.5 h-3.5" />Info</TabsTrigger>
+          <TabsTrigger value="rab"><Package className="w-3.5 h-3.5" />RAB</TabsTrigger>
+          <TabsTrigger value="documents"><ClipboardList className="w-3.5 h-3.5" />Dokumen</TabsTrigger>
         </TabsList>
 
         {/* ─── TAB: INFO ─── */}
@@ -547,142 +589,260 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         <TabsContent value="rab" className="space-y-6 mt-4">
           {/* Items with purchases */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Item RAB & Pembelian</CardTitle>
-              <CardDescription>Lacak biaya pembelian setiap item</CardDescription>
+            <CardHeader className="p-4 sm:px-6 pb-0">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle className="text-lg">Item RAB & Pembelian</CardTitle>
+                  <CardDescription>Lacak biaya pembelian setiap item</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Harga Jual</TableHead>
-                      <TableHead className="text-center">Deadline</TableHead>
-                      <TableHead className="text-right">Total RAB</TableHead>
-                      <TableHead className="text-right">Total Beli</TableHead>
-                      <TableHead className="text-right">Margin</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(project.items || []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          Tidak ada item dalam proyek ini
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      project.items.map((item: any) => {
-                        const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
-                        const margin = item.total - itemBuyTotal
-                        return (
-                          <Fragment key={item.id}>
-                            <TableRow>
-                              <TableCell>
-                                <div className="font-medium text-foreground text-sm">{item.itemName}</div>
-                                <div className="text-[10px] text-muted-foreground">ID: {item.itemId} {item.itemCode ? `| Kode: ${item.itemCode}` : ''}</div>
-                              </TableCell>
-                              <TableCell className="text-right text-sm">{item.qty} {item.unit}</TableCell>
-                              <TableCell className="text-right text-sm">{formatCurrency(item.unitPrice)}</TableCell>
-                              <TableCell className="text-center text-sm">{formatDate(item.deadline)}</TableCell>
-                              <TableCell className="text-right text-sm font-medium">{formatCurrency(item.total)}</TableCell>
-                              <TableCell className="text-right text-sm font-medium text-destructive">{formatCurrency(itemBuyTotal)}</TableCell>
-                              <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+              {(project.items || []).length === 0 ? (
+                <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+                  <p className="font-medium text-foreground">Belum ada item RAB</p>
+                  <p className="text-sm">Tambahkan item proyek untuk mulai melacak pembelian.</p>
+                </div>
+              ) : (
+                <>
+                  {/* ===== MOBILE: Card list ===== */}
+                  <div className="md:hidden divide-y divide-border border-t border-border">
+                    {project.items.map((item: any) => {
+                      const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
+                      const margin = item.total - itemBuyTotal
+                      return (
+                        <div key={item.id} className="p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm truncate">{item.itemName}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                ID: {item.itemId}{item.itemCode ? ` | Kode: ${item.itemCode}` : ''}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-9 shrink-0"
+                              onClick={() => {
+                                setSelectedItemId(item.id)
+                                setPurchaseOpen(true)
+                              }}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              Beli
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Qty</p>
+                              <p className="truncate mt-0.5">{item.qty} {item.unit}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Harga Jual</p>
+                              <p className="truncate mt-0.5">{formatCurrency(item.unitPrice)}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Deadline</p>
+                              <p className="truncate mt-0.5">{formatDate(item.deadline)}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Total RAB</p>
+                              <p className="truncate mt-0.5 font-medium">{formatCurrency(item.total)}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Total Beli</p>
+                              <p className="truncate mt-0.5 font-medium text-destructive">{formatCurrency(itemBuyTotal)}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Margin</p>
+                              <p className={`truncate mt-0.5 font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                 {formatCurrency(margin)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedItemId(item.id)
-                                    setPurchaseOpen(true)
-                                  }}
-                                >
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  Beli
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                            {/* Purchase details */}
-                            {item.purchases?.length > 0 && (
-                              <TableRow key={`${item.id}-purchases`} className="bg-muted/20">
-                                <TableCell colSpan={8} className="p-2">
-                                  <div className="pl-6 space-y-1">
-                                    {item.purchases.map((p: any) => (
-                                      <div key={p.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/50 last:border-0">
-                                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
-                                          {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
-                                        </Badge>
-                                        <span className="text-muted-foreground">{p.vendor?.name || 'Tanpa vendor'}</span>
-                                        <span className="text-muted-foreground">× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
-                                        <span className="font-medium text-foreground">= {formatCurrency(p.totalBuy)}</span>
-                                        
-                                        {/* Actions & Links */}
-                                        <div className="flex items-center gap-2 ml-auto">
-                                          {p.docUrl && (
-                                            <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                              [Inv/Referensi]
-                                            </a>
-                                          )}
-                                          {p.paymentProofUrl && (
-                                            <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
-                                              [Bukti Transfer]
-                                            </a>
-                                          )}
-                                          {p.status === 'REQUEST' && (
-                                            <Button size="sm" className="h-6 text-[10px] px-2 ml-2" onClick={() => {
-                                              setSelectedPurchaseId(p.id)
-                                              setPayOpen(true)
-                                            }}>
-                                              Konfirmasi Bayar
-                                            </Button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
+                              </p>
+                            </div>
+                          </div>
+
+                          {item.purchases?.length > 0 && (
+                            <div className="rounded-md border border-border divide-y divide-border">
+                              {item.purchases.map((p: any) => (
+                                <div key={p.id} className="p-3 space-y-2">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-sm truncate">{p.vendor?.name || 'Tanpa vendor'}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        × {p.qty} @ {formatCurrency(p.buyPrice)} = {formatCurrency(p.totalBuy)}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant="outline"
+                                      className={`shrink-0 text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}
+                                    >
+                                      {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
+                                    </Badge>
                                   </div>
+
+                                  <div className="flex items-center justify-end gap-3 flex-wrap">
+                                    {p.docUrl && (
+                                      <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                        [Inv/Referensi]
+                                      </a>
+                                    )}
+                                    {p.paymentProofUrl && (
+                                      <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                        [Bukti Transfer]
+                                      </a>
+                                    )}
+                                    {p.status === 'REQUEST' && (
+                                      <Button
+                                        size="sm"
+                                        className="h-9"
+                                        onClick={() => {
+                                          setSelectedPurchaseId(p.id)
+                                          setPayOpen(true)
+                                        }}
+                                      >
+                                        Konfirmasi Bayar
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* ===== DESKTOP: Tabel ===== */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="min-w-[200px]">Item</TableHead>
+                          <TableHead className="text-right min-w-[90px]">Qty</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Harga Jual</TableHead>
+                          <TableHead className="text-center min-w-[110px]">Deadline</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Total RAB</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Total Beli</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Margin</TableHead>
+                          <TableHead className="text-right min-w-[90px]">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {project.items.map((item: any) => {
+                          const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
+                          const margin = item.total - itemBuyTotal
+                          return (
+                            <Fragment key={item.id}>
+                              <TableRow>
+                                <TableCell>
+                                  <div className="font-medium text-foreground text-sm">{item.itemName}</div>
+                                  <div className="text-[10px] text-muted-foreground">ID: {item.itemId} {item.itemCode ? `| Kode: ${item.itemCode}` : ''}</div>
+                                </TableCell>
+                                <TableCell className="text-right text-sm">{item.qty} {item.unit}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(item.unitPrice)}</TableCell>
+                                <TableCell className="text-center text-sm">{formatDate(item.deadline)}</TableCell>
+                                <TableCell className="text-right text-sm font-medium">{formatCurrency(item.total)}</TableCell>
+                                <TableCell className="text-right text-sm font-medium text-destructive">{formatCurrency(itemBuyTotal)}</TableCell>
+                                <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {formatCurrency(margin)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedItemId(item.id)
+                                      setPurchaseOpen(true)
+                                    }}
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    Beli
+                                  </Button>
                                 </TableCell>
                               </TableRow>
-                            )}
-                          </Fragment>
-                        )
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                              {/* Purchase details */}
+                              {item.purchases?.length > 0 && (
+                                <TableRow key={`${item.id}-purchases`} className="bg-muted/20">
+                                  <TableCell colSpan={8} className="p-2">
+                                    <div className="pl-6 space-y-1">
+                                      {item.purchases.map((p: any) => (
+                                        <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs py-1.5 border-b border-border/50 last:border-0">
+                                          <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                                            {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
+                                          </Badge>
+                                          <span className="text-muted-foreground">{p.vendor?.name || 'Tanpa vendor'}</span>
+                                          <span className="text-muted-foreground">× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
+                                          <span className="font-medium text-foreground">= {formatCurrency(p.totalBuy)}</span>
+
+                                          {/* Actions & Links */}
+                                          <div className="flex items-center gap-2 ml-auto">
+                                            {p.docUrl && (
+                                              <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                [Inv/Referensi]
+                                              </a>
+                                            )}
+                                            {p.paymentProofUrl && (
+                                              <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
+                                                [Bukti Transfer]
+                                              </a>
+                                            )}
+                                            {p.status === 'REQUEST' && (
+                                              <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                                                setSelectedPurchaseId(p.id)
+                                                setPayOpen(true)
+                                              }}>
+                                                Konfirmasi Bayar
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </Fragment>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           {/* Additional Costs */}
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:px-6 pb-0">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <CardTitle className="text-base">Biaya Tambahan</CardTitle>
+                  <CardTitle className="text-lg">Biaya Tambahan</CardTitle>
                   <CardDescription>Aksesoris, pengiriman, operasional, dll.</CardDescription>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setAddCostOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />
+                <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => setAddCostOpen(true)}>
+                  <Plus className="w-3.5 h-3.5" />
                   Tambah Biaya
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 mt-4 sm:mt-0">
               {(project.additionalCosts || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Tidak ada biaya tambahan</p>
+                <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+                  <p className="font-medium text-foreground">Belum ada biaya tambahan</p>
+                  <p className="text-sm">Catat aksesoris, pengiriman, atau biaya operasional di sini.</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {project.additionalCosts.map((cost: any) => (
-                    <div key={cost.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{cost.category}</Badge>
-                          <span className="text-sm font-medium text-foreground">{cost.description}</span>
-                          <span className="text-xs text-muted-foreground ml-2">{formatDate(cost.date)}</span>
+                    <div key={cost.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-border">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{cost.category}</Badge>
+                          <span className="text-sm font-medium text-foreground break-words">{cost.description}</span>
+                          <span className="text-xs text-muted-foreground">{formatDate(cost.date)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {cost.vendorName || 'Tanpa vendor'}
@@ -694,10 +854,10 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                           </a>
                         )}
                       </div>
-                      <span className="text-sm font-medium text-destructive">{formatCurrency(cost.amount)}</span>
+                      <span className="text-sm font-medium text-destructive sm:text-right shrink-0">{formatCurrency(cost.amount)}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg">
                     <span className="text-sm font-medium">Total Biaya Tambahan</span>
                     <span className="text-sm font-bold text-destructive">{formatCurrency(totalAddCosts)}</span>
                   </div>
@@ -708,7 +868,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
           {/* RAB Purchase Dialog */}
           <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Tambah Pembelian</DialogTitle>
                 <DialogDescription>Catat pembelian untuk item ini</DialogDescription>
@@ -766,7 +926,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingPurchase}>
-                    {submittingPurchase ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Ajukan Request'}
+                    {submittingPurchase ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ajukan Request'}
                   </Button>
                 </div>
               </form>
@@ -775,7 +935,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
           {/* RAB Pay Dialog */}
           <Dialog open={payOpen} onOpenChange={setPayOpen}>
-            <DialogContent className="sm:max-w-sm">
+            <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
                 <DialogDescription>Konfirmasi pelunasan request pembelian ini</DialogDescription>
@@ -789,7 +949,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPayOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingPay}>
-                    {submittingPay ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Konfirmasi & Lunas'}
+                    {submittingPay ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Konfirmasi & Lunas'}
                   </Button>
                 </div>
               </form>
@@ -798,7 +958,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
           {/* Additional Cost Dialog */}
           <Dialog open={addCostOpen} onOpenChange={setAddCostOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Tambah Biaya Tambahan</DialogTitle>
                 <DialogDescription>Catat biaya tambahan untuk proyek ini</DialogDescription>
@@ -846,7 +1006,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <div className="flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={() => setAddCostOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingCost}>
-                    {submittingCost ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    {submittingCost ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     Tambah Biaya
                   </Button>
                 </div>
@@ -863,7 +1023,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Surat Jalan</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setSjFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Buat
+                  <Plus className="w-3 h-3" />Buat
                 </Button>
               </div>
             </CardHeader>
@@ -921,7 +1081,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">BAST</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setBastFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Buat
+                  <Plus className="w-3 h-3" />Buat
                 </Button>
               </div>
             </CardHeader>
@@ -959,7 +1119,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Invoice</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setInvoiceFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Buat
+                  <Plus className="w-3 h-3" />Buat
                 </Button>
               </div>
             </CardHeader>
@@ -1004,7 +1164,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Kuitansi</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setKuitansiFormOpen(true)}>
-                  <Plus className="w-3 h-3 mr-1" />Buat
+                  <Plus className="w-3 h-3" />Buat
                 </Button>
               </div>
             </CardHeader>

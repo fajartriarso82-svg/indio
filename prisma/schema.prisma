@@ -26,6 +26,9 @@ model Company {
   aktaFile   String?
   logoFile   String?
   kopFile    String?
+  siplahUrl   String?
+  ekatalogUrl String?
+  padiUmkmUrl String?
   isActive   Boolean    @default(true)
   employees  Employee[]
   createdAt  DateTime   @default(now())
@@ -460,4 +463,16 @@ model PettyCash {
   proofUrl    String? // Bukti bayar
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ─── Rekam Jejak / Project Gallery ───
+model ProjectGallery {
+  id        String   @id @default(cuid())
+  title     String
+  comment   String?
+  imageUrl  String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

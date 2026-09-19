@@ -30,7 +30,7 @@ export default function FinanceModule() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 lg:p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Wallet className="w-5 h-5 text-primary" />
@@ -42,7 +42,7 @@ export default function FinanceModule() {
         </Card>
         
         <Card className="bg-emerald-50 border-emerald-100">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 lg:p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <ArrowUpRight className="w-5 h-5 text-emerald-600" />
@@ -54,7 +54,7 @@ export default function FinanceModule() {
         </Card>
 
         <Card className="bg-orange-50 border-orange-100">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 lg:p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-orange-100 rounded-lg">
                 <Coins className="w-5 h-5 text-orange-600" />
@@ -66,7 +66,7 @@ export default function FinanceModule() {
         </Card>
 
         <Card className="bg-rose-50 border-rose-100">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 lg:p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-rose-100 rounded-lg">
                 <ArrowDownRight className="w-5 h-5 text-rose-600" />
@@ -86,13 +86,16 @@ export default function FinanceModule() {
 
         <TabsContent value="penjualan" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Daftar Transaksi Selesai</CardTitle>
+            <CardHeader className="p-4 sm:px-6 pb-0">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-lg">Daftar Transaksi Selesai</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+            <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
                 <Wallet className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                <p>Belum ada data penjualan tercatat</p>
+                <p className="font-medium text-foreground">Belum ada data penjualan tercatat</p>
+                <p className="text-sm">Data akan muncul setelah ada transaksi berstatus selesai.</p>
               </div>
             </CardContent>
           </Card>
@@ -100,21 +103,24 @@ export default function FinanceModule() {
 
         <TabsContent value="kaskecil" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Riwayat Kas Kecil</CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
-                  <Plus className="w-4 h-4 mr-1" /> Tambah Saldo
-                </Button>
-                <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white">
-                  <Plus className="w-4 h-4 mr-1" /> Pengeluaran
-                </Button>
+            <CardHeader className="p-4 sm:px-6 pb-0">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-lg">Riwayat Kas Kecil</CardTitle>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                    <Plus className="w-4 h-4" /> Tambah Saldo
+                  </Button>
+                  <Button size="sm" className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white">
+                    <Plus className="w-4 h-4" /> Pengeluaran
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+            <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
                 <Coins className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                <p>Belum ada aktivitas kas kecil</p>
+                <p className="font-medium text-foreground">Belum ada aktivitas kas kecil</p>
+                <p className="text-sm">Catat saldo awal atau pengeluaran untuk memulai.</p>
               </div>
             </CardContent>
           </Card>
