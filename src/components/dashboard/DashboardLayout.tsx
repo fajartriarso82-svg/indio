@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -11,13 +11,11 @@ import {
   FolderKanban,
   Menu,
   X,
-  ChevronLeft,
   ShoppingCart,
   Wrench,
   Package,
   Wallet,
   Settings,
-  Images,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -71,6 +69,35 @@ const navItems: { key: ModuleKey; label: string; icon: typeof LayoutDashboard }[
 export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProps) {
   const [activeModule, setActiveModule] = useState<ModuleKey>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Restore collapsed state from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('indio_sidebar_collapsed')
+      if (saved !== null) {
+        setIsCollapsed(saved === 'true')
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen((prev) => !prev)
+    } else {
+      setIsCollapsed((prev) => {
+        const next = !prev
+        try {
+          localStorage.setItem('indio_sidebar_collapsed', String(next))
+        } catch {
+          // ignore
+        }
+        return next
+      })
+    }
+  }
 
   const handleNavClick = (key: ModuleKey) => {
     setActiveModule(key)
@@ -111,7 +138,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -119,62 +146,96 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 h-full bg-card border-r border-border z-50 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto flex flex-col shrink-0 ${
+          sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        } ${
+          isCollapsed ? 'w-72 lg:w-20' : 'w-72'
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">IN</span>
+        {/* Sidebar Header */}
+        <div
+          className={`flex items-center h-16 lg:h-17 px-4.5 border-b border-border transition-all ${
+            isCollapsed ? 'lg:justify-center lg:px-2' : 'justify-between lg:justify-start'
+          }`}
+        >
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
+              <span className="text-primary-foreground font-bold text-base">IN</span>
             </div>
-            <div>
-              <span className="font-bold text-sm text-foreground">PT INDO</span>
-              <span className="text-[10px] text-muted-foreground ml-1.5">Portal Staff</span>
+            <div className={`transition-opacity duration-200 ${isCollapsed ? 'lg:hidden' : 'block'}`}>
+              <span className="font-bold text-[15px] text-foreground block whitespace-nowrap tracking-tight">PT INDO</span>
+              <span className="text-xs text-muted-foreground block whitespace-nowrap font-medium">Portal Staff</span>
             </div>
           </div>
+
+          {/* Close button for mobile drawer */}
           <button
-            className="lg:hidden p-1.5 rounded-md hover:bg-muted text-muted-foreground"
+            className="lg:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
+            aria-label="Tutup sidebar"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <ScrollArea className="flex-1 h-[calc(100vh-4rem)]">
-          <nav className="p-3 space-y-1">
+        {/* Navigation items */}
+        <ScrollArea className="flex-1 h-[calc(100vh-4.25rem)]">
+          <nav className="p-3.5 space-y-1.5">
             {navItems.map((item) => {
               const isActive = activeModule === item.key
               return (
                 <button
                   key={item.key}
                   onClick={() => handleNavClick(item.key)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  title={item.label}
+                  className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-[14.5px] font-medium transition-all group relative ${
+                    isCollapsed ? 'lg:justify-center lg:px-0' : ''
+                  } ${
                     isActive
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-primary/10 text-primary font-semibold shadow-xs'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <item.icon className={`w-4.5 h-4.5 ${isActive ? 'text-primary' : ''}`} />
-                  {item.label}
+                  <item.icon
+                    className={`w-5 h-5 shrink-0 transition-colors ${
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                    }`}
+                  />
+                  <span className={`truncate ${isCollapsed ? 'lg:hidden' : 'block'}`}>
+                    {item.label}
+                  </span>
+
+                  {/* Tooltip on desktop when sidebar is collapsed */}
+                  {isCollapsed && (
+                    <span className="hidden lg:group-hover:flex items-center absolute left-full ml-3 px-3 py-1.5 bg-popover text-popover-foreground text-xs font-semibold rounded-lg shadow-lg border border-border whitespace-nowrap z-50 pointer-events-none">
+                      {item.label}
+                    </span>
+                  )}
                 </button>
               )
             })}
           </nav>
 
-          <Separator className="mx-3 my-2" />
+          <Separator className="mx-3.5 my-2.5" />
 
-          <div className="p-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
-              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+          {/* User profile section */}
+          <div className="p-3.5">
+            <div
+              className={`flex items-center gap-3 p-3 rounded-xl bg-primary/5 transition-all ${
+                isCollapsed ? 'lg:justify-center lg:p-2' : ''
+              }`}
+            >
+              <div
+                className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm"
+                title={`${staff.name} (${staff.role})`}
+              >
                 <span className="text-primary-foreground text-sm font-bold">
                   {staff.name.charAt(0)}
                 </span>
               </div>
-              <div className="flex-1 min-w-0">
+              <div className={`flex-1 min-w-0 ${isCollapsed ? 'lg:hidden' : 'block'}`}>
                 <p className="text-sm font-semibold text-foreground truncate">{staff.name}</p>
-                <p className="text-[11px] text-muted-foreground capitalize">{staff.role}</p>
+                <p className="text-xs text-muted-foreground capitalize mt-0.5">{staff.role}</p>
               </div>
             </div>
           </div>
@@ -182,42 +243,54 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
       </aside>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top navbar */}
-        <header className="h-16 bg-card border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+        <header className="h-16 lg:h-17 bg-card border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3.5">
+            {/* Hamburger button: toggles collapse on desktop & drawer on mobile */}
             <button
-              className="lg:hidden p-2 rounded-md hover:bg-muted text-muted-foreground"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open sidebar"
+              className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onClick={toggleSidebar}
+              aria-label={isCollapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
+              title={isCollapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="hidden sm:flex items-center gap-2">
-              <h2 className="text-base font-semibold text-foreground capitalize">
-                {activeModule === 'dashboard' ? 'Beranda' : 
-                 activeModule === 'transactions' ? 'POS Transaksi' :
-                 activeModule === 'services' ? 'POS Service' :
-                 activeModule === 'inventory' ? 'Stok' :
-                 activeModule === 'finance' ? 'Keuangan' :
-                 activeModule === 'projects' ? 'Proyek' : 
-                 activeModule === 'clients' ? 'Klien' : 
-                 activeModule === 'vendors' ? 'Vendor' : 
-                 activeModule === 'settings' ? 'Setting' : activeModule}
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-foreground capitalize tracking-tight">
+                {activeModule === 'dashboard'
+                  ? 'Beranda'
+                  : activeModule === 'transactions'
+                  ? 'POS Transaksi'
+                  : activeModule === 'services'
+                  ? 'POS Service'
+                  : activeModule === 'inventory'
+                  ? 'Stok'
+                  : activeModule === 'finance'
+                  ? 'Keuangan'
+                  : activeModule === 'projects'
+                  ? 'Proyek'
+                  : activeModule === 'clients'
+                  ? 'Klien'
+                  : activeModule === 'vendors'
+                  ? 'Vendor'
+                  : activeModule === 'settings'
+                  ? 'Setting'
+                  : activeModule}
               </h2>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5">
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+            <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-xs">
                 <span className="text-primary-foreground text-xs font-bold">
                   {staff.name.charAt(0)}
                 </span>
               </div>
               <div>
-                <p className="text-xs font-semibold text-foreground leading-tight">{staff.name}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight capitalize">{staff.role}</p>
+                <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight">{staff.name}</p>
+                <p className="text-[11px] text-muted-foreground leading-tight capitalize mt-0.5">{staff.role}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={onLogout}>
@@ -228,7 +301,7 @@ export default function DashboardLayout({ staff, onLogout }: DashboardLayoutProp
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-3 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] overflow-x-hidden">
           <motion.div
             key={activeModule}
             initial={{ opacity: 0, y: 8 }}

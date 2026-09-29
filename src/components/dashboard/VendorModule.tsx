@@ -60,6 +60,8 @@ interface Vendor {
   picName: string | null
   picPhone: string | null
   category: string | null
+  npwp: string | null
+  isPKP: boolean
   bankName: string | null
   bankAccount: string | null
   bankHolder: string | null
@@ -76,6 +78,8 @@ interface VendorForm {
   picName: string
   picPhone: string
   category: string
+  npwp: string
+  isPKP: boolean
   bankName: string
   bankAccount: string
   bankHolder: string
@@ -90,6 +94,8 @@ const emptyForm: VendorForm = {
   picName: '',
   picPhone: '',
   category: 'supplier',
+  npwp: '',
+  isPKP: false,
   bankName: '',
   bankAccount: '',
   bankHolder: '',
@@ -159,6 +165,8 @@ export default function VendorModule() {
       picName: vendor.picName || '',
       picPhone: vendor.picPhone || '',
       category: vendor.category || 'supplier',
+      npwp: vendor.npwp || '',
+      isPKP: Boolean(vendor.isPKP),
       bankName: vendor.bankName || '',
       bankAccount: vendor.bankAccount || '',
       bankHolder: vendor.bankHolder || '',
@@ -291,7 +299,22 @@ export default function VendorModule() {
                         <p className="text-muted-foreground">Telepon</p>
                         <p className="truncate mt-0.5">{vendor.phone || '—'}</p>
                       </div>
-                      <div className="min-w-0 col-span-2">
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Pajak</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {vendor.isPKP ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                              PKP
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] px-1.5 py-0">
+                              Non-PKP
+                            </Badge>
+                          )}
+                          {vendor.npwp && <span className="font-mono text-[10px] text-muted-foreground truncate">{vendor.npwp}</span>}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
                         <p className="text-muted-foreground">Bank</p>
                         <p className="truncate mt-0.5">{vendor.bankName || '—'}</p>
                       </div>
@@ -326,6 +349,7 @@ export default function VendorModule() {
                       <TableRow className="bg-muted/50">
                         <TableHead>Nama</TableHead>
                         <TableHead className="hidden md:table-cell">Kategori</TableHead>
+                        <TableHead className="hidden sm:table-cell">Status Pajak</TableHead>
                         <TableHead className="hidden sm:table-cell">PIC</TableHead>
                         <TableHead className="hidden lg:table-cell">Telepon</TableHead>
                         <TableHead className="hidden lg:table-cell">Bank</TableHead>
@@ -343,6 +367,22 @@ export default function VendorModule() {
                             <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${categoryColors[vendor.category || ''] || ''}`}>
                               {categoryLabels[vendor.category || ''] || vendor.category}
                             </span>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-xs">
+                            <div className="flex items-center gap-1.5">
+                              {vendor.isPKP ? (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                                  PKP
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] px-1.5 py-0">
+                                  Non-PKP
+                                </Badge>
+                              )}
+                            </div>
+                            {vendor.npwp && (
+                              <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{vendor.npwp}</p>
+                            )}
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-sm">{vendor.picName || '—'}</TableCell>
                           <TableCell className="hidden lg:table-cell text-sm">{vendor.phone || '—'}</TableCell>
@@ -466,6 +506,35 @@ export default function VendorModule() {
                     onChange={(e) => setForm({ ...form, picPhone: e.target.value })}
                     placeholder="Nomor telepon PIC"
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <p className="text-sm font-medium text-foreground mb-3">Informasi Pajak (NPWP & PKP)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="npwp">NPWP</Label>
+                  <Input
+                    id="npwp"
+                    value={form.npwp}
+                    onChange={(e) => setForm({ ...form, npwp: e.target.value })}
+                    placeholder="Nomor Pokok Wajib Pajak"
+                  />
+                </div>
+                <div className="space-y-2 flex flex-col justify-end">
+                  <label className="flex items-center gap-2.5 cursor-pointer p-2 rounded-md border bg-muted/20 hover:bg-muted/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={form.isPKP}
+                      onChange={(e) => setForm({ ...form, isPKP: e.target.checked })}
+                      className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span className="text-xs">
+                      <span className="font-semibold text-foreground">Pengusaha Kena Pajak (PKP)</span>
+                      <span className="block text-muted-foreground text-[11px]">Dapat menerbitkan Faktur Pajak PPN 11%</span>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>

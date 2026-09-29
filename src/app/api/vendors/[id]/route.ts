@@ -48,7 +48,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params
     const body = await request.json()
-    const { name, address, phone, email, picName, picPhone, category, bankName, bankAccount, bankHolder, notes } = body
+    const { name, address, phone, email, picName, picPhone, category, npwp, isPKP, bankName, bankAccount, bankHolder, notes } = body
 
     const existing = await db.vendor.findUnique({ where: { id } })
     if (!existing) {
@@ -68,6 +68,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         picName,
         picPhone,
         category,
+        ...(npwp !== undefined ? { npwp: npwp || null } : {}),
+        ...(isPKP !== undefined ? { isPKP: Boolean(isPKP) } : {}),
         bankName,
         bankAccount,
         bankHolder,

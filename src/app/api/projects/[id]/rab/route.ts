@@ -68,7 +68,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId } = await context.params
     const body = await request.json()
-    const { projectItemId, vendorId, vendorName, qty, buyPrice, docUrl, notes } = body
+    const { projectItemId, vendorId, vendorName, qty, buyPrice, docUrl, notes, requestDate } = body
 
     if (!projectItemId || qty === undefined || buyPrice === undefined) {
       return NextResponse.json(
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         docUrl,
         notes,
         status: 'REQUEST',
-        requestDate: new Date(),
+        requestDate: requestDate ? new Date(requestDate) : new Date(),
       },
       include: {
         vendor: { select: { id: true, name: true } },

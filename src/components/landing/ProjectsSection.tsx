@@ -79,11 +79,7 @@ export default function ProjectsSection() {
   const [direction, setDirection] = useState(1) // 1: next, -1: prev
   const [isHovered, setIsHovered] = useState(false)
 
-  useEffect(() => {
-    fetchPublicGallery()
-  }, [])
-
-  const fetchPublicGallery = async () => {
+  const fetchPublicGallery = useCallback(async () => {
     try {
       const res = await fetch('/api/gallery/public')
       if (res.ok) {
@@ -95,7 +91,11 @@ export default function ProjectsSection() {
     } catch (err) {
       console.error('Error loading gallery for landing page:', err)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchPublicGallery()
+  }, [fetchPublicGallery])
 
   // Model: 2 kolom, 1 baris
   // Kita kelompokkan item per 2 kolom per halaman (page)

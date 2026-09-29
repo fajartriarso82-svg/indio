@@ -9,11 +9,23 @@ import {
   Filter,
   FolderKanban,
   ChevronRight,
+  Trash2,
+  Archive,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Select,
   SelectContent,
@@ -68,6 +80,59 @@ export default function ProjectModule() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+
+  // Delete & Archive State
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<ProjectListItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [downloadingZipId, setDownloadingZipId] = useState<string | null>(null)
+
+  const handleDownloadZip = (projectId: string, projectName: string) => {
+    setDownloadingZipId(projectId)
+    toast({
+      title: 'Menyiapkan Arsip ZIP',
+      description: `Mengompres file proyek ${projectName}...`,
+    })
+    const link = document.createElement('a')
+    link.href = `/api/projects/${projectId}/export-archive`
+    link.download = ''
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => setDownloadingZipId(null), 2500)
+  }
+
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return
+    try {
+      setDeleting(true)
+      const res = await fetch(`/api/projects/${projectToDelete.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        toast({
+          title: 'Proyek Dihapus',
+          description: data.message || 'Proyek dan seluruh file terkait di Supabase Storage telah dibersihkan.',
+        })
+        fetchProjects()
+      } else {
+        toast({
+          title: 'Gagal Menghapus Proyek',
+          description: data.error || 'Terjadi kesalahan saat menghapus proyek',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Gagal terhubung ke server',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeleting(false)
+      setDeleteOpen(false)
+      setProjectToDelete(null)
+    }
+  }
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -175,47 +240,85 @@ export default function ProjectModule() {
               {/* ===== MOBILE: Card list ===== */}
               <div className="md:hidden divide-y divide-border border-t border-border">
                 {projects.map((project) => (
-                  <button
+                  <div
                     key={project.id}
-                    type="button"
-                    onClick={() => setSelectedProjectId(project.id)}
-                    className="w-full text-left p-4 space-y-3 active:bg-muted/60"
+                    className="w-full p-4 space-y-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm">{project.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {project.projectCode}
-                          {project.poNumber && ` · PO: ${project.poNumber}`}
-                        </p>
+                    <div
+                      onClick={() => setSelectedProjectId(project.id)}
+                      className="cursor-pointer space-y-2.5 active:opacity-70"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm">{project.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {project.projectCode}
+                            {project.poNumber && ` · PO: ${project.poNumber}`}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5" />
                       </div>
-                      <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5" />
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
+                          {statusLabels[project.status] || project.status}
+                        </span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {project.type}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="min-w-0">
+                          <p className="text-muted-foreground">Klien</p>
+                          <p className="truncate mt-0.5">{project.client?.name || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Item</p>
+                          <p className="mt-0.5">
+                            <Badge variant="secondary" className="text-[11px]">
+                              {project._count?.items ?? 0}
+                            </Badge>
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
-                        {statusLabels[project.status] || project.status}
-                      </span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {project.type}
-                      </Badge>
+                    {/* Action buttons for mobile */}
+                    <div
+                      className="flex items-center justify-between pt-2.5 border-t border-border mt-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={downloadingZipId === project.id}
+                        className="text-xs h-7.5 gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
+                        onClick={() => handleDownloadZip(project.id, project.name)}
+                      >
+                        {downloadingZipId === project.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Archive className="w-3.5 h-3.5" />
+                        )}
+                        Unduh ZIP
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7.5 gap-1 text-destructive hover:bg-destructive/10 border-destructive/30"
+                        onClick={() => {
+                          setProjectToDelete(project)
+                          setDeleteOpen(true)
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Hapus
+                      </Button>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="min-w-0">
-                        <p className="text-muted-foreground">Klien</p>
-                        <p className="truncate mt-0.5">{project.client?.name || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Item</p>
-                        <p className="mt-0.5">
-                          <Badge variant="secondary" className="text-[11px]">
-                            {project._count?.items ?? 0}
-                          </Badge>
-                        </p>
-                      </div>
-                    </div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
@@ -230,7 +333,7 @@ export default function ProjectModule() {
                         <TableHead className="hidden sm:table-cell">Klien</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="hidden lg:table-cell">Item</TableHead>
-                        <TableHead className="text-right">Lihat</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -241,8 +344,8 @@ export default function ProjectModule() {
                           onClick={() => setSelectedProjectId(project.id)}
                         >
                           <TableCell>
-                            <div className="font-medium text-foreground">{project.name}</div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="font-semibold text-foreground">{project.name}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
                               {project.projectCode}
                               {project.poNumber && ` · PO: ${project.poNumber}`}
                             </div>
@@ -265,10 +368,50 @@ export default function ProjectModule() {
                               {project._count?.items ?? 0}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <ChevronRight className="w-4 h-4" />
-                            </Button>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Unduh Arsip .ZIP */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingZipId === project.id}
+                                className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                                onClick={() => handleDownloadZip(project.id, project.name)}
+                                title="Download semua file proyek (.zip)"
+                              >
+                                {downloadingZipId === project.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Archive className="w-3.5 h-3.5" />
+                                )}
+                                <span className="hidden xl:inline">Unduh ZIP</span>
+                              </Button>
+
+                              {/* Hapus Proyek */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
+                                onClick={() => {
+                                  setProjectToDelete(project)
+                                  setDeleteOpen(true)
+                                }}
+                                title="Hapus proyek dan file di bucket"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+
+                              {/* Buka Detail */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => setSelectedProjectId(project.id)}
+                                title="Buka Detail Proyek"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -280,6 +423,50 @@ export default function ProjectModule() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirm: Hapus Proyek dari Daftar */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Hapus Proyek & File Terkait
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2.5 text-sm text-foreground/80">
+                <div>
+                  Apakah Anda yakin ingin menghapus proyek <strong>{projectToDelete?.name}</strong> ({projectToDelete?.projectCode})?
+                </div>
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1">
+                  <div className="font-bold text-rose-900">⚠️ PEMBERSIHAN DATA & BUCKET STORAGE:</div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Semua file proyek di Supabase Storage (PO, Invoice, RAB, Surat Jalan, bukti transfer, dll) akan <strong>dihapus permanen dari bucket</strong>.</li>
+                    <li>Semua item, invoice, kuitansi, dan realisasi RAB proyek akan dihapus dari database.</li>
+                    <li>Tindakan ini <strong>tidak dapat dibatalkan</strong>.</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault()
+                await handleDeleteProject()
+              }}
+              disabled={deleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Menghapus & Membersihkan Bucket...</>
+              ) : (
+                'Hapus Proyek & File'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Project Form Dialog */}
       <ProjectForm

@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
-          select: { purchases: true, additionalCosts: true },
+          select: { purchases: true, additionalCosts: true, realisasi: true },
         },
       },
     })
@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, address, phone, email, picName, picPhone, category, bankName, bankAccount, bankHolder, notes } = body
+    const { name, address, phone, email, picName, picPhone, category, npwp, isPKP, bankName, bankAccount, bankHolder, notes } = body
 
     if (!name) {
       return NextResponse.json(
@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
         picName,
         picPhone,
         category,
+        npwp: npwp || null,
+        isPKP: Boolean(isPKP),
         bankName,
         bankAccount,
         bankHolder,

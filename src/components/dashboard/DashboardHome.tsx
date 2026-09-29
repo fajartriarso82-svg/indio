@@ -14,7 +14,8 @@ import {
   ShoppingCart,
   Wrench,
   Wallet,
-  Coins
+  Coins,
+  AlertTriangle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,8 @@ interface DashboardStats {
   totalClients: number
   totalVendors: number
   pendingInvoices: number
+  unpaidVendorInvoices?: number
+  totalHutangVendor?: number
 }
 
 interface AdvancedStats {
@@ -79,6 +82,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             totalClients: statsData.stats?.totalClients ?? 0,
             totalVendors: statsData.stats?.totalVendors ?? 0,
             pendingInvoices: statsData.stats?.pendingInvoices ?? 0,
+            unpaidVendorInvoices: statsData.stats?.unpaidVendorInvoices ?? 0,
+            totalHutangVendor: statsData.stats?.totalHutangVendor ?? 0,
           })
         }
 
@@ -212,16 +217,16 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Selamat datang, {staff.name.split(' ')[0]}
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
           Berikut ringkasan aktivitas perusahaan Anda hari ini.
         </p>
       </motion.div>
 
       {/* Business Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {businessCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -231,16 +236,16 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             className="cursor-pointer"
             onClick={() => onNavigate(stat.module)}
           >
-            <Card className="hover:border-primary/50 transition-colors">
-              <CardContent className="p-4 lg:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+            <Card className="hover:border-primary/50 transition-colors shadow-xs">
+              <CardContent className="p-5 lg:p-5.5">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center shadow-xs`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                 </div>
-                <p className="text-xl lg:text-2xl font-bold text-foreground truncate">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-                <p className="text-[11px] text-muted-foreground/70 mt-1 truncate">{stat.change}</p>
+                <p className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight truncate">{stat.value}</p>
+                <p className="text-sm font-medium text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-xs text-muted-foreground/80 mt-1 truncate">{stat.change}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -248,8 +253,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       </div>
 
       {/* Project Stats cards */}
-      <h2 className="text-lg font-semibold text-foreground">Ringkasan Proyek</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">Ringkasan Proyek</h2>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {statCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -257,21 +262,54 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 + (idx * 0.1) }}
           >
-            <Card>
-              <CardContent className="p-4 lg:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+            <Card className="shadow-xs">
+              <CardContent className="p-5 lg:p-5.5">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center shadow-xs`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-                <p className="text-[11px] text-muted-foreground/70 mt-1">{stat.change}</p>
+                <p className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
+                <p className="text-sm font-medium text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-xs text-muted-foreground/80 mt-1">{stat.change}</p>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
+
+      {/* Hutang Vendor Alert */}
+      {Boolean(stats?.unpaidVendorInvoices && stats.unpaidVendorInvoices > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-sm"
+        >
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-950">
+                {stats?.unpaidVendorInvoices} Tagihan / Invoice Vendor Belum Dibayar
+              </p>
+              <p className="text-xs text-amber-800/90 mt-0.5">
+                Total kewajiban pembayaran yang masih berjalan: <span className="font-bold">{formatCurrency(stats?.totalHutangVendor ?? 0)}</span>
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs border-amber-300 bg-white hover:bg-amber-100 text-amber-900 shrink-0"
+            onClick={() => onNavigate('projects')}
+          >
+            Buka Modul Proyek
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Button>
+        </motion.div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent projects */}

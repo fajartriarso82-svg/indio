@@ -106,12 +106,15 @@ model Vendor {
   picName         String?
   picPhone        String?
   category        String? // supplier, contractor, service-provider
+  npwp            String?
+  isPKP           Boolean                 @default(false)
   bankName        String?
   bankAccount     String?
   bankHolder      String?
   notes           String?
   purchases       RABPurchase[]
   additionalCosts ProjectAdditionalCost[]
+  realisasi       RABRealisasi[]
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 }
@@ -133,6 +136,8 @@ model Project {
   internalPic     String?
   poFileUrl       String?
   rabFileUrl      String?
+  contractValue   Float?                  // Nilai kontrak dari klien (untuk hitung margin)
+  ppnFromClient   Boolean                 @default(false) // Apakah PO klien include PPN (jika ya, PPN = keuntungan kotor)
   startDate       DateTime?
   endDate         DateTime?
   notes           String?
@@ -145,6 +150,9 @@ model Project {
   basts           BAST[]
   invoices        Invoice[]
   kuitansis       Kuitansi[]
+  payments        ProjectPayment[]
+  rabTopiks       RABTopik[]
+  rabRealisasi    RABRealisasi[]
   createdBy       String?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
@@ -360,6 +368,25 @@ model KuitansiItem {
   updatedAt   DateTime @updatedAt
 }
 
+// ─── Pembayaran Klien (Client Payment) ───
+model ProjectPayment {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type          String   @default("LUNAS") // LUNAS, TERMIN
+  terminNo      Int?     // Termin ke-1, ke-2, dst
+  title         String   // e.g. "Pelunasan 100%", "Termin 1 (DP 50%)"
+  amount        Float    // Nominal pembayaran
+  date          DateTime @default(now())
+  paymentMethod String   @default("TRANSFER") // TRANSFER, CASH, GIRO
+  invoiceNumber String?  // Nomor invoice yang ditagihkan
+  invoiceUrl    String?  // Bukti invoice (file)
+  proofUrl      String?  // Bukti transfer / bayar (file)
+  notes         String?  // Catatan
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // ─── Stok / Product ───
 model Product {
   id               String            @id @default(cuid())
@@ -480,4 +507,80 @@ model ProjectGallery {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── RAB Dinamis — Perencanaan ───
+// Topik RAB (kelompok item, misal: Material, Jasa Instalasi, Ongkos Kirim)
+model RABTopik {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nama      String
+  urutan    Int       @default(0)
+  isDeleted Boolean   @default(false)
+  items     RABItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Item RAB (rincian di bawah Topik)
+model RABItem {
+  id                 String         @id @default(cuid())
+  topikId            String
+  topik              RABTopik       @relation(fields: [topikId], references: [id], onDelete: Cascade)
+  namaItem           String
+  satuan             String
+  volumeRencana      Float
+  hargaSatuanRencana Float
+  // jumlahRencana = volumeRencana * hargaSatuanRencana — dihitung di backend, tidak disimpan
+  urutan             Int            @default(0)
+  realisasi          RABRealisasi[]
+  auditLogs          RABAuditLog[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+// ─── RAB Dinamis — Realisasi (Invoice Vendor) ───
+// Setiap record = satu invoice dari vendor untuk satu item RAB
+model RABRealisasi {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rabItemId       String?
+  rabItem         RABItem? @relation(fields: [rabItemId], references: [id])
+  // Vendor info (bisa dari daftar vendor atau nama bebas)
+  vendorId        String?
+  vendor          Vendor?  @relation(fields: [vendorId], references: [id])
+  vendorNama      String?  // Nama vendor bebas jika tidak dari daftar
+  // Invoice details
+  nomorInvoice    String?
+  tanggalInvoice  DateTime @default(now())
+  jumlah          Float    // Total nilai invoice
+  keterangan      String?
+  // Pajak
+  kenaPPN         Boolean  @default(false)
+  persenPPN       Float    @default(11)
+  // Status bayar
+  statusBayar     String   @default("belum_dibayar") // belum_dibayar, sudah_dibayar
+  tanggalBayar    DateTime?
+  // File bukti
+  fileBuktiUrl    String?  // Invoice dari vendor
+  buktiBayarUrl   String?  // Bukti transfer pembayaran
+  // Untuk biaya tambahan (additional costs — bukan dari RAB item)
+  isAdditional    Boolean  @default(false) // true = biaya di luar item RAB (makan, gift, dll)
+  kategoriAdditional String? // AKSESORI, ONGKIR, OPERASIONAL, LAINNYA
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Audit log perubahan item RAB (setelah proyek IN_PROGRESS)
+model RABAuditLog {
+  id          String   @id @default(cuid())
+  rabItemId   String
+  rabItem     RABItem  @relation(fields: [rabItemId], references: [id], onDelete: Cascade)
+  fieldDiubah String
+  nilaiLama   String
+  nilaiBaru   String
+  userId      String?
+  createdAt   DateTime @default(now())
 }

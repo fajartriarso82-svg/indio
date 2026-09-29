@@ -53,6 +53,21 @@ interface ItemRow {
   deadline: string
 }
 
+const parseFormattedNumber = (val: string | number): number => {
+  if (typeof val === 'number') return val
+  if (!val) return 0
+  const clean = String(val).replace(/\./g, '').replace(',', '.')
+  return parseFloat(clean) || 0
+}
+
+const formatThousandSeparator = (val: string): string => {
+  if (!val) return ''
+  const clean = val.replace(/[^0-9,]/g, '')
+  const parts = clean.split(',')
+  const integerPart = parts[0] ? parseInt(parts[0], 10).toLocaleString('id-ID') : ''
+  return parts.length > 1 ? `${integerPart},${parts[1]}` : integerPart
+}
+
 // Sentinel value for "create new client" option in the client dropdown.
 const NEW_CLIENT_VALUE = '__new_client__'
 
@@ -72,6 +87,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
   const [poNumber, setPoNumber] = useState('')
   const [poFile, setPoFile] = useState<File | null>(null)
   const [internalPic, setInternalPic] = useState('')
+  const [contractValue, setContractValue] = useState('')
+  const [ppnFromClient, setPpnFromClient] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ItemRow[]>([
     { itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' },
@@ -126,8 +145,8 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
   }
 
   const getItemTotal = (item: ItemRow) => {
-    const qty = parseFloat(item.qty) || 0
-    const price = parseFloat(item.unitPrice) || 0
+    const qty = parseFormattedNumber(item.qty)
+    const price = parseFormattedNumber(item.unitPrice)
     return qty * price
   }
 
@@ -147,6 +166,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     setPoNumber('')
     setPoFile(null)
     setInternalPic('')
+    setContractValue('')
+    setPpnFromClient(false)
+    setStartDate('')
+    setEndDate('')
     setNotes('')
     setItems([{ itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' }])
   }
@@ -236,14 +259,18 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           poNumber,
           poFileUrl: uploadedPoUrl || null,
           internalPic,
+          contractValue: contractValue ? parseFormattedNumber(contractValue) : null,
+          ppnFromClient,
+          startDate: startDate || null,
+          endDate: endDate || null,
           notes,
           items: validItems.map((item) => ({
             itemId: item.itemId,
             itemCode: item.itemCode,
             itemName: item.itemName,
-            qty: parseFloat(item.qty) || 0,
+            qty: parseFormattedNumber(item.qty) || 0,
             unit: item.unit,
-            unitPrice: parseFloat(item.unitPrice) || 0,
+            unitPrice: parseFormattedNumber(item.unitPrice) || 0,
             deadline: item.deadline ? new Date(item.deadline).toISOString() : null
           })),
         }),
@@ -334,10 +361,10 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           <Label htmlFor={`m-qty-${idx}`} className="text-xs">Qty</Label>
           <Input
             id={`m-qty-${idx}`}
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
             value={item.qty}
-            onChange={(e) => updateItem(idx, 'qty', e.target.value)}
+            onChange={(e) => updateItem(idx, 'qty', formatThousandSeparator(e.target.value))}
             className="h-9 text-sm text-right"
           />
         </div>
@@ -356,14 +383,18 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor={`m-price-${idx}`} className="text-xs">Harga Satuan</Label>
-          <Input
-            id={`m-price-${idx}`}
-            type="number"
-            min="0"
-            value={item.unitPrice}
-            onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
-            className="h-9 text-sm text-right"
-          />
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">Rp</span>
+            <Input
+              id={`m-price-${idx}`}
+              type="text"
+              inputMode="numeric"
+              value={item.unitPrice}
+              onChange={(e) => updateItem(idx, 'unitPrice', formatThousandSeparator(e.target.value))}
+              className="h-9 text-sm text-right pl-8"
+              placeholder="0"
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor={`m-deadline-${idx}`} className="text-xs">Deadline</Label>
@@ -534,6 +565,74 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             </div>
           </div>
 
+          {/* Nilai Kontrak & Jadwal */}
+          <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+            <p className="text-sm font-medium text-foreground">Nilai Kontrak & Jadwal Proyek</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="contractValue">Nilai Kontrak (Rp)</Label>
+                  {getGrandTotal() > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setContractValue(formatThousandSeparator(getGrandTotal().toString()))}
+                      className="text-[11px] text-primary hover:underline"
+                    >
+                      Sama dgn Total Item ({formatCurrency(getGrandTotal())})
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">Rp</span>
+                  <Input
+                    id="contractValue"
+                    type="text"
+                    inputMode="numeric"
+                    value={contractValue}
+                    onChange={(e) => setContractValue(formatThousandSeparator(e.target.value))}
+                    className="pl-9"
+                    placeholder="Nilai kontrak dari klien / PO"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 flex flex-col justify-end">
+                <label className="flex items-center gap-2 cursor-pointer text-sm p-2 rounded-md border bg-background hover:bg-muted/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={ppnFromClient}
+                    onChange={(e) => setPpnFromClient(e.target.checked)}
+                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <span className="text-xs">
+                    <span className="font-semibold text-foreground">Termasuk PPN dari Klien</span>
+                    <span className="block text-muted-foreground text-[11px]">PPN menjadi margin kotor perusahaan</span>
+                  </span>
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Tanggal Mulai</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate">Tanggal Selesai</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
           <Separator />
 
           {/* Items Table */}
@@ -601,11 +700,12 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                       </td>
                       <td className="px-3 py-2">
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={item.qty}
-                          onChange={(e) => updateItem(idx, 'qty', e.target.value)}
+                          onChange={(e) => updateItem(idx, 'qty', formatThousandSeparator(e.target.value))}
                           className="h-8 text-xs text-right"
-                          min="0"
+                          placeholder="1"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -618,11 +718,12 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                       </td>
                       <td className="px-3 py-2">
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={item.unitPrice}
-                          onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
+                          onChange={(e) => updateItem(idx, 'unitPrice', formatThousandSeparator(e.target.value))}
                           className="h-8 text-xs text-right"
-                          min="0"
+                          placeholder="0"
                         />
                       </td>
                       <td className="px-3 py-2">

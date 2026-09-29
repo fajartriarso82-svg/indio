@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId, purchaseId } = await context.params
     const body = await request.json()
-    const { projectItemId, vendorId, qty, buyPrice, docUrl, notes, status, paymentProofUrl } = body
+    const { projectItemId, vendorId, qty, buyPrice, docUrl, notes, status, paymentProofUrl, paymentDate, requestDate } = body
 
     const existing = await db.rABPurchase.findFirst({
       where: { id: purchaseId, projectId },
@@ -37,7 +37,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         ...(notes !== undefined && { notes }),
         ...(status !== undefined && { status }),
         ...(paymentProofUrl !== undefined && { paymentProofUrl }),
-        ...(status === 'SUCCESS' && existing.status !== 'SUCCESS' && { paymentDate: new Date() }),
+        ...(requestDate !== undefined && { requestDate: new Date(requestDate) }),
+        ...(paymentDate !== undefined && { paymentDate: new Date(paymentDate) }),
+        ...(status === 'SUCCESS' && paymentDate === undefined && !existing.paymentDate && { paymentDate: new Date() }),
       },
       include: {
         vendor: { select: { id: true, name: true } },

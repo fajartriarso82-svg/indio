@@ -15,6 +15,17 @@ import {
   Calculator,
   Badge as BadgeIcon,
   Edit,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  Archive,
+  CornerDownRight,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Receipt,
+  FileCheck,
+  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,6 +54,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -64,6 +76,9 @@ import {
   KuitansiForm,
 } from './DocumentFormDialogs'
 import { useToast } from '@/hooks/use-toast'
+import dynamic from 'next/dynamic'
+
+const RABPlanningModule = dynamic(() => import('./rab/RABPlanningModule'), { ssr: false })
 
 interface ProjectDetailProps {
   projectId: string
@@ -80,8 +95,28 @@ const statusColors: Record<string, string> = {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)
 
-const formatDate = (d: string | null) =>
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat('id-ID').format(value)
+
+const formatDate = (d: string | null | Date) =>
   d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+// Parsing string dengan pemisah ribuan (titik) atau desimal (koma) ke float number murni
+const parseFormattedNumber = (val: string | number): number => {
+  if (typeof val === 'number') return val
+  if (!val) return 0
+  const clean = String(val).replace(/\./g, '').replace(',', '.')
+  return parseFloat(clean) || 0
+}
+
+// Memformat string input otomatis dengan pemisah ribuan (titik) khas Indonesia
+const formatThousandSeparator = (val: string): string => {
+  if (!val) return ''
+  const clean = val.replace(/[^0-9,]/g, '')
+  const parts = clean.split(',')
+  const integerPart = parts[0] ? parseInt(parts[0], 10).toLocaleString('id-ID') : ''
+  return parts.length > 1 ? `${integerPart},${parts[1]}` : integerPart
+}
 
 export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const { toast } = useToast()
@@ -93,7 +128,14 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState('')
   const [vendorType, setVendorType] = useState<'EXISTING' | 'NEW'>('EXISTING')
-  const [purchaseForm, setPurchaseForm] = useState({ vendorId: '', vendorName: '', qty: '1', buyPrice: '0', notes: '' })
+  const [purchaseForm, setPurchaseForm] = useState({
+    vendorId: '',
+    vendorName: '',
+    qty: '1',
+    buyPrice: '',
+    notes: '',
+    requestDate: new Date().toISOString().split('T')[0],
+  })
   const [purchaseDocFile, setPurchaseDocFile] = useState<File | null>(null)
   const [vendors, setVendors] = useState<any[]>([])
   const [submittingPurchase, setSubmittingPurchase] = useState(false)
@@ -101,12 +143,21 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   // RAB Pay dialog
   const [payOpen, setPayOpen] = useState(false)
   const [selectedPurchaseId, setSelectedPurchaseId] = useState('')
+  const [selectedPurchase, setSelectedPurchase] = useState<any>(null)
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0])
   const [payProofFile, setPayProofFile] = useState<File | null>(null)
   const [submittingPay, setSubmittingPay] = useState(false)
 
   // Additional cost dialog
   const [addCostOpen, setAddCostOpen] = useState(false)
-  const [addCostForm, setAddCostForm] = useState({ category: 'ACCESSORIES', description: '', amount: '0', vendorName: '', notes: '', date: new Date().toISOString().split('T')[0] })
+  const [addCostForm, setAddCostForm] = useState({
+    category: 'ACCESSORIES',
+    description: '',
+    amount: '0',
+    vendorName: '',
+    notes: '',
+    date: new Date().toISOString().split('T')[0],
+  })
   const [addCostFile, setAddCostFile] = useState<File | null>(null)
   const [submittingCost, setSubmittingCost] = useState(false)
 
@@ -120,9 +171,77 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false)
   const [kuitansiFormOpen, setKuitansiFormOpen] = useState(false)
 
+  // Client payment state
+  const [paymentOpen, setPaymentOpen] = useState(false)
+  const [submittingPayment, setSubmittingPayment] = useState(false)
+  const [paymentForm, setPaymentForm] = useState({
+    type: 'LUNAS',
+    terminNo: '1',
+    title: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    paymentMethod: 'TRANSFER',
+    invoiceNumber: '',
+    notes: '',
+  })
+  const [paymentInvoiceFile, setPaymentInvoiceFile] = useState<File | null>(null)
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
+  const [deletingPayment, setDeletingPayment] = useState(false)
+
   // Status update
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
+
+  // Delete & Archive
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [downloadingZip, setDownloadingZip] = useState(false)
+
+  const handleDownloadZip = () => {
+    setDownloadingZip(true)
+    toast({
+      title: 'Menyiapkan Arsip ZIP',
+      description: 'Sedang mengompres seluruh file proyek (PO, RAB, Invoice, Surat Jalan, dll)...',
+    })
+    const link = document.createElement('a')
+    link.href = `/api/projects/${projectId}/export-archive`
+    link.download = ''
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => setDownloadingZip(false), 2500)
+  }
+
+  const handleDeleteProject = async () => {
+    try {
+      setDeleting(true)
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        toast({
+          title: 'Proyek Berhasil Dihapus',
+          description: data.message || 'Proyek dan semua file terkait di Supabase Storage telah dibersihkan.',
+        })
+        onBack()
+      } else {
+        toast({
+          title: 'Gagal Menghapus Proyek',
+          description: data.error || 'Terjadi kesalahan saat menghapus proyek',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Gagal terhubung ke server',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeleting(false)
+      setDeleteOpen(false)
+    }
+  }
 
   const fetchProject = useCallback(async () => {
     try {
@@ -149,6 +268,31 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     }
   }, [purchaseOpen, addCostOpen])
 
+  const openAddPurchase = (item: any) => {
+    setSelectedItemId(item.id)
+    const itemBuyQty = item.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+    const remQty = Math.max(0, item.qty - itemBuyQty)
+    setPurchaseForm({
+      vendorId: '',
+      vendorName: '',
+      qty: remQty > 0 ? formatNumber(remQty) : '1',
+      buyPrice: '',
+      notes: '',
+      requestDate: new Date().toISOString().split('T')[0],
+    })
+    setVendorType('EXISTING')
+    setPurchaseDocFile(null)
+    setPurchaseOpen(true)
+  }
+
+  const openPay = (p: any) => {
+    setSelectedPurchaseId(p.id)
+    setSelectedPurchase(p)
+    setPayDate(new Date().toISOString().split('T')[0])
+    setPayProofFile(null)
+    setPayOpen(true)
+  }
+
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -158,6 +302,14 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     }
     if (vendorType === 'EXISTING' && !purchaseForm.vendorId) {
       toast({ title: 'Error', description: 'Pilih vendor dari daftar', variant: 'destructive' })
+      return
+    }
+
+    const qtyNum = parseFormattedNumber(purchaseForm.qty)
+    const buyPriceNum = parseFormattedNumber(purchaseForm.buyPrice)
+
+    if (qtyNum <= 0) {
+      toast({ title: 'Error', description: 'Jumlah (Qty) harus lebih dari 0', variant: 'destructive' })
       return
     }
 
@@ -182,8 +334,9 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           projectItemId: selectedItemId,
           vendorId: vendorType === 'EXISTING' ? purchaseForm.vendorId : null,
           vendorName: vendorType === 'NEW' ? purchaseForm.vendorName : undefined,
-          qty: parseFloat(purchaseForm.qty) || 0,
-          buyPrice: parseFloat(purchaseForm.buyPrice) || 0,
+          qty: qtyNum,
+          buyPrice: buyPriceNum,
+          requestDate: purchaseForm.requestDate || new Date().toISOString().split('T')[0],
           docUrl,
           notes: purchaseForm.notes || null,
         }),
@@ -193,7 +346,14 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         toast({ title: 'Pembelian Ditambahkan', description: 'Request pembelian RAB telah dicatat.' })
         setPurchaseOpen(false)
         setVendorType('EXISTING')
-        setPurchaseForm({ vendorId: '', vendorName: '', qty: '1', buyPrice: '0', notes: '' })
+        setPurchaseForm({
+          vendorId: '',
+          vendorName: '',
+          qty: '1',
+          buyPrice: '',
+          notes: '',
+          requestDate: new Date().toISOString().split('T')[0],
+        })
         setPurchaseDocFile(null)
         fetchProject()
       } else {
@@ -227,12 +387,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'SUCCESS',
+          paymentDate: payDate || new Date().toISOString().split('T')[0],
           paymentProofUrl: paymentProofUrl || undefined,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        toast({ title: 'Pembayaran Dikonfirmasi' })
+        toast({ title: 'Pembayaran Dikonfirmasi', description: 'Status pembelian telah diperbarui menjadi Lunas.' })
         setPayOpen(false)
         setPayProofFile(null)
         fetchProject()
@@ -296,7 +457,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         body: JSON.stringify({
           category: addCostForm.category,
           description: addCostForm.description,
-          amount: parseFloat(addCostForm.amount) || 0,
+          amount: parseFormattedNumber(addCostForm.amount),
           vendorName: addCostForm.vendorName || null,
           date: addCostForm.date,
           docUrl: docUrl || null,
@@ -366,6 +527,111 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     }
   }
 
+  const openRecordPayment = () => {
+    const poTot = project?.items?.reduce((s: number, i: any) => s + i.total, 0) || project?.contractValue || 0
+    const totalPaid = project?.payments?.reduce((s: number, p: any) => s + (p.amount || 0), 0) || 0
+    const remaining = Math.max(0, poTot - totalPaid)
+    const nextTermin = (project?.payments?.length || 0) + 1
+
+    setPaymentForm({
+      type: totalPaid === 0 && remaining > 0 ? 'LUNAS' : 'TERMIN',
+      terminNo: String(nextTermin),
+      title: totalPaid === 0 ? 'Pelunasan 100% Pesanan' : `Termin ${nextTermin}`,
+      amount: formatNumber(remaining > 0 ? remaining : 0),
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'TRANSFER',
+      invoiceNumber: project?.poNumber ? `INV-${project.projectCode}` : '',
+      notes: '',
+    })
+    setPaymentInvoiceFile(null)
+    setPaymentProofFile(null)
+    setPaymentOpen(true)
+  }
+
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const numAmount = parseFormattedNumber(paymentForm.amount)
+    if (numAmount <= 0) {
+      toast({ title: 'Validasi Gagal', description: 'Nominal pembayaran harus lebih dari 0', variant: 'destructive' })
+      return
+    }
+
+    setSubmittingPayment(true)
+    try {
+      let invoiceUrl = ''
+      let proofUrl = ''
+
+      if (paymentInvoiceFile) {
+        const fd = new FormData()
+        fd.append('file', paymentInvoiceFile)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (upData.success) invoiceUrl = upData.url
+      }
+
+      if (paymentProofFile) {
+        const fd = new FormData()
+        fd.append('file', paymentProofFile)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (upData.success) proofUrl = upData.url
+      }
+
+      const res = await fetch(`/api/projects/${projectId}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: paymentForm.type,
+          terminNo: paymentForm.type === 'TERMIN' ? parseInt(paymentForm.terminNo) || 1 : null,
+          title: paymentForm.title.trim() || (paymentForm.type === 'TERMIN' ? `Termin ${paymentForm.terminNo || 1}` : 'Pembayaran Pelunasan'),
+          amount: numAmount,
+          date: paymentForm.date,
+          paymentMethod: paymentForm.paymentMethod,
+          invoiceNumber: paymentForm.invoiceNumber || null,
+          invoiceUrl: invoiceUrl || null,
+          proofUrl: proofUrl || null,
+          notes: paymentForm.notes || null,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Pembayaran Berhasil Dicatat', description: 'Pembayaran dari klien telah disimpan.' })
+        setPaymentOpen(false)
+        setPaymentInvoiceFile(null)
+        setPaymentProofFile(null)
+        fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal terhubung ke server', variant: 'destructive' })
+    } finally {
+      setSubmittingPayment(false)
+    }
+  }
+
+  const handleDeletePayment = async (paymentId: string) => {
+    setDeletingPayment(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/payments/${paymentId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Dihapus', description: 'Catatan pembayaran klien telah dihapus.' })
+        setDeletePaymentId(null)
+        fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal terhubung ke server', variant: 'destructive' })
+    } finally {
+      setDeletingPayment(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -383,8 +649,9 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
     )
   }
 
-  // Calculate Laba/Rugi
-  const poTotal = project.items?.reduce((s: number, i: any) => s + i.total, 0) || 0
+  // Calculate Laba/Rugi & Client Payment
+  const isPengadaan = (project.type || '').toUpperCase() === 'PENGADAAN'
+  const poTotal = project.items?.reduce((s: number, i: any) => s + i.total, 0) || project.contractValue || 0
   const totalPurchases = project.items?.reduce(
     (s: number, i: any) => s + (i.purchases?.reduce((ps: number, p: any) => ps + p.totalBuy, 0) || 0),
     0
@@ -392,6 +659,12 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   const totalAddCosts = project.additionalCosts?.reduce((s: number, c: any) => s + c.amount, 0) || 0
   const totalCost = totalPurchases + totalAddCosts
   const profit = poTotal - totalCost
+
+  const clientPayments = (project.payments || []) as any[]
+  const totalPaidByClient = clientPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0)
+  const remainingClientBill = Math.max(0, poTotal - totalPaidByClient)
+  const paymentPercent = poTotal > 0 ? Math.min(100, Math.round((totalPaidByClient / poTotal) * 100)) : 0
+  const realizedCashProfit = totalPaidByClient - totalCost
 
   return (
     <div className="space-y-6">
@@ -414,7 +687,24 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             Klien: {project.client?.name || '—'} · PO: {project.poNumber || '—'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Download Arsip .ZIP */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadZip}
+            disabled={downloadingZip}
+            className="border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+            title="Download semua file proyek (PO, RAB, Invoice, Surat Jalan, dll) terkompresi .zip"
+          >
+            {downloadingZip ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+            ) : (
+              <Archive className="w-4 h-4 mr-1.5" />
+            )}
+            Download Arsip (.zip)
+          </Button>
+
           {project.status === 'DRAFT' && (
             <Button size="sm" onClick={() => handleStatusUpdate('IN_PROGRESS')} disabled={statusUpdating}>
               Mulai Proyek
@@ -425,8 +715,64 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               Selesai
             </Button>
           )}
+
+          {/* Hapus Proyek */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            onClick={() => setDeleteOpen(true)}
+            title="Hapus proyek dan seluruh file terkait di bucket Supabase"
+          >
+            <Trash2 className="w-4 h-4 mr-1.5" />
+            Hapus Proyek
+          </Button>
         </div>
       </div>
+
+      {/* Confirm: Hapus Proyek */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Hapus Proyek & File Terkait
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2.5 text-sm text-foreground/80">
+                <div>
+                  Apakah Anda yakin ingin menghapus proyek <strong>{project.name}</strong> ({project.projectCode})?
+                </div>
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1">
+                  <div className="font-bold text-rose-900">⚠️ PEMBERSIHAN DATA & BUCKET STORAGE:</div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Semua file proyek di Supabase Storage (PO, Invoice, RAB, Surat Jalan, bukti transfer, dll) akan <strong>dihapus permanen dari bucket</strong>.</li>
+                    <li>Semua item, realisasi RAB, invoice, dan dokumen proyek akan dihapus dari database.</li>
+                    <li>Tindakan ini <strong>tidak dapat dibatalkan</strong>.</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault()
+                await handleDeleteProject()
+              }}
+              disabled={deleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Menghapus & Membersihkan Bucket...</>
+              ) : (
+                'Hapus Proyek & File'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm: Selesaikan Proyek */}
       <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
@@ -463,7 +809,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="info"><FileText className="w-3.5 h-3.5" />Info</TabsTrigger>
-          <TabsTrigger value="rab"><Package className="w-3.5 h-3.5" />RAB</TabsTrigger>
+          <TabsTrigger value="rab"><Calculator className="w-3.5 h-3.5" />RAB</TabsTrigger>
           <TabsTrigger value="documents"><ClipboardList className="w-3.5 h-3.5" />Dokumen</TabsTrigger>
         </TabsList>
 
@@ -493,6 +839,13 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <div><span className="text-muted-foreground">PIC Internal:</span><p className="font-medium">{project.internalPic || '—'}</p></div>
                   <div><span className="text-muted-foreground">Tanggal Mulai:</span><p className="font-medium">{formatDate(project.startDate)}</p></div>
                   <div><span className="text-muted-foreground">Tanggal Selesai:</span><p className="font-medium">{formatDate(project.endDate)}</p></div>
+                  {project.contractValue && (
+                    <div className="col-span-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                      <span className="text-blue-500 text-[11px] font-medium">Nilai Kontrak</span>
+                      <p className="font-bold text-blue-800">{formatCurrency(project.contractValue)}</p>
+                      {project.ppnFromClient && <p className="text-[10px] text-blue-400">Termasuk PPN dari klien → PPN = profit bruto</p>}
+                    </div>
+                  )}
                 </div>
                 <Separator />
                 <div><span className="text-muted-foreground">Klien:</span><p className="font-medium">{project.client?.name}</p></div>
@@ -502,42 +855,281 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               </CardContent>
             </Card>
 
-            {/* Laba Rugi Calculator */}
-            <Card className="border-primary/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calculator className="w-4 h-4 text-primary" />
-                  Laba / Rugi
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total PO (RAB)</span>
-                  <span className="font-medium">{formatCurrency(poTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Pembelian</span>
-                  <span className="font-medium text-destructive">- {formatCurrency(totalPurchases)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Biaya Tambahan</span>
-                  <span className="font-medium text-destructive">- {formatCurrency(totalAddCosts)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-base font-bold">
-                  <span>{profit >= 0 ? 'Laba' : 'Rugi'}</span>
-                  <span className={profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                    {formatCurrency(profit)}
-                  </span>
-                </div>
-                {poTotal > 0 && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Margin</span>
-                    <span>{((profit / poTotal) * 100).toFixed(1)}%</span>
+            {/* RAB & Client Payment Summary Card */}
+            {isPengadaan ? (
+              <Card className="border-primary/25 shadow-xs">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {profit >= 0 ? (
+                        <TrendingUp className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-rose-600" />
+                      )}
+                      Ringkasan Laba / Rugi & Pembayaran
+                    </CardTitle>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-medium shrink-0 shadow-xs"
+                      onClick={openRecordPayment}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Catat Pembayaran
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Status Progress Pembayaran Klien */}
+                  <div className="p-3 bg-muted/40 rounded-lg border border-border/60 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-primary" />
+                        Status Pembayaran Klien
+                      </span>
+                      {totalPaidByClient >= poTotal && poTotal > 0 ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-300 text-[10px] font-semibold">
+                          ✓ LUNAS (100%)
+                        </Badge>
+                      ) : totalPaidByClient > 0 ? (
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300 text-[10px] font-semibold">
+                          TERMIN ({paymentPercent}%)
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-300 text-[10px]">
+                          BELUM DIBAYAR
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${totalPaidByClient >= poTotal && poTotal > 0 ? 'bg-emerald-500' : 'bg-primary'}`}
+                        style={{ width: `${Math.min(100, Math.max(0, paymentPercent))}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                      <span>
+                        Diterima: <strong className="text-foreground font-semibold">{formatCurrency(totalPaidByClient)}</strong>
+                      </span>
+                      <span>
+                        Sisa Tagihan: <strong className={remainingClientBill > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-600 font-semibold'}>
+                          {formatCurrency(remainingClientBill)}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Ringkasan Angka: PO, Uang Masuk, Pengeluaran, Laba Kas */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-muted/30 rounded-lg border border-border/50">
+                      <span className="text-muted-foreground">Total Penjualan (PO)</span>
+                      <p className="text-base font-bold text-foreground mt-0.5">{formatCurrency(poTotal)}</p>
+                    </div>
+                    <div className="p-2.5 bg-muted/30 rounded-lg border border-border/50">
+                      <span className="text-muted-foreground">Total Pengeluaran</span>
+                      <p className="text-base font-bold text-destructive mt-0.5">{formatCurrency(totalCost)}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Beli: {formatCurrency(totalPurchases)} · Biaya: {formatCurrency(totalAddCosts)}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200/60">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-medium">Uang Masuk (Kas)</span>
+                      <p className="text-base font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">{formatCurrency(totalPaidByClient)}</p>
+                    </div>
+                    <div className={`p-2.5 rounded-lg border ${realizedCashProfit >= 0 ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60' : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60'}`}>
+                      <span className={`font-medium ${realizedCashProfit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                        Laba Kas Aktual
+                      </span>
+                      <p className={`text-base font-bold mt-0.5 ${realizedCashProfit >= 0 ? 'text-emerald-800 dark:text-emerald-300' : 'text-rose-800 dark:text-rose-300'}`}>
+                        {formatCurrency(realizedCashProfit)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">(Kas Masuk - Pengeluaran)</p>
+                    </div>
+                  </div>
+
+                  {/* Estimasi Laba Akhir Proyek */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Estimasi Margin / Laba Bersih Akhir</span>
+                      <p className={`text-lg font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {formatCurrency(profit)}
+                      </p>
+                    </div>
+                    <Badge variant={profit >= 0 ? 'default' : 'destructive'} className="text-xs">
+                      {profit >= 0 ? 'Surplus / Profit' : 'Defisit'}
+                    </Badge>
+                  </div>
+
+                  <Separator />
+
+                  {/* Riwayat Pembayaran Klien */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Receipt className="w-3.5 h-3.5 text-primary" />
+                        Riwayat Pembayaran Klien ({clientPayments.length})
+                      </span>
+                      {clientPayments.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Total: <strong className="text-foreground">{formatCurrency(totalPaidByClient)}</strong>
+                        </span>
+                      )}
+                    </div>
+
+                    {clientPayments.length === 0 ? (
+                      <div className="p-3 text-center rounded-lg border border-dashed border-border/80 text-muted-foreground text-xs space-y-1">
+                        <p>Belum ada catatan pembayaran dari klien.</p>
+                        <p className="text-[11px]">Klik tombol <strong>+ Catat Pembayaran</strong> di atas untuk memasukkan pembayaran.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                        {clientPayments.map((p: any) => (
+                          <div
+                            key={p.id}
+                            className="p-2.5 rounded-lg border border-border bg-card/80 space-y-1.5 text-xs shadow-2xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[9px] px-1.5 py-0 font-semibold ${p.type === 'LUNAS' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-blue-700 bg-blue-50 border-blue-300'}`}
+                                  >
+                                    {p.type === 'LUNAS' ? 'LUNAS' : `TERMIN ${p.terminNo || ''}`}
+                                  </Badge>
+                                  <span className="font-semibold text-foreground truncate">{p.title}</span>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
+                                  <span>📅 {formatDate(p.date)}</span>
+                                  <span>·</span>
+                                  <span>💳 {p.paymentMethod}</span>
+                                  {p.invoiceNumber && <span>· Inv: <strong>{p.invoiceNumber}</strong></span>}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 flex items-center gap-2">
+                                <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">
+                                  {formatCurrency(p.amount)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeletePaymentId(p.id)}
+                                  title="Hapus pembayaran ini"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Dokumen Lampiran: Invoice & Bukti Bayar */}
+                            <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {p.invoiceUrl ? (
+                                  <a
+                                    href={p.invoiceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
+                                  >
+                                    <FileText className="w-3 h-3" />
+                                    [Bukti Invoice]
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10px]">Tanpa lampiran inv</span>
+                                )}
+
+                                {p.proofUrl ? (
+                                  <a
+                                    href={p.proofUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline font-medium"
+                                  >
+                                    <FileCheck className="w-3 h-3" />
+                                    [Bukti Transfer]
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10px]">Tanpa bukti transfer</span>
+                                )}
+                              </div>
+                              {p.notes && (
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[140px]" title={p.notes}>
+                                  {p.notes}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                <RABSummaryCard projectId={projectId} />
+                <Card className="border-primary/20 shadow-xs">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                        Pembayaran dari Klien
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-medium shadow-xs"
+                        onClick={openRecordPayment}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Catat Pembayaran
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Total Diterima</span>
+                        <p className="text-base font-bold text-emerald-700 mt-0.5">{formatCurrency(totalPaidByClient)}</p>
+                      </div>
+                      <Badge variant={totalPaidByClient > 0 ? 'default' : 'outline'} className="text-xs">
+                        {clientPayments.length} Pembayaran
+                      </Badge>
+                    </div>
+
+                    {clientPayments.length > 0 && (
+                      <div className="space-y-2">
+                        {clientPayments.map((p: any) => (
+                          <div key={p.id} className="p-2.5 rounded-lg border border-border bg-card space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{p.title}</span>
+                              <span className="font-bold text-emerald-600">{formatCurrency(p.amount)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>📅 {formatDate(p.date)} · 💳 {p.paymentMethod}</span>
+                              <div className="flex items-center gap-2">
+                                {p.invoiceUrl && (
+                                  <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    [Invoice]
+                                  </a>
+                                )}
+                                {p.proofUrl && (
+                                  <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
+                                    [Bukti Transfer]
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
 
           {/* Progress Notes */}
@@ -586,15 +1178,49 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         </TabsContent>
 
         {/* ─── TAB: RAB ─── */}
-        <TabsContent value="rab" className="space-y-6 mt-4">
+        <TabsContent value="rab" className="mt-4">
+          {isPengadaan ? (
+            /* Model RAB Pengadaan (Item RAB & Pembelian + Biaya Tambahan) */
+            <div className="space-y-6">
           {/* Items with purchases */}
           <Card>
             <CardHeader className="p-4 sm:px-6 pb-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <CardTitle className="text-lg">Item RAB & Pembelian</CardTitle>
-                  <CardDescription>Lacak biaya pembelian setiap item</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">Item RAB & Pembelian</CardTitle>
+                    {project.items && project.items.length > 0 && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        ({project.items.length} item)
+                      </span>
+                    )}
+                  </div>
+                  <CardDescription>Lacak kebutuhan, kekurangan pembelian, dan realisasi biaya setiap item</CardDescription>
                 </div>
+
+                {project.items && project.items.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(() => {
+                      const completedCount = project.items.filter((i: any) => {
+                        const totalBuyQty = i.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                        return totalBuyQty >= i.qty
+                      }).length
+                      const pendingCount = project.items.length - completedCount
+                      return (
+                        <>
+                          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-300">
+                            ✓ {completedCount} Lengkap
+                          </Badge>
+                          {pendingCount > 0 && (
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                              ⚠️ {pendingCount} Belum Lengkap
+                            </Badge>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
@@ -606,37 +1232,63 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               ) : (
                 <>
                   {/* ===== MOBILE: Card list ===== */}
-                  <div className="md:hidden divide-y divide-border border-t border-border">
-                    {project.items.map((item: any) => {
+                  <div className="md:hidden divide-y-4 divide-slate-200 dark:divide-slate-800 border-t border-border">
+                    {project.items.map((item: any, idx: number) => {
                       const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
+                      const totalQtyPurchased = item.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                      const remainingQty = item.qty - totalQtyPurchased
                       const margin = item.total - itemBuyTotal
+                      const isEven = idx % 2 === 0
                       return (
-                        <div key={item.id} className="p-4 space-y-3">
+                        <div
+                          key={item.id}
+                          className={`p-4 space-y-3 ${isEven ? 'bg-background' : 'bg-slate-50/70 dark:bg-slate-900/30'}`}
+                        >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-semibold text-sm truncate">{item.itemName}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                ID: {item.itemId}{item.itemCode ? ` | Kode: ${item.itemCode}` : ''}
-                              </p>
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0 mt-0.5 border border-primary/20">
+                                #{idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm truncate text-foreground">{item.itemName}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  ID: {item.itemId}{item.itemCode ? ` | Kode: ${item.itemCode}` : ''}
+                                </p>
+                              </div>
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-9 shrink-0"
-                              onClick={() => {
-                                setSelectedItemId(item.id)
-                                setPurchaseOpen(true)
-                              }}
+                              className="h-8 shrink-0 text-xs"
+                              onClick={() => openAddPurchase(item)}
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3.5 h-3.5 mr-1" />
                               Beli
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="grid grid-cols-2 gap-3 text-xs bg-card/60 p-2.5 rounded-lg border border-border/60">
                             <div className="min-w-0">
-                              <p className="text-muted-foreground">Qty</p>
-                              <p className="truncate mt-0.5">{item.qty} {item.unit}</p>
+                              <p className="text-muted-foreground">Target Qty</p>
+                              <p className="font-semibold truncate mt-0.5">{formatNumber(item.qty)} {item.unit}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-muted-foreground">Status Pembelian</p>
+                              <div className="mt-0.5">
+                                {remainingQty > 0 ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-300">
+                                    Kurang: {formatNumber(remainingQty)} {item.unit}
+                                  </span>
+                                ) : remainingQty === 0 ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300">
+                                    ✓ Lengkap ({formatNumber(totalQtyPurchased)})
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-300">
+                                    + Lebih {formatNumber(Math.abs(remainingQty))}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="min-w-0">
                               <p className="text-muted-foreground">Harga Jual</p>
@@ -648,65 +1300,94 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                             </div>
                             <div className="min-w-0">
                               <p className="text-muted-foreground">Total RAB</p>
-                              <p className="truncate mt-0.5 font-medium">{formatCurrency(item.total)}</p>
+                              <p className="truncate mt-0.5 font-semibold">{formatCurrency(item.total)}</p>
                             </div>
                             <div className="min-w-0">
                               <p className="text-muted-foreground">Total Beli</p>
-                              <p className="truncate mt-0.5 font-medium text-destructive">{formatCurrency(itemBuyTotal)}</p>
+                              <p className="truncate mt-0.5 font-semibold text-destructive">{formatCurrency(itemBuyTotal)}</p>
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 col-span-2">
                               <p className="text-muted-foreground">Margin</p>
-                              <p className={`truncate mt-0.5 font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              <p className={`truncate mt-0.5 font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                 {formatCurrency(margin)}
                               </p>
                             </div>
                           </div>
 
                           {item.purchases?.length > 0 && (
-                            <div className="rounded-md border border-border divide-y divide-border">
-                              {item.purchases.map((p: any) => (
-                                <div key={p.id} className="p-3 space-y-2">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="text-sm truncate">{p.vendor?.name || 'Tanpa vendor'}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">
-                                        × {p.qty} @ {formatCurrency(p.buyPrice)} = {formatCurrency(p.totalBuy)}
-                                      </p>
+                            <div className="ml-2 pl-3 border-l-2 border-primary/50 space-y-2">
+                              <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                                <CornerDownRight className="w-3.5 h-3.5" />
+                                <span>Riwayat Pembelian ({item.purchases.length})</span>
+                              </div>
+                              <div className="rounded-md border border-border bg-card divide-y divide-border">
+                                {item.purchases.map((p: any) => (
+                                  <div key={p.id} className="p-2.5 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold truncate">{p.vendor?.name || 'Tanpa vendor'}</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                          × {formatNumber(p.qty)} @ {formatCurrency(p.buyPrice)} = <strong className="text-foreground">{formatCurrency(p.totalBuy)}</strong>
+                                        </p>
+                                      </div>
+                                      {p.status === 'SUCCESS' ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="shrink-0 text-[10px] px-2 py-0.5 font-semibold text-emerald-800 bg-emerald-50 border-emerald-300 gap-1 inline-flex items-center"
+                                        >
+                                          <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                          Sudah Dibayar (Lunas)
+                                        </Badge>
+                                      ) : (
+                                        <Badge
+                                          variant="outline"
+                                          className="shrink-0 text-[10px] px-2 py-0.5 font-semibold text-amber-800 bg-amber-50 border-amber-300 gap-1 inline-flex items-center"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                          Menunggu Bayar (Request)
+                                        </Badge>
+                                      )}
                                     </div>
-                                    <Badge
-                                      variant="outline"
-                                      className={`shrink-0 text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}
-                                    >
-                                      {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
-                                    </Badge>
-                                  </div>
 
-                                  <div className="flex items-center justify-end gap-3 flex-wrap">
-                                    {p.docUrl && (
-                                      <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
-                                        [Inv/Referensi]
-                                      </a>
-                                    )}
-                                    {p.paymentProofUrl && (
-                                      <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
-                                        [Bukti Transfer]
-                                      </a>
-                                    )}
-                                    {p.status === 'REQUEST' && (
-                                      <Button
-                                        size="sm"
-                                        className="h-9"
-                                        onClick={() => {
-                                          setSelectedPurchaseId(p.id)
-                                          setPayOpen(true)
-                                        }}
-                                      >
-                                        Konfirmasi Bayar
-                                      </Button>
-                                    )}
+                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                                      <span className="bg-muted/70 text-muted-foreground px-1.5 py-0.5 rounded border border-border/60">
+                                        📅 {formatDate(p.requestDate || p.createdAt)}
+                                      </span>
+                                      {p.status === 'SUCCESS' ? (
+                                        <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">
+                                          ✓ {formatDate(p.paymentDate || p.updatedAt)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                          ⏳ Menunggu Bayar
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-2.5 pt-1">
+                                      {p.docUrl && (
+                                        <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                          [Inv/Ref]
+                                        </a>
+                                      )}
+                                      {p.paymentProofUrl && (
+                                        <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                          [Bukti]
+                                        </a>
+                                      )}
+                                      {p.status === 'REQUEST' && (
+                                        <Button
+                                          size="sm"
+                                          className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                                          onClick={() => openPay(p)}
+                                        >
+                                          Konfirmasi Bayar
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -718,9 +1399,10 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <div className="hidden md:block overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="min-w-[200px]">Item</TableHead>
-                          <TableHead className="text-right min-w-[90px]">Qty</TableHead>
+                        <TableRow className="bg-muted/60 border-b-2 border-border">
+                          <TableHead className="w-[40px] text-center">#</TableHead>
+                          <TableHead className="min-w-[190px]">Item</TableHead>
+                          <TableHead className="text-right min-w-[140px]">Qty & Kebutuhan</TableHead>
                           <TableHead className="text-right min-w-[120px]">Harga Jual</TableHead>
                           <TableHead className="text-center min-w-[110px]">Deadline</TableHead>
                           <TableHead className="text-right min-w-[120px]">Total RAB</TableHead>
@@ -730,75 +1412,144 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {project.items.map((item: any) => {
+                        {project.items.map((item: any, idx: number) => {
                           const itemBuyTotal = item.purchases?.reduce((s: number, p: any) => s + p.totalBuy, 0) || 0
+                          const totalQtyPurchased = item.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                          const remainingQty = item.qty - totalQtyPurchased
                           const margin = item.total - itemBuyTotal
+                          const hasPurchases = item.purchases && item.purchases.length > 0
+                          const isEven = idx % 2 === 0
+                          const groupBg = isEven ? 'bg-background' : 'bg-slate-50/70 dark:bg-slate-900/30'
+                          
                           return (
                             <Fragment key={item.id}>
-                              <TableRow>
-                                <TableCell>
-                                  <div className="font-medium text-foreground text-sm">{item.itemName}</div>
-                                  <div className="text-[10px] text-muted-foreground">ID: {item.itemId} {item.itemCode ? `| Kode: ${item.itemCode}` : ''}</div>
+                              {/* Row Utama Item */}
+                              <TableRow className={`${groupBg} ${!hasPurchases ? 'border-b-4 border-slate-200 dark:border-slate-800' : 'border-b-0'}`}>
+                                <TableCell className="text-center font-bold text-xs text-muted-foreground">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary font-semibold text-xs border border-primary/20">
+                                    {idx + 1}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="text-right text-sm">{item.qty} {item.unit}</TableCell>
+                                <TableCell>
+                                  <div className="font-semibold text-foreground text-sm">{item.itemName}</div>
+                                  <div className="text-[11px] text-muted-foreground mt-0.5">ID: {item.itemId} {item.itemCode ? `| Kode: ${item.itemCode}` : ''}</div>
+                                </TableCell>
+                                <TableCell className="text-right text-sm">
+                                  <div className="font-semibold text-foreground">{formatNumber(item.qty)} {item.unit}</div>
+                                  <div className="text-[11px] text-muted-foreground">Dibeli: {formatNumber(totalQtyPurchased)}</div>
+                                  {remainingQty > 0 ? (
+                                    <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-300">
+                                      Kurang: {formatNumber(remainingQty)} {item.unit}
+                                    </span>
+                                  ) : remainingQty === 0 ? (
+                                    <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300">
+                                      ✓ Lengkap
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-300">
+                                      + Lebih {formatNumber(Math.abs(remainingQty))} {item.unit}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right text-sm">{formatCurrency(item.unitPrice)}</TableCell>
                                 <TableCell className="text-center text-sm">{formatDate(item.deadline)}</TableCell>
-                                <TableCell className="text-right text-sm font-medium">{formatCurrency(item.total)}</TableCell>
-                                <TableCell className="text-right text-sm font-medium text-destructive">{formatCurrency(itemBuyTotal)}</TableCell>
-                                <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                <TableCell className="text-right text-sm font-semibold">{formatCurrency(item.total)}</TableCell>
+                                <TableCell className="text-right text-sm font-semibold text-destructive">{formatCurrency(itemBuyTotal)}</TableCell>
+                                <TableCell className={`text-right text-sm font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                   {formatCurrency(margin)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => {
-                                      setSelectedItemId(item.id)
-                                      setPurchaseOpen(true)
-                                    }}
+                                    onClick={() => openAddPurchase(item)}
                                   >
-                                    <Plus className="w-3 h-3" />
+                                    <Plus className="w-3.5 h-3.5 mr-1" />
                                     Beli
                                   </Button>
                                 </TableCell>
                               </TableRow>
-                              {/* Purchase details */}
-                              {item.purchases?.length > 0 && (
-                                <TableRow key={`${item.id}-purchases`} className="bg-muted/20">
-                                  <TableCell colSpan={8} className="p-2">
-                                    <div className="pl-6 space-y-1">
-                                      {item.purchases.map((p: any) => (
-                                        <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs py-1.5 border-b border-border/50 last:border-0">
-                                          <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 py-0 ${p.status === 'SUCCESS' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
-                                            {p.status === 'SUCCESS' ? 'LUNAS' : 'REQUEST'}
-                                          </Badge>
-                                          <span className="text-muted-foreground">{p.vendor?.name || 'Tanpa vendor'}</span>
-                                          <span className="text-muted-foreground">× {p.qty} @ {formatCurrency(p.buyPrice)}</span>
-                                          <span className="font-medium text-foreground">= {formatCurrency(p.totalBuy)}</span>
 
-                                          {/* Actions & Links */}
-                                          <div className="flex items-center gap-2 ml-auto">
-                                            {p.docUrl && (
-                                              <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                                [Inv/Referensi]
-                                              </a>
+                              {/* Row Riwayat Pembelian (Child) */}
+                              {hasPurchases && (
+                                <TableRow key={`${item.id}-purchases`} className={`${groupBg} border-b-4 border-slate-200 dark:border-slate-800`}>
+                                  <TableCell colSpan={9} className="pt-0 pb-3 px-3 sm:px-5">
+                                    <div className="ml-7 rounded-lg border border-border/80 bg-background/95 dark:bg-card/90 shadow-2xs border-l-4 border-l-primary p-3 space-y-2">
+                                      {/* Sub-header penjelas relasi item */}
+                                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80 pb-1 border-b border-border/40">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-primary shrink-0" />
+                                        <span>Riwayat Pembelian untuk:</span>
+                                        <span className="text-primary font-bold underline decoration-primary/40 underline-offset-2">{item.itemName}</span>
+                                        <span className="text-[11px] text-muted-foreground font-normal ml-1">({item.purchases.length} transaksi)</span>
+                                      </div>
+
+                                      {/* List Transaksi Pembelian */}
+                                      <div className="space-y-1.5">
+                                        {item.purchases.map((p: any) => (
+                                          <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs py-1.5 border-b border-border/40 last:border-0">
+                                            {p.status === 'SUCCESS' ? (
+                                              <Badge
+                                                variant="outline"
+                                                className="shrink-0 text-xs px-2.5 py-0.5 font-semibold text-emerald-800 bg-emerald-50 border-emerald-300 gap-1.5 inline-flex items-center"
+                                              >
+                                                <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                                                Sudah Dibayar (Lunas)
+                                              </Badge>
+                                            ) : (
+                                              <Badge
+                                                variant="outline"
+                                                className="shrink-0 text-xs px-2.5 py-0.5 font-semibold text-amber-800 bg-amber-50 border-amber-300 gap-1.5 inline-flex items-center"
+                                              >
+                                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                                Menunggu Bayar (Request)
+                                              </Badge>
                                             )}
-                                            {p.paymentProofUrl && (
-                                              <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
-                                                [Bukti Transfer]
-                                              </a>
-                                            )}
-                                            {p.status === 'REQUEST' && (
-                                              <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                                                setSelectedPurchaseId(p.id)
-                                                setPayOpen(true)
-                                              }}>
-                                                Konfirmasi Bayar
-                                              </Button>
-                                            )}
+
+                                            <span className="font-semibold text-foreground">{p.vendor?.name || 'Tanpa vendor'}</span>
+                                            <span className="text-muted-foreground">× {formatNumber(p.qty)} @ {formatCurrency(p.buyPrice)}</span>
+                                            <span className="font-semibold text-foreground">= {formatCurrency(p.totalBuy)}</span>
+
+                                            {/* Tanggal Pengajuan & Tanggal Sudah Dibayar */}
+                                            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                              <span className="bg-muted/70 text-muted-foreground px-2 py-0.5 rounded border border-border/60">
+                                                📅 Diajukan: <strong className="text-foreground font-medium">{formatDate(p.requestDate || p.createdAt)}</strong>
+                                              </span>
+                                              {p.status === 'SUCCESS' ? (
+                                                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">
+                                                  ✓ Dibayar: {formatDate(p.paymentDate || p.updatedAt)}
+                                                </span>
+                                              ) : (
+                                                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                  ⏳ Menunggu Bayar
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            {/* Actions & Links */}
+                                            <div className="flex items-center gap-2 ml-auto">
+                                              {p.docUrl && (
+                                                <a href={p.docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                                  [Inv/Referensi]
+                                                </a>
+                                              )}
+                                              {p.paymentProofUrl && (
+                                                <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                                  [Bukti Transfer]
+                                                </a>
+                                              )}
+                                              {p.status === 'REQUEST' && (
+                                                <Button
+                                                  size="sm"
+                                                  className="h-7 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                  onClick={() => openPay(p)}
+                                                >
+                                                  Konfirmasi Bayar
+                                                </Button>
+                                              )}
+                                            </div>
                                           </div>
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -868,26 +1619,73 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
           {/* RAB Purchase Dialog */}
           <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
-            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Tambah Pembelian</DialogTitle>
-                <DialogDescription>Catat pembelian untuk item ini</DialogDescription>
+                <DialogTitle>Tambah Pembelian Item</DialogTitle>
+                <DialogDescription>Catat pengajuan pembelian untuk item proyek ini</DialogDescription>
               </DialogHeader>
+
+              {(() => {
+                const selectedItem = (project?.items || []).find((i: any) => i.id === selectedItemId)
+                if (!selectedItem) return null
+                const selectedItemBuyQty = selectedItem.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                const selectedItemRemainingQty = selectedItem.qty - selectedItemBuyQty
+
+                return (
+                  <div className="p-3 bg-muted/40 border rounded-lg text-xs space-y-1.5 mt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-foreground text-sm">{selectedItem.itemName}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {selectedItem.itemId}{selectedItem.itemCode ? ` • ${selectedItem.itemCode}` : ''}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/60">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">Target Kebutuhan:</span>
+                        <span className="font-medium text-foreground">{formatNumber(selectedItem.qty)} {selectedItem.unit}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">Sudah Dibeli:</span>
+                        <span className="font-medium text-foreground">{formatNumber(selectedItemBuyQty)} {selectedItem.unit}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px]">Kekurangan:</span>
+                        <span className={`font-semibold ${selectedItemRemainingQty > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {selectedItemRemainingQty > 0 ? `${formatNumber(selectedItemRemainingQty)} ${selectedItem.unit}` : 'Lengkap'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               <form onSubmit={handleAddPurchase} className="space-y-4 mt-2">
-                <div className="space-y-2">
-                  <Label>Tipe Vendor</Label>
-                  <Select value={vendorType} onValueChange={(v: any) => setVendorType(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EXISTING">Pilih dari Database</SelectItem>
-                      <SelectItem value="NEW">Buat Vendor Baru</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tipe Vendor</Label>
+                    <Select value={vendorType} onValueChange={(v: any) => setVendorType(v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EXISTING">Pilih dari Database</SelectItem>
+                        <SelectItem value="NEW">Buat Vendor Baru</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tanggal Pengajuan *</Label>
+                    <Input
+                      type="date"
+                      value={purchaseForm.requestDate}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, requestDate: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
 
                 {vendorType === 'EXISTING' ? (
                   <div className="space-y-2">
-                    <Label>Vendor</Label>
+                    <Label>Vendor *</Label>
                     <Select value={purchaseForm.vendorId} onValueChange={(v) => setPurchaseForm({ ...purchaseForm, vendorId: v })}>
                       <SelectTrigger><SelectValue placeholder="Pilih vendor" /></SelectTrigger>
                       <SelectContent>
@@ -899,34 +1697,87 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label>Nama Vendor Baru</Label>
+                    <Label>Nama Vendor Baru *</Label>
                     <Input value={purchaseForm.vendorName} onChange={(e) => setPurchaseForm({ ...purchaseForm, vendorName: e.target.value })} placeholder="Ketik nama vendor" required />
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Qty</Label>
-                    <Input type="number" min="0" step="any" value={purchaseForm.qty} onChange={(e) => setPurchaseForm({ ...purchaseForm, qty: e.target.value })} required />
+                    <div className="flex items-center justify-between">
+                      <Label>Jumlah (Qty) *</Label>
+                      {(() => {
+                        const selItem = (project?.items || []).find((i: any) => i.id === selectedItemId)
+                        if (!selItem) return null
+                        const buyQty = selItem.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                        const rem = selItem.qty - buyQty
+                        if (rem <= 0) return null
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseForm({ ...purchaseForm, qty: formatNumber(rem) })}
+                            className="text-[11px] text-primary hover:underline"
+                          >
+                            Isi Sisa ({formatNumber(rem)})
+                          </button>
+                        )
+                      })()}
+                    </div>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={purchaseForm.qty}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, qty: formatThousandSeparator(e.target.value) })}
+                      placeholder="Contoh: 10"
+                      required
+                    />
+                    <span className="text-[11px] text-muted-foreground">
+                      Satuan: {(project?.items || []).find((i: any) => i.id === selectedItemId)?.unit || 'unit'}
+                    </span>
                   </div>
+
                   <div className="space-y-2">
-                    <Label>Harga Beli (Satuan)</Label>
-                    <Input type="number" min="0" step="any" value={purchaseForm.buyPrice} onChange={(e) => setPurchaseForm({ ...purchaseForm, buyPrice: e.target.value })} required />
+                    <Label>Harga Beli Satuan (Rp) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">Rp</span>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={purchaseForm.buyPrice}
+                        onChange={(e) => setPurchaseForm({ ...purchaseForm, buyPrice: formatThousandSeparator(e.target.value) })}
+                        className="pl-9"
+                        placeholder="Contoh: 150.000"
+                        required
+                      />
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">Gunakan angka dengan separator ribuan otomatis</span>
                   </div>
                 </div>
+
+                {/* Subtotal Preview */}
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Subtotal Pengajuan Pembelian:</span>
+                  <span className="text-base font-bold text-primary">
+                    {formatCurrency(parseFormattedNumber(purchaseForm.qty) * parseFormattedNumber(purchaseForm.buyPrice))}
+                  </span>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Upload Proforma Invoice / Referensi (Opsional)</Label>
                   <Input type="file" accept=".pdf,image/*" onChange={(e) => setPurchaseDocFile(e.target.files?.[0] || null)} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Upload nota dari seller sebagai referensi harga / tagihan.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Upload nota/invoice dari seller sebagai referensi harga / tagihan.</p>
                 </div>
+
                 <div className="space-y-2">
                   <Label>Catatan (No Rekening / Info Pembayaran)</Label>
-                  <Textarea value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Masukkan nomor rekening atau catatan transfer jika tidak ada invoice..." rows={2} />
+                  <Textarea value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} placeholder="Masukkan nomor rekening, nama bank, atau catatan transfer..." rows={2} />
                 </div>
+
                 <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Batal</Button>
                   <Button type="submit" disabled={submittingPurchase}>
-                    {submittingPurchase ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ajukan Request'}
+                    {submittingPurchase ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                    Ajukan Pembelian
                   </Button>
                 </div>
               </form>
@@ -935,21 +1786,48 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
           {/* RAB Pay Dialog */}
           <Dialog open={payOpen} onOpenChange={setPayOpen}>
-            <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
-                <DialogDescription>Konfirmasi pelunasan request pembelian ini</DialogDescription>
+                <DialogDescription>Konfirmasi pelunasan request pembelian item</DialogDescription>
               </DialogHeader>
+
+              {selectedPurchase && (
+                <div className="p-3 bg-muted/40 border rounded-lg text-xs space-y-1 mt-1">
+                  <div className="font-semibold text-foreground text-sm">{selectedPurchase.projectItem?.itemName}</div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Vendor: <strong className="text-foreground">{selectedPurchase.vendor?.name || 'Tanpa vendor'}</strong></span>
+                    <span>Total: <strong className="text-foreground">{formatCurrency(selectedPurchase.totalBuy)}</strong></span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Diajukan: {formatDate(selectedPurchase.requestDate || selectedPurchase.createdAt)}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handlePayPurchase} className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label>Tanggal Sudah Dibayar *</Label>
+                  <Input
+                    type="date"
+                    value={payDate}
+                    onChange={(e) => setPayDate(e.target.value)}
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground">Tanggal dana ditransfer / dibayarkan ke vendor.</p>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Upload Bukti Transfer</Label>
                   <Input type="file" accept=".pdf,image/*" onChange={(e) => setPayProofFile(e.target.files?.[0] || null)} />
                   <p className="text-[10px] text-muted-foreground mt-1">Struk resi transfer dari bank / e-wallet.</p>
                 </div>
+
                 <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPayOpen(false)}>Batal</Button>
-                  <Button type="submit" disabled={submittingPay}>
-                    {submittingPay ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Konfirmasi & Lunas'}
+                  <Button type="submit" disabled={submittingPay} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    {submittingPay ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                    Konfirmasi & Lunas
                   </Button>
                 </div>
               </form>
@@ -982,8 +1860,19 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Jumlah *</Label>
-                    <Input type="number" min="0" value={addCostForm.amount} onChange={(e) => setAddCostForm({ ...addCostForm, amount: e.target.value })} required />
+                    <Label>Jumlah (Rp) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">Rp</span>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={addCostForm.amount}
+                        onChange={(e) => setAddCostForm({ ...addCostForm, amount: formatThousandSeparator(e.target.value) })}
+                        className="pl-9"
+                        placeholder="0"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Tanggal *</Label>
@@ -1013,6 +1902,26 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
               </form>
             </DialogContent>
           </Dialog>
+            </div>
+          ) : (
+            /* Model RAB Jasa Pekerjaan (RAB Dinamis: Rencana, Realisasi Transaksi per Item, & Export) */
+            <div className="space-y-4">
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  onClick={() => {
+                    window.open(`/api/projects/${projectId}/export-rab`, '_blank')
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export Excel (.xlsx)
+                </Button>
+              </div>
+              <RABPlanningModule projectId={projectId} projectStatus={project.status} />
+            </div>
+          )}
         </TabsContent>
 
         {/* ─── TAB: DOCUMENTS ─── */}
@@ -1228,6 +2137,303 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             basts={project.basts || []}
             onCreated={fetchProject}
           />
+
+          {/* Dialog Catat Pembayaran dari Klien */}
+          <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-foreground">
+                  <Receipt className="w-5 h-5 text-emerald-600" />
+                  Catat Pembayaran dari Klien
+                </DialogTitle>
+                <DialogDescription>
+                  Catat penerimaan pembayaran pesanan proyek (bisa langsung pelunasan 100% atau termin bertahap).
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleAddPayment} className="space-y-4 pt-1">
+                {/* Tipe Pembayaran (Lunas vs Termin) */}
+                <div>
+                  <Label className="text-xs font-semibold text-foreground">Jenis Pembayaran</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-1.5">
+                    <Button
+                      type="button"
+                      variant={paymentForm.type === 'LUNAS' ? 'default' : 'outline'}
+                      className={`h-9 text-xs justify-center font-medium ${paymentForm.type === 'LUNAS' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                      onClick={() => {
+                        setPaymentForm((prev) => ({
+                          ...prev,
+                          type: 'LUNAS',
+                          title: 'Pelunasan Pesanan 100%',
+                          amount: formatNumber(remainingClientBill > 0 ? remainingClientBill : poTotal),
+                        }))
+                      }}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      Langsung Lunas (100%)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentForm.type === 'TERMIN' ? 'default' : 'outline'}
+                      className={`h-9 text-xs justify-center font-medium ${paymentForm.type === 'TERMIN' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                      onClick={() => {
+                        const nextTermin = (project.payments?.length || 0) + 1
+                        setPaymentForm((prev) => ({
+                          ...prev,
+                          type: 'TERMIN',
+                          terminNo: String(nextTermin),
+                          title: `Termin ${nextTermin}`,
+                        }))
+                      }}
+                    >
+                      <Clock className="w-3.5 h-3.5 mr-1.5" />
+                      Termin (Bertahap)
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Jika Termin, input termin ke-berapa */}
+                {paymentForm.type === 'TERMIN' && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Termin Ke</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        className="h-9 text-xs"
+                        value={paymentForm.terminNo}
+                        onChange={(e) => setPaymentForm((prev) => ({
+                          ...prev,
+                          terminNo: e.target.value,
+                          title: `Termin ${e.target.value}`,
+                        }))}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Judul / Keterangan Pembayaran</Label>
+                      <Input
+                        className="h-9 text-xs"
+                        value={paymentForm.title}
+                        onChange={(e) => setPaymentForm((prev) => ({ ...prev, title: e.target.value }))}
+                        placeholder="misal: Termin 1 (DP 50%)"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paymentForm.type === 'LUNAS' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Judul / Keterangan Pembayaran</Label>
+                    <Input
+                      className="h-9 text-xs"
+                      value={paymentForm.title}
+                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, title: e.target.value }))}
+                      placeholder="misal: Pelunasan 100% Pesanan"
+                      required
+                    />
+                  </div>
+                )}
+
+                {/* Nominal Pembayaran (dengan separator ribuan) */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Nominal Pembayaran (Rp) *</Label>
+                    {remainingClientBill > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        Sisa Tagihan: <strong className="text-foreground">{formatCurrency(remainingClientBill)}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                      Rp
+                    </span>
+                    <Input
+                      className="pl-9 h-9 text-sm font-semibold"
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm((prev) => ({
+                        ...prev,
+                        amount: formatThousandSeparator(e.target.value),
+                      }))}
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+
+                  {/* Tombol Cepat Pengisian */}
+                  {remainingClientBill > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-muted-foreground">Isi Cepat:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentForm((prev) => ({
+                          ...prev,
+                          amount: formatNumber(remainingClientBill),
+                        }))}
+                        className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/80 transition-colors"
+                      >
+                        Sisa Tagihan ({formatCurrency(remainingClientBill)})
+                      </button>
+                      {poTotal > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setPaymentForm((prev) => ({
+                              ...prev,
+                              amount: formatNumber(Math.round(poTotal * 0.5)),
+                            }))}
+                            className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/80 transition-colors"
+                          >
+                            50% ({formatCurrency(Math.round(poTotal * 0.5))})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPaymentForm((prev) => ({
+                              ...prev,
+                              amount: formatNumber(Math.round(poTotal * 0.3)),
+                            }))}
+                            className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/80 transition-colors"
+                          >
+                            30% ({formatCurrency(Math.round(poTotal * 0.3))})
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tanggal & Metode */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tanggal Pembayaran *</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-xs"
+                      value={paymentForm.date}
+                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, date: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Metode Pembayaran</Label>
+                    <Select
+                      value={paymentForm.paymentMethod}
+                      onValueChange={(val) => setPaymentForm((prev) => ({ ...prev, paymentMethod: val }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TRANSFER">Transfer Bank</SelectItem>
+                        <SelectItem value="CASH">Tunai / Cash</SelectItem>
+                        <SelectItem value="GIRO">Giro / Cek</SelectItem>
+                        <SelectItem value="OTHER">Lainnya</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Nomor Invoice & Bukti File Invoice */}
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/60 space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nomor Invoice Tagihan (Opsional)</Label>
+                    <Input
+                      className="h-8 text-xs bg-background"
+                      value={paymentForm.invoiceNumber}
+                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, invoiceNumber: e.target.value }))}
+                      placeholder="misal: INV-2026-001"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Upload File Invoice Tagihan (PDF / Gambar)</Label>
+                    <Input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="h-8 text-xs bg-background"
+                      onChange={(e) => setPaymentInvoiceFile(e.target.files?.[0] || null)}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Lampirkan dokumen invoice yang telah dikirim ke klien.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bukti Transfer / Pembayaran Klien */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Upload Bukti Transfer / Pembayaran Klien (PDF / Gambar)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="h-8 text-xs"
+                    onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Bukti mutasi rekening, struk transfer ATM, atau kuitansi tanda terima.
+                  </p>
+                </div>
+
+                {/* Catatan */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Catatan Tambahan</Label>
+                  <Textarea
+                    className="text-xs resize-none h-16"
+                    placeholder="Catatan rekening bank tujuan, nomor referensi mutasi, dll..."
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setPaymentOpen(false)}>
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={submittingPayment}
+                  >
+                    {submittingPayment ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menyimpan...</>
+                    ) : (
+                      'Simpan Pembayaran'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Confirm Hapus Pembayaran */}
+          <AlertDialog open={!!deletePaymentId} onOpenChange={(open) => { if (!open) setDeletePaymentId(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                  Hapus Catatan Pembayaran?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin menghapus data pembayaran ini? Total kas masuk dan riwayat pembayaran akan dikurangi kembali.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deletingPayment}>Batal</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  disabled={deletingPayment}
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    if (deletePaymentId) await handleDeletePayment(deletePaymentId)
+                  }}
+                >
+                  {deletingPayment ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menghapus...</> : 'Ya, Hapus'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </>
       )}
     </div>

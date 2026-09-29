@@ -15,16 +15,37 @@ import { db } from '@/lib/db'
  */
 export async function GET() {
   try {
-    const [activeProjects, totalClients, totalVendors, pendingInvoices] = await Promise.all([
+    const [
+      activeProjects,
+      totalClients,
+      totalVendors,
+      pendingInvoices,
+      unpaidVendorInvoices,
+      hutangVendorAggregate,
+    ] = await Promise.all([
       db.project.count({ where: { status: { in: ['DRAFT', 'IN_PROGRESS'] } } }),
       db.client.count(),
       db.vendor.count(),
       db.invoice.count({ where: { status: { in: ['UNPAID', 'PARTIAL'] } } }),
+      db.rABRealisasi.count({ where: { statusBayar: 'belum_dibayar' } }),
+      db.rABRealisasi.aggregate({
+        where: { statusBayar: 'belum_dibayar' },
+        _sum: { jumlah: true },
+      }),
     ])
+
+    const totalHutangVendor = hutangVendorAggregate._sum.jumlah || 0
 
     return NextResponse.json({
       success: true,
-      stats: { activeProjects, totalClients, totalVendors, pendingInvoices },
+      stats: {
+        activeProjects,
+        totalClients,
+        totalVendors,
+        pendingInvoices,
+        unpaidVendorInvoices,
+        totalHutangVendor,
+      },
     })
   } catch (error) {
     console.error('Error fetching project stats:', error)
