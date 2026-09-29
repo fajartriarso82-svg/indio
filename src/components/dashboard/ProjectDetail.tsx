@@ -79,6 +79,7 @@ import { useToast } from '@/hooks/use-toast'
 import dynamic from 'next/dynamic'
 
 const RABPlanningModule = dynamic(() => import('./rab/RABPlanningModule'), { ssr: false })
+const RABSummaryCard = dynamic(() => import('./rab/RABSummaryCard'), { ssr: false })
 
 interface ProjectDetailProps {
   projectId: string
