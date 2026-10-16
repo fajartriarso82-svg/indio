@@ -512,15 +512,16 @@ model ProjectGallery {
 // ─── RAB Dinamis — Perencanaan ───
 // Topik RAB (kelompok item, misal: Material, Jasa Instalasi, Ongkos Kirim)
 model RABTopik {
-  id        String    @id @default(cuid())
+  id        String         @id @default(cuid())
   projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   nama      String
-  urutan    Int       @default(0)
-  isDeleted Boolean   @default(false)
+  urutan    Int            @default(0)
+  isDeleted Boolean        @default(false)
   items     RABItem[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  realisasi RABRealisasi[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 // Item RAB (rincian di bawah Topik)
@@ -534,6 +535,8 @@ model RABItem {
   hargaSatuanRencana Float
   // jumlahRencana = volumeRencana * hargaSatuanRencana — dihitung di backend, tidak disimpan
   urutan             Int            @default(0)
+  tanggalPekerjaan   DateTime?      // Tanggal pelaksanaan pekerjaan
+  fotoUrl            String?        // Lampiran pekerjaan (gambar / PDF, opsional, kompresi jika gambar)
   realisasi          RABRealisasi[]
   auditLogs          RABAuditLog[]
   createdAt          DateTime       @default(now())
@@ -541,36 +544,38 @@ model RABItem {
 }
 
 // ─── RAB Dinamis — Realisasi (Invoice Vendor) ───
-// Setiap record = satu invoice dari vendor untuk satu item RAB
+// Setiap record = satu invoice dari vendor untuk satu item RAB atau topik
 model RABRealisasi {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   projectId       String
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   rabItemId       String?
-  rabItem         RABItem? @relation(fields: [rabItemId], references: [id])
+  rabItem         RABItem?  @relation(fields: [rabItemId], references: [id])
+  rabTopikId      String?
+  rabTopik        RABTopik? @relation(fields: [rabTopikId], references: [id])
   // Vendor info (bisa dari daftar vendor atau nama bebas)
   vendorId        String?
-  vendor          Vendor?  @relation(fields: [vendorId], references: [id])
+  vendor          Vendor?   @relation(fields: [vendorId], references: [id])
   vendorNama      String?  // Nama vendor bebas jika tidak dari daftar
   // Invoice details
   nomorInvoice    String?
-  tanggalInvoice  DateTime @default(now())
-  jumlah          Float    // Total nilai invoice
+  tanggalInvoice  DateTime  @default(now())
+  jumlah          Float     // Total nilai invoice
   keterangan      String?
   // Pajak
-  kenaPPN         Boolean  @default(false)
-  persenPPN       Float    @default(11)
+  kenaPPN         Boolean   @default(false)
+  persenPPN       Float     @default(11)
   // Status bayar
-  statusBayar     String   @default("belum_dibayar") // belum_dibayar, sudah_dibayar
+  statusBayar     String    @default("belum_dibayar") // belum_dibayar, sudah_dibayar
   tanggalBayar    DateTime?
   // File bukti
-  fileBuktiUrl    String?  // Invoice dari vendor
-  buktiBayarUrl   String?  // Bukti transfer pembayaran
+  fileBuktiUrl    String?   // Invoice dari vendor
+  buktiBayarUrl   String?   // Bukti transfer pembayaran
   // Untuk biaya tambahan (additional costs — bukan dari RAB item)
-  isAdditional    Boolean  @default(false) // true = biaya di luar item RAB (makan, gift, dll)
+  isAdditional    Boolean   @default(false) // true = biaya di luar item RAB (makan, gift, dll)
   kategoriAdditional String? // AKSESORI, ONGKIR, OPERASIONAL, LAINNYA
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // Audit log perubahan item RAB (setelah proyek IN_PROGRESS)

@@ -31,6 +31,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { projectId, isDeleted: false },
       orderBy: { urutan: 'asc' },
       include: {
+        realisasi: {
+          where: { isAdditional: false },
+          select: {
+            id: true,
+            jumlah: true,
+            statusBayar: true,
+            vendorNama: true,
+            nomorInvoice: true,
+            tanggalInvoice: true,
+            tanggalBayar: true,
+            fileBuktiUrl: true,
+            buktiBayarUrl: true,
+            keterangan: true,
+            createdAt: true,
+            vendor: { select: { id: true, name: true } },
+          },
+        },
         items: {
           orderBy: { urutan: 'asc' },
           include: {
@@ -57,7 +74,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       },
     })
 
-    // Hitung totals
+    // Hitung totals & status pembayaran fleksibel
     const topiksSummary = topiks.map((topik) => {
       const items = topik.items.map((item) => {
         const jumlahRencana = item.volumeRencana * item.hargaSatuanRencana
@@ -65,24 +82,80 @@ export async function GET(request: NextRequest, context: RouteContext) {
         const totalRealisasiLunas = item.realisasi
           .filter((r) => r.statusBayar === 'sudah_dibayar')
           .reduce((sum, r) => sum + r.jumlah, 0)
+        const unpaidCount = item.realisasi.filter((r) => r.statusBayar !== 'sudah_dibayar').length
+
+        let statusBayarItem: 'belum_ada' | 'menunggu_bayar' | 'lunas' | 'sebagian' = 'belum_ada'
+        if (item.realisasi.length === 0) {
+          statusBayarItem = 'belum_ada'
+        } else if (unpaidCount > 0) {
+          statusBayarItem = 'menunggu_bayar'
+        } else if (totalRealisasiLunas >= jumlahRencana && jumlahRencana > 0) {
+          statusBayarItem = 'lunas'
+        } else if (totalRealisasiLunas > 0) {
+          statusBayarItem = 'sebagian'
+        }
+
         return {
           ...item,
           jumlahRencana,
           totalRealisasi,
           totalRealisasiLunas,
+          unpaidCount,
+          statusBayarItem,
           selisih: jumlahRencana - totalRealisasi,
           persenTerserap: jumlahRencana > 0 ? (totalRealisasi / jumlahRencana) * 100 : 0,
         }
       })
 
       const totalRencanaTopik = items.reduce((s, i) => s + i.jumlahRencana, 0)
-      const totalRealisasiTopik = items.reduce((s, i) => s + i.totalRealisasi, 0)
+      
+      // Gabungkan realisasi item dan realisasi langsung topik
+      const realisasiItems = items.flatMap((i) => i.realisasi)
+      const realisasiTopikLangsung = topik.realisasi || []
+      const semuaRealisasiTopik = [...realisasiItems, ...realisasiTopikLangsung]
+
+      const totalRealisasiTopik = semuaRealisasiTopik.reduce((s, r) => s + r.jumlah, 0)
+      const totalRealisasiLunasTopik = semuaRealisasiTopik
+        .filter((r) => r.statusBayar === 'sudah_dibayar')
+        .reduce((sum, r) => sum + r.jumlah, 0)
+      const unpaidRealisasiTopik = semuaRealisasiTopik.filter((r) => r.statusBayar !== 'sudah_dibayar')
+      const unpaidCountTopik = unpaidRealisasiTopik.length
+      const totalMenungguBayarTopik = unpaidRealisasiTopik.reduce((s, r) => s + r.jumlah, 0)
+
+      // Evaluasi apakah Topik LUNAS:
+      // Syarat Lunas:
+      // 1. Tidak ada request pembayaran menggantung (unpaidCountTopik === 0)
+      // 2. Ada pembayaran masuk (totalRealisasiLunasTopik > 0)
+      // 3. Nilai yang lunas menutup rencana (totalRealisasiLunasTopik >= totalRencanaTopik)
+      //    ATAU semua item pekerjaan terbayar lunas / total realisasi lunas >= total realisasi aktual
+      let statusPembayaranTopik: 'LUNAS' | 'MENUNGGU_BAYAR' | 'SEBAGIAN' | 'BELUM_DIBAYAR' = 'BELUM_DIBAYAR'
+
+      if (unpaidCountTopik > 0) {
+        statusPembayaranTopik = 'MENUNGGU_BAYAR'
+      } else if (totalRealisasiLunasTopik > 0) {
+        if (
+          (totalRencanaTopik > 0 && totalRealisasiLunasTopik >= totalRencanaTopik) ||
+          (items.length > 0 && items.every((i) => i.statusBayarItem === 'lunas' || (i.jumlahRencana > 0 && i.totalRealisasiLunas >= i.jumlahRencana))) ||
+          (totalRealisasiTopik > 0 && totalRealisasiLunasTopik >= totalRealisasiTopik && items.every((i) => i.realisasi.length > 0))
+        ) {
+          statusPembayaranTopik = 'LUNAS'
+        } else {
+          statusPembayaranTopik = 'SEBAGIAN'
+        }
+      } else {
+        statusPembayaranTopik = 'BELUM_DIBAYAR'
+      }
 
       return {
         ...topik,
         items,
+        realisasiLangsung: realisasiTopikLangsung,
         totalRencanaTopik,
         totalRealisasiTopik,
+        totalRealisasiLunasTopik,
+        totalMenungguBayarTopik,
+        unpaidCountTopik,
+        statusPembayaranTopik,
         selisihTopik: totalRencanaTopik - totalRealisasiTopik,
       }
     })

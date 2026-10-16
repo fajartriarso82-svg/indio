@@ -32,6 +32,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { projectId, isDeleted: false },
       orderBy: { urutan: 'asc' },
       include: {
+        realisasi: {
+          where: { isAdditional: false },
+          select: { jumlah: true, statusBayar: true, kenaPPN: true, persenPPN: true },
+        },
         items: {
           orderBy: { urutan: 'asc' },
           include: {
@@ -82,8 +86,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
       })
 
       const totalRencanaTopik = items.reduce((s, i) => s + i.jumlahRencana, 0)
-      const totalRealisasiTopik = items.reduce((s, i) => s + i.totalRealisasi, 0)
-      const totalLunasTopik = items.reduce((s, i) => s + i.totalLunas, 0)
+      
+      const realisasiItems = items.flatMap((i) => i.totalRealisasi).reduce((s, v) => s + v, 0)
+      const realisasiTopikLangsung = (topik.realisasi || []).reduce((s, r) => s + r.jumlah, 0)
+      const totalRealisasiTopik = realisasiItems + realisasiTopikLangsung
+
+      const totalLunasItems = items.reduce((s, i) => s + i.totalLunas, 0)
+      const totalLunasTopikLangsung = (topik.realisasi || []).filter(r => r.statusBayar === 'sudah_dibayar').reduce((s, r) => s + r.jumlah, 0)
+      const totalLunasTopik = totalLunasItems + totalLunasTopikLangsung
+
+      const totalBelumBayarTopikLangsung = (topik.realisasi || []).filter(r => r.statusBayar === 'belum_dibayar').reduce((s, r) => s + r.jumlah, 0)
+      const totalBelumBayarTopik = items.reduce((s, i) => s + i.totalBelumBayar, 0) + totalBelumBayarTopikLangsung
 
       return {
         id: topik.id,
@@ -92,6 +105,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         totalRencanaTopik,
         totalRealisasiTopik,
         totalLunasTopik,
+        totalBelumBayarTopik,
         selisihTopik: totalRencanaTopik - totalRealisasiTopik,
         isOverBudget: totalRealisasiTopik > totalRencanaTopik,
       }

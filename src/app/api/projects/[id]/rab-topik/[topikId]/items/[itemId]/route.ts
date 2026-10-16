@@ -10,7 +10,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId, topikId, itemId } = await context.params
     const body = await request.json()
-    const { namaItem, satuan, volumeRencana, hargaSatuanRencana, userId } = body
+    const { namaItem, satuan, volumeRencana, hargaSatuanRencana, tanggalPekerjaan, fotoUrl, userId } = body
 
     if (volumeRencana !== undefined && Number(volumeRencana) < 0) {
       return NextResponse.json({ success: false, error: 'Volume rencana tidak boleh negatif' }, { status: 400 })
@@ -40,6 +40,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       { key: 'satuan', label: 'satuan', newValue: satuan },
       { key: 'volumeRencana', label: 'volumeRencana', newValue: volumeRencana },
       { key: 'hargaSatuanRencana', label: 'hargaSatuanRencana', newValue: hargaSatuanRencana },
+      { key: 'tanggalPekerjaan', label: 'tanggalPekerjaan', newValue: tanggalPekerjaan },
+      { key: 'fotoUrl', label: 'fotoUrl', newValue: fotoUrl },
     ]
 
     // Jika proyek sudah IN_PROGRESS atau lebih, catat audit log
@@ -66,6 +68,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           ...(satuan !== undefined ? { satuan: satuan.trim() } : {}),
           ...(volumeRencana !== undefined ? { volumeRencana: Number(volumeRencana) } : {}),
           ...(hargaSatuanRencana !== undefined ? { hargaSatuanRencana: Number(hargaSatuanRencana) } : {}),
+          ...(tanggalPekerjaan !== undefined ? { tanggalPekerjaan: tanggalPekerjaan ? new Date(tanggalPekerjaan) : null } : {}),
+          ...(fotoUrl !== undefined ? { fotoUrl: fotoUrl?.trim() || null } : {}),
         },
       })
 

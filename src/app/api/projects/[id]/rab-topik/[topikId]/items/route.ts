@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: projectId, topikId } = await context.params
     const body = await request.json()
-    const { namaItem, satuan, volumeRencana, hargaSatuanRencana } = body
+    const { namaItem, satuan, volumeRencana, hargaSatuanRencana, tanggalPekerjaan, fotoUrl } = body
 
     if (!namaItem?.trim()) {
       return NextResponse.json({ success: false, error: 'Nama item wajib diisi' }, { status: 400 })
@@ -45,6 +45,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         volumeRencana: Number(volumeRencana),
         hargaSatuanRencana: Number(hargaSatuanRencana),
         urutan,
+        tanggalPekerjaan: tanggalPekerjaan ? new Date(tanggalPekerjaan) : new Date(),
+        fotoUrl: fotoUrl?.trim() || null,
       },
     })
 
