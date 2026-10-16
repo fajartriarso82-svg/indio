@@ -46,8 +46,6 @@ export default function EtalasePage() {
   const [products, setProducts] = useState<EtalaseProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('SEMUA')
-  const [onlyAvailable, setOnlyAvailable] = useState<boolean>(false)
 
   const companyName = company?.name?.trim() || 'PT Inti Nusa Dinamika Optima'
   const logoUrl = company?.logoFile?.trim() || ''
@@ -72,39 +70,20 @@ export default function EtalasePage() {
     fetchProducts()
   }, [])
 
-  // Mengumpulkan daftar kategori unik dari data produk
-  const categories = useMemo(() => {
-    const set = new Set<string>()
-    products.forEach((p) => {
-      if (p.category) set.add(p.category)
-    })
-    return ['SEMUA', ...Array.from(set)]
-  }, [products])
-
-  // Filter produk berdasarkan pencarian, kategori, dan ketersediaan stok
+  // Filter produk berdasarkan pencarian nama barang / spesifikasi / kode
+  // Tersedia atau tidak tersedia, semua tetap ditampilkan sesuai permintaan
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase()
+    if (!q) return products
+
     return products.filter((p) => {
-      // Filter kategori
-      if (selectedCategory !== 'SEMUA' && p.category !== selectedCategory) {
-        return false
-      }
-      // Filter ketersediaan stok
-      if (onlyAvailable && p.qty <= 0) {
-        return false
-      }
-      // Filter teks pencarian (Nama, Kode SKU, Kategori, Sub Kategori, Spesifikasi)
-      if (q) {
-        const matchName = p.name?.toLowerCase().includes(q)
-        const matchCode = p.productId?.toLowerCase().includes(q)
-        const matchCategory = p.category?.toLowerCase().includes(q)
-        const matchSubCategory = p.subCategory?.toLowerCase().includes(q)
-        const matchSpec = p.spec?.toLowerCase().includes(q)
-        return matchName || matchCode || matchCategory || matchSubCategory || matchSpec
-      }
-      return true
+      const matchName = p.name?.toLowerCase().includes(q)
+      const matchCode = p.productId?.toLowerCase().includes(q)
+      const matchSpec = p.spec?.toLowerCase().includes(q)
+      const matchCategory = p.category?.toLowerCase().includes(q)
+      return matchName || matchCode || matchSpec || matchCategory
     })
-  }, [products, search, selectedCategory, onlyAvailable])
+  }, [products, search])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -178,38 +157,29 @@ export default function EtalasePage() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Banner Ringkas */}
-        <div className="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 text-white rounded-xl p-6 sm:p-8 shadow-sm">
-          <div className="max-w-2xl space-y-2">
-            <div className="inline-flex items-center gap-1.5 bg-teal-500/20 text-teal-200 border border-teal-400/30 px-2.5 py-0.5 rounded-full text-xs font-medium">
-              <Package className="w-3.5 h-3.5" />
-              Katalog & Ketersediaan Stok
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Etalase Toko
-            </h1>
-            <p className="text-sm text-teal-100/90 leading-relaxed">
-              Cek harga resmi dan ketersediaan stok produk secara langsung. Gunakan kotak pencarian di bawah untuk mencari barang yang Anda butuhkan.
-            </p>
-          </div>
+        {/* Banner Sederhana */}
+        <div className="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 text-white rounded-xl p-5 sm:p-6 shadow-sm">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Etalase Toko
+          </h1>
         </div>
 
-        {/* Kontrol Pencarian & Filter */}
+        {/* Kotak Pencarian Sederhana */}
         <Card className="border-slate-200/80 shadow-xs">
-          <CardContent className="p-4 sm:p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-              {/* Search Bar */}
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex gap-2 items-center">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari nama barang, spesifikasi, atau kode..."
+                  placeholder="Cari nama barang..."
                   className="pl-9 pr-9 h-10 text-sm bg-slate-50/50 border-slate-200 focus-visible:ring-teal-500"
                 />
                 {search && (
                   <button
+                    type="button"
                     onClick={() => setSearch('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                     title="Hapus pencarian"
@@ -219,49 +189,14 @@ export default function EtalasePage() {
                 )}
               </div>
 
-              {/* Filter Ketersediaan */}
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant={onlyAvailable ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setOnlyAvailable(!onlyAvailable)}
-                  className={`h-10 text-xs gap-1.5 ${
-                    onlyAvailable
-                      ? 'bg-teal-700 hover:bg-teal-800 text-white'
-                      : 'text-slate-600 border-slate-200'
-                  }`}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Hanya yang Tersedia
-                </Button>
-              </div>
+              <Button
+                type="button"
+                className="h-10 px-5 bg-teal-700 hover:bg-teal-800 text-white font-medium text-xs sm:text-sm gap-1.5 shrink-0"
+              >
+                <Search className="w-4 h-4" />
+                Cari
+              </Button>
             </div>
-
-            {/* Filter Kategori Chips */}
-            {categories.length > 2 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 text-xs no-scrollbar">
-                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-                  Kategori:
-                </span>
-                {categories.map((cat) => {
-                  const isActive = selectedCategory === cat
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
-                        isActive
-                          ? 'bg-teal-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-                      }`}
-                    >
-                      {cat === 'SEMUA' ? 'Semua Kategori' : cat}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -269,9 +204,6 @@ export default function EtalasePage() {
         <div className="flex items-center justify-between text-xs text-slate-500 px-1">
           <span>
             Menampilkan <strong className="text-slate-800">{filteredProducts.length}</strong> produk
-            {selectedCategory !== 'SEMUA' && (
-              <> pada kategori <strong className="text-slate-800">{selectedCategory}</strong></>
-            )}
             {search && (
               <> untuk kata kunci &ldquo;<strong className="text-slate-800">{search}</strong>&rdquo;</>
             )}
