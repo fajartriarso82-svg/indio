@@ -11,7 +11,6 @@ import {
   Edit,
   Check,
   X,
-  History,
   AlertTriangle,
   CornerDownRight,
   FileText,
@@ -250,11 +249,6 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
   // Hapus Realisasi
   const [deleteRealisasiId, setDeleteRealisasiId] = useState<string | null>(null)
   const [deletingRealisasi, setDeletingRealisasi] = useState(false)
-
-  // Audit log modal
-  const [auditModalItem, setAuditModalItem] = useState<RABItem | null>(null)
-  const [auditLogs, setAuditLogs] = useState<any[]>([])
-  const [loadingAudit, setLoadingAudit] = useState(false)
 
   const isInitialLoad = useRef(true)
 
@@ -770,28 +764,6 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
     }
   }
 
-  const openAuditLog = async (item: RABItem) => {
-    setAuditModalItem(item)
-    setLoadingAudit(true)
-    try {
-      const res = await fetch(`/api/projects/${projectId}/rab-topik`)
-      const d = await res.json()
-      if (d.success) {
-        for (const topik of d.data.topiks) {
-          const found = topik.items.find((i: any) => i.id === item.id)
-          if (found && found.auditLogs) {
-            setAuditLogs(found.auditLogs)
-            break
-          }
-        }
-      }
-    } catch {
-      setAuditLogs([])
-    } finally {
-      setLoadingAudit(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -840,15 +812,15 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
             const isOverBudget = topik.totalRealisasiTopik > topik.totalRencanaTopik
 
             return (
-              <Card key={topik.id} id={`topik-${topik.id}`} className="overflow-hidden border border-border shadow-xs scroll-mt-20">
-                {/* Header Topik */}
-                <CardHeader className="p-3 sm:px-4 bg-muted/40 border-b border-border/80">
+              <Card key={topik.id} id={`topik-${topik.id}`} className="overflow-hidden border-2 border-emerald-500/80 dark:border-emerald-600/80 shadow-xs scroll-mt-20">
+                {/* Header Topik (Hijau Muda dengan Border Area Hijau) */}
+                <CardHeader className="p-3 sm:px-4 bg-emerald-50/90 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800/80">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div
                       className="flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0"
                       onClick={() => toggleTopik(topik.id)}
                     >
-                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                      <button type="button" className="text-emerald-700 hover:text-emerald-950 dark:text-emerald-300 dark:hover:text-emerald-100 transition-colors">
                         {isExpanded ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
                       </button>
 
@@ -857,26 +829,28 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                           <Input
                             value={editTopikNama}
                             onChange={(e) => setEditTopikNama(e.target.value)}
-                            className="h-7 text-xs w-48"
+                            className="h-7 text-xs w-48 bg-background text-foreground border-emerald-300 dark:border-emerald-700 focus-visible:ring-emerald-500"
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleEditTopik(topik.id)
                               if (e.key === 'Escape') setEditTopikId(null)
                             }}
                           />
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleEditTopik(topik.id)}>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300" onClick={() => handleEditTopik(topik.id)}>
+                            <Check className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditTopikId(null)}>
-                            <X className="w-3.5 h-3.5 text-muted-foreground" />
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted" onClick={() => setEditTopikId(null)}>
+                            <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <span className="font-bold text-sm text-foreground truncate">
+                          <span className="font-bold text-sm text-emerald-950 dark:text-emerald-100 tracking-tight truncate">
                             {topikIdx + 1}. {topik.nama}
                           </span>
-                          <span className="text-[11px] text-muted-foreground">({topik.items.length} item)</span>
+                          <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/90 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full border border-emerald-300/70 dark:border-emerald-700/60">
+                            {topik.items.length} item
+                          </span>
                         </div>
                       )}
                     </div>
@@ -884,12 +858,14 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                     {/* Ringkasan Angka Topik & Aksi */}
                     <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap">
                       <div className="text-right text-xs">
-                        <span className="text-muted-foreground text-[10px] block">RAB:</span>
+                        <span className="text-muted-foreground text-[10px] block font-medium">RAB:</span>
                         <span className="font-bold text-foreground">{formatCurrency(topik.totalRencanaTopik)}</span>
                       </div>
                       <div className="text-right text-xs">
-                        <span className="text-muted-foreground text-[10px] block">Realisasi:</span>
-                        <span className="font-bold text-destructive">{formatCurrency(topik.totalRealisasiTopik)}</span>
+                        <span className="text-muted-foreground text-[10px] block font-medium">Realisasi:</span>
+                        <span className="font-bold text-destructive">
+                          {formatCurrency(topik.totalRealisasiTopik)}
+                        </span>
                       </div>
 
                       {/* Status Pembayaran Topik (Badge) */}
@@ -897,7 +873,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         const status = topik.statusPembayaranTopik || 'BELUM_DIBAYAR'
                         if (status === 'LUNAS') {
                           return (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-2.5 py-0.5 gap-1 shadow-xs border-none">
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-2.5 py-0.5 gap-1 shadow-xs border border-emerald-700">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                               Lunas
                             </Badge>
@@ -905,15 +881,15 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         }
                         if (status === 'MENUNGGU_BAYAR') {
                           return (
-                            <Badge variant="outline" className="text-amber-800 bg-amber-50 border-amber-300 text-[11px] font-semibold px-2.5 py-0.5 gap-1.5 animate-pulse">
-                              <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            <Badge variant="outline" className="text-amber-900 bg-amber-50 border-amber-300 text-[11px] font-bold px-2.5 py-0.5 gap-1.5 animate-pulse shadow-xs">
+                              <span className="w-2 h-2 rounded-full bg-amber-600" />
                               Menunggu Bayar ({formatCurrency(topik.totalMenungguBayarTopik || 0)})
                             </Badge>
                           )
                         }
                         if (status === 'SEBAGIAN') {
                           return (
-                            <Badge variant="outline" className="text-blue-800 bg-blue-50 border-blue-300 text-[11px] font-semibold px-2 py-0.5 gap-1">
+                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 text-[11px] font-semibold px-2 py-0.5 gap-1 shadow-xs">
                               Sebagian ({formatCurrency(topik.totalRealisasiLunasTopik || 0)})
                             </Badge>
                           )
@@ -928,14 +904,14 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                       {topik.totalRealisasiTopik > 0 && (
                         <Badge
                           variant="outline"
-                          className={`text-[10px] ${isOverBudget ? 'border-rose-400 text-rose-700 bg-rose-50' : 'border-emerald-400 text-emerald-700 bg-emerald-50'}`}
+                          className={`text-[10px] font-semibold ${isOverBudget ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-emerald-300 bg-emerald-100/70 text-emerald-800'}`}
                         >
                           {isOverBudget ? '⚠ Over Budget' : '✓ Budget Aman'}
                         </Badge>
                       )}
 
                       {!isReadOnly && (
-                        <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
+                        <div className="flex items-center gap-1.5 pl-2 border-l border-emerald-200 dark:border-emerald-800">
                           {/* Tombol Bayar Topik (Fleksibel: bayar total topik) */}
                           <Button
                             size="sm"
@@ -943,13 +919,12 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                             onClick={() => openPayTopikModal(topik)}
                             title="Bayar total pada topik atau lunasi seluruh tagihan di topik ini"
                           >
-                            <CreditCard className="w-3.5 h-3.5" />
+                            <CreditCard className="w-3.5 h-3.5 text-white" />
                             Bayar Topik
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-7 text-xs px-2 gap-1"
+                            className="h-7 text-xs px-2 gap-1 bg-white hover:bg-emerald-100/80 text-emerald-900 border border-emerald-300 shadow-2xs font-medium dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700"
                             onClick={() => {
                               setAddItemTopikId(topik.id)
                               setNewItemForm({
@@ -963,22 +938,24 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                               setNewItemPhotoPreview(null)
                             }}
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3 h-3 text-emerald-800 dark:text-emerald-300" />
                             Tambah Item
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 text-muted-foreground"
+                            className="h-7 w-7 p-0 text-emerald-700 hover:text-emerald-950 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-900"
                             onClick={() => { setEditTopikId(topik.id); setEditTopikNama(topik.nama) }}
+                            title="Edit nama topik"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-rose-50 dark:hover:bg-rose-950/40"
                             onClick={() => setDeleteTopikId(topik.id)}
+                            title="Hapus topik"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -1474,17 +1451,6 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                                 <Trash2 className="w-3.5 h-3.5" />
                                               </Button>
                                             </>
-                                          )}
-                                          {(item._count?.auditLogs ?? 0) > 0 && (
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-7 w-7 p-0 text-muted-foreground"
-                                              onClick={() => openAuditLog(item)}
-                                              title="Riwayat Perubahan"
-                                            >
-                                              <History className="w-3.5 h-3.5" />
-                                            </Button>
                                           )}
                                         </div>
                                       </TableCell>
@@ -2225,6 +2191,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
               )}
               {previewImageModal?.title || 'Lampiran Pekerjaan'}
             </DialogTitle>
+            <DialogDescription className="sr-only">Pratinjau lampiran pekerjaan</DialogDescription>
           </DialogHeader>
           {previewImageModal && (
             <div className="py-2 flex flex-col items-center justify-center">
@@ -2609,46 +2576,6 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* ─── MODAL: Audit Log Item ─── */}
-      <Dialog open={!!auditModalItem} onOpenChange={(open) => { if (!open) setAuditModalItem(null) }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="w-4 h-4 text-primary" />
-              Riwayat Perubahan Item
-            </DialogTitle>
-            <DialogDescription>{auditModalItem?.namaItem}</DialogDescription>
-          </DialogHeader>
-          <div className="py-2">
-            {loadingAudit ? (
-              <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-            ) : auditLogs.length === 0 ? (
-              <p className="text-center text-xs text-muted-foreground py-4">Belum ada riwayat perubahan.</p>
-            ) : (
-              <ScrollArea className="max-h-60">
-                <div className="space-y-2 text-xs">
-                  {auditLogs.map((log: any, i: number) => (
-                    <div key={i} className="p-2.5 rounded-lg border border-border bg-muted/20">
-                      <div className="flex justify-between text-muted-foreground text-[10px]">
-                        <span>{formatDate(log.createdAt)}</span>
-                        <span>{log.userId || 'Staff'}</span>
-                      </div>
-                      <p className="font-medium text-foreground mt-0.5">{log.fieldDiubah}</p>
-                      <p className="text-muted-foreground text-[11px] mt-0.5">
-                        <span className="line-through text-rose-500">{log.nilaiLama}</span> → <span className="text-emerald-600 font-semibold">{log.nilaiBaru}</span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setAuditModalItem(null)}>Tutup</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

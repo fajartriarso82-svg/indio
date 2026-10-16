@@ -66,7 +66,7 @@ export default function Home() {
         <ProjectsSection />
         <PartnersSection />
         <ClientsSection />
-        <CTASection />
+        <CTASection company={company} />
       </main>
       <Footer onStaffClick={handleStaffClick} staff={staff} company={company} />
       <StaffLoginDialog

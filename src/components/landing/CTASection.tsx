@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-export default function CTASection() {
+import type { CompanyProfile } from '@/hooks/use-company-profile'
+
+export default function CTASection({ company }: { company?: CompanyProfile | null }) {
+  const companyPhone = company?.phone?.trim() || ''
+  const companyEmail = company?.email?.trim() || ''
+  const companyAddress = company?.address?.trim() || ''
+
   return (
     <section id="contact" className="py-20 lg:py-28 bg-muted/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,27 +34,31 @@ export default function CTASection() {
                   untuk konsultasi gratis dan mari bersama menyusun peta teknologi Anda.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    size="lg"
-                    className="h-12 px-8 text-base font-semibold bg-white text-primary hover:bg-white/90"
-                    asChild
-                  >
-                    <a href="mailto:info@intinusadinamika.co.id">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Hubungi Kami via Email
-                    </a>
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-12 px-8 text-base border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground hover:border-primary-foreground/70"
-                    asChild
-                  >
-                    <a href="tel:+622821234567">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Hubungi Sekarang
-                    </a>
-                  </Button>
+                  {companyEmail && (
+                    <Button
+                      size="lg"
+                      className="h-12 px-8 text-base font-semibold bg-white text-primary hover:bg-white/90"
+                      asChild
+                    >
+                      <a href={`mailto:${companyEmail}`}>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Hubungi Kami via Email
+                      </a>
+                    </Button>
+                  )}
+                  {companyPhone && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-12 px-8 text-base border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground hover:border-primary-foreground/70"
+                      asChild
+                    >
+                      <a href={`tel:${companyPhone.replace(/[^0-9+]/g, '')}`}>
+                        <Phone className="w-4 h-4 mr-2" />
+                        Hubungi Sekarang
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -59,10 +69,8 @@ export default function CTASection() {
                     <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">Alamat Kantor</p>
-                      <p className="text-sm text-muted-foreground">
-                        Jl. Jend. Ahmad Yani No.77
-                        <br />
-                        Cilacap, Jawa Tengah 53211
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {companyAddress || 'Alamat kantor belum diatur di menu Setting.'}
                       </p>
                     </div>
                   </div>
@@ -71,7 +79,18 @@ export default function CTASection() {
                     <Phone className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">Telepon</p>
-                      <p className="text-sm text-muted-foreground">(0282) 123-4567</p>
+                      {companyPhone ? (
+                        <p className="text-sm text-muted-foreground">
+                          <a
+                            href={`tel:${companyPhone.replace(/[^0-9+]/g, '')}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            {companyPhone}
+                          </a>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Belum diatur</p>
+                      )}
                     </div>
                   </div>
                   <Separator />
@@ -79,7 +98,18 @@ export default function CTASection() {
                     <Mail className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">Email</p>
-                      <p className="text-sm text-muted-foreground">info@intinusadinamika.co.id</p>
+                      {companyEmail ? (
+                        <p className="text-sm text-muted-foreground">
+                          <a
+                            href={`mailto:${companyEmail}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            {companyEmail}
+                          </a>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Belum diatur</p>
+                      )}
                     </div>
                   </div>
                   <Separator />

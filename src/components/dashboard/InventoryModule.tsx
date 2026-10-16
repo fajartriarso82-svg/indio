@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Search, FileDown, FileUp, Eye, Loader2, Package, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, FileDown, FileUp, Eye, Loader2, Package, Edit, Trash2, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -75,6 +75,142 @@ export default function InventoryModule() {
     }
   }
 
+  const handleDownloadTemplate = () => {
+    // Data contoh realistis untuk memudahkan pengguna baru
+    const templateData = [
+      {
+        'Nomor': 'BRG-001',
+        'Kategori': 'Komputer & Perangkat Cerdas',
+        'Sub Kategori': 'Laptop (Consumer, Gaming, Business)',
+        'Nama Barang': 'Lenovo ThinkPad E14 Gen 4',
+        'Spesifikasi': 'Core i5-1235U, RAM 16GB, SSD 512GB, 14 Inch FHD',
+        'Stok': 10,
+        'Harga Pokok (Rp)': 9500000,
+        'Harga Jual (Rp)': 11000000,
+        'Harga Eceran (Rp)': 11500000,
+        'Garansi': '1 Tahun Resmi'
+      },
+      {
+        'Nomor': 'BRG-002',
+        'Kategori': 'Komponen PC (Hardware Internal)',
+        'Sub Kategori': 'Penyimpanan Internal (SSD, HDD, NVMe)',
+        'Nama Barang': 'Samsung SSD 980 NVMe M.2 500GB',
+        'Spesifikasi': 'Read up to 3100 MB/s, Write up to 2600 MB/s',
+        'Stok': 25,
+        'Harga Pokok (Rp)': 650000,
+        'Harga Jual (Rp)': 800000,
+        'Harga Eceran (Rp)': 850000,
+        'Garansi': '3 Tahun Distributor'
+      },
+      {
+        'Nomor': 'BRG-003',
+        'Kategori': 'Jaringan & Keamanan (Networking)',
+        'Sub Kategori': 'Router & Access Point',
+        'Nama Barang': 'MikroTik RouterBOARD RB750Gr3 (hEX)',
+        'Spesifikasi': '5x Gigabit Ethernet, Dual Core 880MHz, 256MB RAM',
+        'Stok': 15,
+        'Harga Pokok (Rp)': 720000,
+        'Harga Jual (Rp)': 850000,
+        'Harga Eceran (Rp)': 900000,
+        'Garansi': '1 Tahun'
+      },
+      {
+        'Nomor': 'BRG-004',
+        'Kategori': 'Periferal & Aksesoris',
+        'Sub Kategori': 'Keyboard, Mouse & Mousepad',
+        'Nama Barang': 'Logitech Wireless Mouse M185',
+        'Spesifikasi': '2.4GHz Wireless, Nano Receiver, Baterai AA',
+        'Stok': 50,
+        'Harga Pokok (Rp)': 135000,
+        'Harga Jual (Rp)': 175000,
+        'Harga Eceran (Rp)': 190000,
+        'Garansi': '1 Tahun Resmi'
+      }
+    ]
+
+    const panduanData = [
+      {
+        'Kolom': 'Nomor',
+        'Status': 'WAJIB',
+        'Keterangan': 'Kode unik/SKU barang (contoh: BRG-001, LPT-001). Tidak boleh duplikat.'
+      },
+      {
+        'Kolom': 'Kategori',
+        'Status': 'WAJIB',
+        'Keterangan': 'Nama kategori induk barang (contoh: Komputer & Perangkat Cerdas, Jaringan & Keamanan).'
+      },
+      {
+        'Kolom': 'Sub Kategori',
+        'Status': 'WAJIB',
+        'Keterangan': 'Sub kategori barang (contoh: Laptop (Consumer, Gaming, Business), Router & Access Point).'
+      },
+      {
+        'Kolom': 'Nama Barang',
+        'Status': 'WAJIB',
+        'Keterangan': 'Nama lengkap produk barang.'
+      },
+      {
+        'Kolom': 'Spesifikasi',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Rincian spesifikasi teknis barang.'
+      },
+      {
+        'Kolom': 'Stok',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Jumlah unit stok (hanya angka bulat, tanpa huruf/satuan. Default: 0).'
+      },
+      {
+        'Kolom': 'Harga Pokok (Rp)',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Harga beli/modal per unit (hanya angka tanpa Rp dan tanpa titik ribuan).'
+      },
+      {
+        'Kolom': 'Harga Jual (Rp)',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Harga jual standar/proyek per unit (hanya angka tanpa Rp dan tanpa titik).'
+      },
+      {
+        'Kolom': 'Harga Eceran (Rp)',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Harga ritel per unit (hanya angka tanpa Rp dan tanpa titik).'
+      },
+      {
+        'Kolom': 'Garansi',
+        'Status': 'OPSIONAL',
+        'Keterangan': 'Keterangan masa garansi (contoh: 1 Tahun Resmi, 3 Bulan).'
+      }
+    ]
+
+    const workbook = XLSX.utils.book_new()
+
+    // Sheet 1: Template
+    const wsTemplate = XLSX.utils.json_to_sheet(templateData)
+    wsTemplate['!cols'] = [
+      { wch: 14 }, // Nomor
+      { wch: 32 }, // Kategori
+      { wch: 36 }, // Sub Kategori
+      { wch: 38 }, // Nama Barang
+      { wch: 45 }, // Spesifikasi
+      { wch: 10 }, // Stok
+      { wch: 18 }, // Harga Pokok (Rp)
+      { wch: 18 }, // Harga Jual (Rp)
+      { wch: 18 }, // Harga Eceran (Rp)
+      { wch: 20 }, // Garansi
+    ]
+    XLSX.utils.book_append_sheet(workbook, wsTemplate, 'Template Import')
+
+    // Sheet 2: Panduan
+    const wsPanduan = XLSX.utils.json_to_sheet(panduanData)
+    wsPanduan['!cols'] = [
+      { wch: 20 }, // Kolom
+      { wch: 12 }, // Status
+      { wch: 75 }, // Keterangan
+    ]
+    XLSX.utils.book_append_sheet(workbook, wsPanduan, 'Panduan Kolom')
+
+    XLSX.writeFile(workbook, 'Template_Import_Stok_Barang.xlsx')
+  }
+
   const handleExportExcel = () => {
     if (products.length === 0) {
       alert('Tidak ada data stok untuk di-export.')
@@ -96,11 +232,22 @@ export default function InventoryModule() {
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(exportData)
+    worksheet['!cols'] = [
+      { wch: 14 },
+      { wch: 32 },
+      { wch: 36 },
+      { wch: 38 },
+      { wch: 45 },
+      { wch: 10 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 20 },
+    ]
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Stok')
 
     // Filename: Stok + [nama perusahaan] + [tanggal hari ini]
-    // Kita anggap nama perusahaan "Z-Indio" atau Anda bisa ganti.
     const companyName = 'Z-Indio'
     const dateStr = new Date().toISOString().split('T')[0]
     const fileName = `Stok_${companyName}_${dateStr}.xlsx`
@@ -209,6 +356,14 @@ export default function InventoryModule() {
             onChange={handleImportExcel} 
             className="hidden" 
           />
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadTemplate}
+            title="Download template Excel (.xlsx) untuk import data barang"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Download Template
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => fileInputRef.current?.click()}

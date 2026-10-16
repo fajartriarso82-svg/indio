@@ -25,6 +25,7 @@ const PUBLIC_API_PATHS = [
   '/api/company/public', // hanya data publik perusahaan (nama, alamat, telp, email, logo) untuk home page
   '/api/gallery/public', // data publik galeri rekam jejak pengiriman proyek
   '/api/clients/public', // data publik klien dengan badge bintang untuk landing page
+  '/api/products/public', // data publik etalase toko (tanpa harga modal)
 ]
 
 // Path publik yang hanya cocok PERSIS (tidak boleh mencakup sub-path).

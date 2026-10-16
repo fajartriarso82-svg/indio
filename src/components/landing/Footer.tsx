@@ -16,6 +16,9 @@ export default function Footer({
 }) {
   const companyName = company?.name?.trim() || 'PT Inti Nusa Dinamika Optima'
   const logoUrl = company?.logoFile?.trim() || ''
+  const companyPhone = company?.phone?.trim() || ''
+  const companyEmail = company?.email?.trim() || ''
+  const companyAddress = company?.address?.trim() || ''
 
   return (
     <footer className="bg-foreground text-primary-foreground/80">
@@ -71,6 +74,7 @@ export default function Footer({
             <ul className="space-y-2">
               {[
                 { label: 'Tentang Kami', href: '#about' },
+                { label: 'Etalase Toko', href: '/etalase' },
                 { label: 'Proyek Kami', href: '#projects' },
                 { label: 'Mitra', href: '#partners' },
                 { label: 'Kontak', href: '#contact' },
@@ -90,11 +94,36 @@ export default function Footer({
           <div>
             <h4 className="font-semibold text-sm text-primary-foreground mb-4">Kontak</h4>
             <div className="space-y-2">
-              <p className="text-xs text-primary-foreground/60">
-                Jl. Jend. Ahmad Yani No.77, Cilacap
-              </p>
-              <p className="text-xs text-primary-foreground/60">(0282) 123-4567</p>
-              <p className="text-xs text-primary-foreground/60">info@intinusadinamika.co.id</p>
+              {companyAddress && (
+                <p className="text-xs text-primary-foreground/60 whitespace-pre-line">
+                  {companyAddress}
+                </p>
+              )}
+              {companyPhone && (
+                <p className="text-xs text-primary-foreground/60">
+                  <a
+                    href={`tel:${companyPhone.replace(/[^0-9+]/g, '')}`}
+                    className="hover:text-primary-foreground transition-colors"
+                  >
+                    {companyPhone}
+                  </a>
+                </p>
+              )}
+              {companyEmail && (
+                <p className="text-xs text-primary-foreground/60">
+                  <a
+                    href={`mailto:${companyEmail}`}
+                    className="hover:text-primary-foreground transition-colors"
+                  >
+                    {companyEmail}
+                  </a>
+                </p>
+              )}
+              {!companyAddress && !companyPhone && !companyEmail && (
+                <p className="text-xs text-primary-foreground/40 italic">
+                  Kontak belum diatur
+                </p>
+              )}
             </div>
           </div>
         </div>

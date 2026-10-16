@@ -32,6 +32,7 @@ export default function Navigation({
   const navLinks = [
     { label: 'Tentang', href: '#about' },
     { label: 'Layanan', href: '#services' },
+    { label: 'Etalase', href: '/etalase' },
     { label: 'Proyek', href: '#projects' },
     { label: 'Mitra', href: '#partners' },
     { label: 'Klien', href: '#clients' },
