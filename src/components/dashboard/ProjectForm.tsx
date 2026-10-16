@@ -323,13 +323,14 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor={`m-itemId-${idx}`} className="text-xs">ID Item</Label>
+          <Label htmlFor={`m-itemId-${idx}`} className="text-xs">ID Item (maks 3 digit)</Label>
           <Input
             id={`m-itemId-${idx}`}
             value={item.itemId}
             onChange={(e) => updateItem(idx, 'itemId', e.target.value)}
-            placeholder="ID"
-            className="h-9 text-sm"
+            placeholder="001"
+            maxLength={3}
+            className="h-9 text-sm text-center"
           />
         </div>
         <div className="space-y-2">
@@ -339,6 +340,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             value={item.itemCode}
             onChange={(e) => updateItem(idx, 'itemCode', e.target.value)}
             placeholder="Kode"
+            maxLength={16}
             className="h-9 text-sm"
           />
         </div>
@@ -350,7 +352,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           id={`m-itemName-${idx}`}
           value={item.itemName}
           onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-          placeholder="Item name"
+          placeholder="Nama barang / pekerjaan"
           className="h-9 text-sm"
           required
         />
@@ -358,7 +360,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor={`m-qty-${idx}`} className="text-xs">Qty</Label>
+          <Label htmlFor={`m-qty-${idx}`} className="text-xs">Qty (maks 4 digit)</Label>
           <Input
             id={`m-qty-${idx}`}
             type="text"
@@ -366,16 +368,18 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             value={item.qty}
             onChange={(e) => updateItem(idx, 'qty', formatThousandSeparator(e.target.value))}
             className="h-9 text-sm text-right"
+            maxLength={6}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`m-unit-${idx}`} className="text-xs">Satuan</Label>
+          <Label htmlFor={`m-unit-${idx}`} className="text-xs">Satuan (3 digit)</Label>
           <Input
             id={`m-unit-${idx}`}
             value={item.unit}
             onChange={(e) => updateItem(idx, 'unit', e.target.value)}
             placeholder="pcs"
-            className="h-9 text-sm"
+            maxLength={5}
+            className="h-9 text-sm text-center"
           />
         </div>
       </div>
@@ -417,7 +421,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[90vw] md:max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[95vw] md:max-w-6xl lg:max-w-7xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Buat Proyek Baru</DialogTitle>
           <DialogDescription>
@@ -659,61 +663,65 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[100px]">ID Item</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[100px]">Kode Barang</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[180px]">Nama Item *</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[70px]">Qty</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[70px]">Satuan</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[110px]">Harga Satuan</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[120px]">Deadline</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs min-w-[110px]">Total</th>
-                    <th className="px-3 py-2 w-10"></th>
+                    <th className="px-2 py-2 text-center font-medium text-muted-foreground text-xs w-14 min-w-[52px] max-w-[60px]">ID</th>
+                    <th className="px-2 py-2 text-left font-medium text-muted-foreground text-xs w-32 min-w-[115px] max-w-[135px]">Kode Barang</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs min-w-[280px] lg:min-w-[340px]">Nama Item *</th>
+                    <th className="px-2 py-2 text-right font-medium text-muted-foreground text-xs w-20 min-w-[70px] max-w-[80px]">Qty</th>
+                    <th className="px-2 py-2 text-center font-medium text-muted-foreground text-xs w-16 min-w-[56px] max-w-[66px]">Satuan</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-36 min-w-[130px]">Harga Satuan</th>
+                    <th className="px-2 py-2 text-left font-medium text-muted-foreground text-xs w-32 min-w-[125px]">Deadline</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs w-32 min-w-[120px]">Total</th>
+                    <th className="px-2 py-2 w-10 text-center"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} className="border-t">
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <Input
                           value={item.itemId}
                           onChange={(e) => updateItem(idx, 'itemId', e.target.value)}
-                          placeholder="ID"
-                          className="h-8 text-xs"
+                          placeholder="001"
+                          maxLength={3}
+                          className="h-8 text-xs text-center px-1"
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <Input
                           value={item.itemCode}
                           onChange={(e) => updateItem(idx, 'itemCode', e.target.value)}
-                          placeholder="Kode"
-                          className="h-8 text-xs"
+                          placeholder="Kode Barang"
+                          maxLength={16}
+                          className="h-8 text-xs px-2"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <Input
                           value={item.itemName}
                           onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                          placeholder="Item name"
-                          className="h-8 text-xs"
+                          placeholder="Nama item pekerjaan / barang"
+                          className="h-8 text-xs px-2"
                           required
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <Input
                           type="text"
                           inputMode="numeric"
                           value={item.qty}
                           onChange={(e) => updateItem(idx, 'qty', formatThousandSeparator(e.target.value))}
-                          className="h-8 text-xs text-right"
+                          className="h-8 text-xs text-right px-2"
                           placeholder="1"
+                          maxLength={6}
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <Input
                           value={item.unit}
                           onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                          className="h-8 text-xs"
+                          className="h-8 text-xs text-center px-1"
                           placeholder="pcs"
+                          maxLength={5}
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -722,31 +730,31 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
                           inputMode="numeric"
                           value={item.unitPrice}
                           onChange={(e) => updateItem(idx, 'unitPrice', formatThousandSeparator(e.target.value))}
-                          className="h-8 text-xs text-right"
+                          className="h-8 text-xs text-right px-2"
                           placeholder="0"
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <Input
                           type="date"
                           value={item.deadline}
                           onChange={(e) => updateItem(idx, 'deadline', e.target.value)}
-                          className="h-8 text-xs"
+                          className="h-8 text-xs px-1"
                         />
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-xs text-foreground">
+                      <td className="px-3 py-2 text-right font-medium text-xs text-foreground font-mono">
                         {formatCurrency(getItemTotal(item))}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2 text-center">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeItemRow(idx)}
                           disabled={items.length <= 1}
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </td>
                     </tr>
