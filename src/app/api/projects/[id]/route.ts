@@ -60,6 +60,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
           include: { items: true },
           orderBy: { createdAt: 'desc' },
         },
+        rabRealisasi: {
+          include: {
+            vendor: { select: { id: true, name: true } },
+            rabItem: { select: { id: true, namaItem: true } },
+            rabTopik: { select: { id: true, nama: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        rabTopiks: {
+          where: { isDeleted: false },
+          include: {
+            items: true,
+          },
+          orderBy: { urutan: 'asc' },
+        },
       },
     })
 

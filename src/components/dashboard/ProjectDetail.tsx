@@ -261,6 +261,12 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   }, [fetchProject])
 
   useEffect(() => {
+    if (activeTab === 'info') {
+      fetchProject()
+    }
+  }, [activeTab, fetchProject])
+
+  useEffect(() => {
     if (purchaseOpen || addCostOpen) {
       fetch('/api/vendors')
         .then((r) => r.json())
@@ -652,20 +658,56 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
 
   // Calculate Laba/Rugi & Client Payment
   const isPengadaan = (project.type || '').toUpperCase() === 'PENGADAAN'
-  const poTotal = project.items?.reduce((s: number, i: any) => s + i.total, 0) || project.contractValue || 0
-  const totalPurchases = project.items?.reduce(
-    (s: number, i: any) => s + (i.purchases?.reduce((ps: number, p: any) => ps + p.totalBuy, 0) || 0),
+
+  // Total Nilai Kontrak / Penjualan Proyek (contractValue / items / rencana RAB)
+  const totalRabRencana = (project.rabTopiks || []).reduce(
+    (s: number, t: any) =>
+      s +
+      (t.items?.reduce(
+        (si: number, item: any) =>
+          si + ((Number(item.volumeRencana) || 0) * (Number(item.hargaSatuanRencana) || 0)),
+        0
+      ) || 0),
     0
-  ) || 0
-  const totalAddCosts = project.additionalCosts?.reduce((s: number, c: any) => s + c.amount, 0) || 0
-  const totalCost = totalPurchases + totalAddCosts
+  )
+  const poTotal =
+    (project.items?.reduce((s: number, i: any) => s + (i.total || 0), 0) || 0) ||
+    project.contractValue ||
+    totalRabRencana ||
+    0
+
+  // Realisasi RAB (Topik, Item, & Biaya Tambahan)
+  const rabRealisasiList = (project.rabRealisasi || []) as any[]
+  const totalRabRealisasi = rabRealisasiList.reduce((s: number, r: any) => s + (Number(r.jumlah) || 0), 0)
+  const totalRabLunas = rabRealisasiList
+    .filter((r: any) => r.statusBayar === 'sudah_dibayar')
+    .reduce((s: number, r: any) => s + (Number(r.jumlah) || 0), 0)
+  const totalRabMenunggu = rabRealisasiList
+    .filter((r: any) => r.statusBayar !== 'sudah_dibayar')
+    .reduce((s: number, r: any) => s + (Number(r.jumlah) || 0), 0)
+
+  // Pengeluaran pengadaan & additional legacy
+  const totalPurchases =
+    project.items?.reduce(
+      (s: number, i: any) =>
+        s + (i.purchases?.reduce((ps: number, p: any) => ps + (Number(p.totalBuy) || 0), 0) || 0),
+      0
+    ) || 0
+  const totalRabPurchases =
+    project.rabPurchases?.reduce((s: number, p: any) => s + (Number(p.totalBuy) || 0), 0) || 0
+  const totalAddCosts =
+    project.additionalCosts?.reduce((s: number, c: any) => s + (Number(c.amount) || 0), 0) || 0
+
+  // Total Pengeluaran gabungan (Pengadaan + Biaya Tambahan + RAB Realisasi)
+  const totalCost = totalPurchases + totalRabPurchases + totalAddCosts + totalRabRealisasi
+  const totalCashPaid = totalPurchases + totalRabPurchases + totalAddCosts + totalRabLunas
   const profit = poTotal - totalCost
 
   const clientPayments = (project.payments || []) as any[]
-  const totalPaidByClient = clientPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0)
+  const totalPaidByClient = clientPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0)
   const remainingClientBill = Math.max(0, poTotal - totalPaidByClient)
   const paymentPercent = poTotal > 0 ? Math.min(100, Math.round((totalPaidByClient / poTotal) * 100)) : 0
-  const realizedCashProfit = totalPaidByClient - totalCost
+  const realizedCashProfit = totalPaidByClient - totalCashPaid
 
   return (
     <div className="space-y-6">
@@ -944,6 +986,11 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                 <div className="p-3 rounded-xl bg-background border border-border/70">
                   <span className="text-[11px] text-muted-foreground block font-medium">Total Pengeluaran</span>
                   <p className="text-base font-bold text-rose-600 dark:text-rose-400 mt-0.5 tabular-nums">{formatCurrency(totalCost)}</p>
+                  {totalRabMenunggu > 0 && (
+                    <span className="text-[10px] text-muted-foreground block mt-0.5 font-normal">
+                      Sudah Keluar: <strong className="text-rose-600 dark:text-rose-400 font-semibold">{formatCurrency(totalCashPaid)}</strong>
+                    </span>
+                  )}
                 </div>
                 <div className="p-3 rounded-xl bg-background border border-border/70">
                   <span className="text-[11px] text-muted-foreground block font-medium">Uang Masuk (Kas)</span>
@@ -954,65 +1001,130 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <p className={`text-base font-bold mt-0.5 tabular-nums ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     {formatCurrency(profit)}
                   </p>
+                  <span className="text-[10px] text-muted-foreground block mt-0.5 font-normal">
+                    Arus Kas: <strong className={`font-semibold ${realizedCashProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{formatCurrency(realizedCashProfit)}</strong>
+                  </span>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
-                    Riwayat Pembayaran ({clientPayments.length})
-                  </span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+                {/* Kolom 1: Uang Masuk dari Klien */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                      Riwayat Pembayaran Klien ({clientPayments.length})
+                    </span>
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      Total: {formatCurrency(totalPaidByClient)}
+                    </span>
+                  </div>
+
+                  {clientPayments.length === 0 ? (
+                    <div className="p-3 text-center rounded-xl border border-dashed border-border text-muted-foreground text-xs">
+                      Belum ada pembayaran klien yang dicatat.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/60 rounded-xl border border-border bg-background overflow-hidden max-h-60 overflow-y-auto">
+                      {clientPayments.map((p: any) => (
+                        <div key={p.id} className="p-2.5 sm:px-3 flex items-center justify-between gap-2.5 text-xs hover:bg-muted/30 transition-colors">
+                          <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] px-2 py-0 font-semibold ${p.type === 'LUNAS' ? 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-blue-700 bg-blue-50 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'}`}
+                            >
+                              {p.type === 'LUNAS' ? 'LUNAS' : `TERMIN ${p.terminNo || ''}`}
+                            </Badge>
+                            <span className="font-semibold text-foreground truncate">{p.title}</span>
+                            <span className="text-muted-foreground text-[11px]">
+                              {formatDate(p.date)} · {p.paymentMethod}
+                            </span>
+                            {p.invoiceUrl && (
+                              <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] inline-flex items-center gap-0.5">
+                                <FileText className="w-3 h-3" /> [Inv]
+                              </a>
+                            )}
+                            {p.proofUrl && (
+                              <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline text-[11px] inline-flex items-center gap-0.5">
+                                <FileCheck className="w-3 h-3" /> [Bukti]
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 tabular-nums">
+                              {formatCurrency(p.amount)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeletePaymentId(p.id)}
+                              title="Hapus pembayaran ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {clientPayments.length === 0 ? (
-                  <div className="p-3 text-center rounded-xl border border-dashed border-border text-muted-foreground text-xs">
-                    Belum ada riwayat pembayaran yang dicatat.
+                {/* Kolom 2: Uang Keluar (Realisasi Pengeluaran RAB) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-rose-600" />
+                      Riwayat Pengeluaran Realisasi ({rabRealisasiList.length})
+                    </span>
+                    <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                      Total: {formatCurrency(totalCost)}
+                    </span>
                   </div>
-                ) : (
-                  <div className="divide-y divide-border/60 rounded-xl border border-border bg-background overflow-hidden max-h-56 overflow-y-auto">
-                    {clientPayments.map((p: any) => (
-                      <div key={p.id} className="p-2.5 sm:px-3.5 flex items-center justify-between gap-3 text-xs hover:bg-muted/30 transition-colors">
-                        <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] px-2 py-0 font-semibold ${p.type === 'LUNAS' ? 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-blue-700 bg-blue-50 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'}`}
-                          >
-                            {p.type === 'LUNAS' ? 'LUNAS' : `TERMIN ${p.terminNo || ''}`}
-                          </Badge>
-                          <span className="font-semibold text-foreground truncate">{p.title}</span>
-                          <span className="text-muted-foreground text-[11px]">
-                            {formatDate(p.date)} · {p.paymentMethod}
+
+                  {rabRealisasiList.length === 0 ? (
+                    <div className="p-3 text-center rounded-xl border border-dashed border-border text-muted-foreground text-xs">
+                      Belum ada realisasi pengeluaran yang dicatat di RAB.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/60 rounded-xl border border-border bg-background overflow-hidden max-h-60 overflow-y-auto">
+                      {rabRealisasiList.map((r: any) => (
+                        <div key={r.id} className="p-2.5 sm:px-3 flex items-center justify-between gap-2.5 text-xs hover:bg-muted/30 transition-colors">
+                          <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                            {r.statusBayar === 'sudah_dibayar' ? (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0 font-semibold text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                Sudah Dibayar
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0 font-semibold text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300">
+                                Menunggu Bayar
+                              </Badge>
+                            )}
+                            <span className="font-semibold text-foreground truncate">
+                              {r.vendor?.name || r.vendorNama || r.rabItem?.namaItem || r.rabTopik?.nama || 'Pengeluaran Proyek'}
+                            </span>
+                            <span className="text-muted-foreground text-[11px]">
+                              {formatDate(r.tanggalBayar || r.tanggalInvoice || r.createdAt)}
+                            </span>
+                            {r.fileBuktiUrl && (
+                              <a href={r.fileBuktiUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-[11px]">
+                                [Invoice]
+                              </a>
+                            )}
+                            {r.buktiBayarUrl && (
+                              <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline text-[11px]">
+                                [Transfer]
+                              </a>
+                            )}
+                          </div>
+                          <span className="font-bold text-xs sm:text-sm text-rose-600 dark:text-rose-400 tabular-nums shrink-0">
+                            {formatCurrency(r.jumlah)}
                           </span>
-                          {p.invoiceUrl && (
-                            <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] inline-flex items-center gap-0.5">
-                              <FileText className="w-3 h-3" /> [Invoice]
-                            </a>
-                          )}
-                          {p.proofUrl && (
-                            <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline text-[11px] inline-flex items-center gap-0.5">
-                              <FileCheck className="w-3 h-3" /> [Bukti]
-                            </a>
-                          )}
                         </div>
-                        <div className="flex items-center gap-2.5 shrink-0">
-                          <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 tabular-nums">
-                            {formatCurrency(p.amount)}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeletePaymentId(p.id)}
-                            title="Hapus pembayaran ini"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
