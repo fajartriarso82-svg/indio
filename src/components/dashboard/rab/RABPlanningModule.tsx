@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   Paperclip,
   ExternalLink,
+  Download,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -160,7 +161,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
   const [loading, setLoading] = useState(true)
   const [vendorOptions, setVendorOptions] = useState<any[]>([])
 
-  // Expanded state (default: all expanded)
+  // Expanded state (default: all collapsed / hidden)
   const [expandedTopiks, setExpandedTopiks] = useState<Set<string>>(new Set())
 
   // Lightbox / Image Preview Modal
@@ -264,25 +265,16 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
         setTopiks(fetchedTopiks)
 
         if (isInitialLoad.current) {
-          // Cek preferensi simpanan di sessionStorage untuk project ini
+          // Default saat pertama kali buka: seluruh row topik dalam kondisi hidden (tertutup)
           let savedSet = new Set<string>()
           try {
-            const saved = sessionStorage.getItem(`rab_expanded_${projectId}`)
+            const saved = sessionStorage.getItem(`rab_expanded_v2_${projectId}`)
             if (saved) {
               savedSet = new Set(JSON.parse(saved))
             }
           } catch {}
 
-          if (savedSet.size > 0) {
-            setExpandedTopiks(savedSet)
-          } else if (fetchedTopiks.length > 0) {
-            // Default pertama kali buka: buka semua
-            const allSet = new Set(fetchedTopiks.map((t: RABTopik) => t.id))
-            setExpandedTopiks(allSet)
-            try {
-              sessionStorage.setItem(`rab_expanded_${projectId}`, JSON.stringify(Array.from(allSet)))
-            } catch {}
-          }
+          setExpandedTopiks(savedSet)
           isInitialLoad.current = false
         }
       }
@@ -310,7 +302,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
         next.add(id)
       }
       try {
-        sessionStorage.setItem(`rab_expanded_${projectId}`, JSON.stringify(Array.from(next)))
+        sessionStorage.setItem(`rab_expanded_v2_${projectId}`, JSON.stringify(Array.from(next)))
       } catch {}
       return next
     })
@@ -336,7 +328,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
             const next = new Set(prev)
             next.add(data.data.id)
             try {
-              sessionStorage.setItem(`rab_expanded_${projectId}`, JSON.stringify(Array.from(next)))
+              sessionStorage.setItem(`rab_expanded_v2_${projectId}`, JSON.stringify(Array.from(next)))
             } catch {}
             return next
           })
@@ -443,7 +435,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           const next = new Set(prev)
           next.add(topikId)
           try {
-            sessionStorage.setItem(`rab_expanded_${projectId}`, JSON.stringify(Array.from(next)))
+            sessionStorage.setItem(`rab_expanded_v2_${projectId}`, JSON.stringify(Array.from(next)))
           } catch {}
           return next
         })
@@ -504,7 +496,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           const next = new Set(prev)
           next.add(targetTopikId)
           try {
-            sessionStorage.setItem(`rab_expanded_${projectId}`, JSON.stringify(Array.from(next)))
+            sessionStorage.setItem(`rab_expanded_v2_${projectId}`, JSON.stringify(Array.from(next)))
           } catch {}
           return next
         })
@@ -776,20 +768,33 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
 
   return (
     <div className="space-y-6">
-      {/* Tombol Tambah Topik */}
-      <div className="flex items-center justify-between">
+      {/* Tombol Tambah Topik & Export Excel */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold tracking-tight text-foreground">Daftar Topik & Item RAB</h2>
           <p className="text-xs text-muted-foreground">
             Lacak rencana anggaran, realisasi belanja/invoice vendor, dan bukti pembayaran setiap item pekerjaan.
           </p>
         </div>
-        {!isReadOnly && (
-          <Button size="sm" onClick={() => setAddTopikOpen(true)} className="gap-1.5 h-8 text-xs">
-            <Plus className="w-3.5 h-3.5" />
-            Tambah Topik
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-500/40 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+            onClick={() => {
+              window.open(`/api/projects/${projectId}/export-rab`, '_blank')
+            }}
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Excel (.xlsx)
           </Button>
-        )}
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setAddTopikOpen(true)} className="gap-1.5 h-8 text-xs">
+              <Plus className="w-3.5 h-3.5" />
+              Tambah Topik
+            </Button>
+          )}
+        </div>
       </div>
 
       {topiks.length === 0 ? (
@@ -806,16 +811,20 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {topiks.map((topik, topikIdx) => {
             const isExpanded = expandedTopiks.has(topik.id)
             const isOverBudget = topik.totalRealisasiTopik > topik.totalRencanaTopik
 
             return (
-              <Card key={topik.id} id={`topik-${topik.id}`} className="overflow-hidden border-2 border-emerald-500/80 dark:border-emerald-600/80 shadow-xs scroll-mt-20">
+              <div
+                key={topik.id}
+                id={`topik-${topik.id}`}
+                className="overflow-hidden rounded-xl border-2 border-emerald-500/80 dark:border-emerald-600/80 bg-card shadow-xs scroll-mt-20"
+              >
                 {/* Header Topik (Hijau Muda dengan Border Area Hijau) */}
-                <CardHeader className="p-3 sm:px-4 bg-emerald-50/90 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800/80">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className={`px-3.5 sm:px-4 py-2 sm:py-2.5 bg-emerald-50/90 dark:bg-emerald-950/40 transition-colors ${isExpanded ? 'border-b border-emerald-200 dark:border-emerald-800/80' : ''}`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
                     <div
                       className="flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0"
                       onClick={() => toggleTopik(topik.id)}
@@ -844,11 +853,11 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3 min-w-0 flex-wrap">
-                          <span className="card-topic-title font-semibold text-[15px] text-emerald-950 dark:text-emerald-100 truncate">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                          <span className="card-topic-title font-semibold text-[14px] text-emerald-950 dark:text-emerald-100 truncate">
                             {topikIdx + 1}. {topik.nama}
                           </span>
-                          <span className="text-xs text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/90 dark:bg-emerald-900/60 px-2.5 py-0.5 rounded-full border border-emerald-300/70 dark:border-emerald-700/60">
+                          <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/90 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full border border-emerald-300/70 dark:border-emerald-700/60 leading-none">
                             {topik.items.length} item
                           </span>
                         </div>
@@ -856,19 +865,16 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                     </div>
 
                     {/* Ringkasan Angka Topik & Aksi */}
-                    <div className="flex items-center gap-3.5 self-end sm:self-auto flex-wrap">
-                      <div className="flex items-center gap-3 px-3 py-1 rounded-lg bg-background/60 dark:bg-slate-900/60 border border-emerald-200/70 dark:border-emerald-800/60">
-                        <div className="text-right">
-                          <span className="text-muted-foreground text-[11px] block font-medium leading-tight">RAB</span>
-                          <span className="font-semibold text-[13px] text-foreground tabular-nums">{formatCurrency(topik.totalRencanaTopik)}</span>
-                        </div>
-                        <div className="w-px h-6 bg-border" />
-                        <div className="text-right">
-                          <span className="text-muted-foreground text-[11px] block font-medium leading-tight">Realisasi</span>
-                          <span className="font-semibold text-[13px] text-rose-600 dark:text-rose-400 tabular-nums">
-                            {formatCurrency(topik.totalRealisasiTopik)}
-                          </span>
-                        </div>
+                    <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap">
+                      {/* RAB vs Realisasi 1 Baris */}
+                      <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-background/80 dark:bg-slate-900/80 border border-emerald-200/80 dark:border-emerald-800/70 text-xs shadow-2xs">
+                        <span className="text-muted-foreground text-[11px] font-medium">RAB:</span>
+                        <span className="font-semibold text-foreground tabular-nums text-xs">{formatCurrency(topik.totalRencanaTopik)}</span>
+                        <span className="text-muted-foreground/30 font-light mx-0.5">|</span>
+                        <span className="text-muted-foreground text-[11px] font-medium">Realisasi:</span>
+                        <span className={`font-semibold tabular-nums text-xs ${topik.totalRealisasiTopik > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}>
+                          {formatCurrency(topik.totalRealisasiTopik)}
+                        </span>
                       </div>
 
                       {/* Status Pembayaran Topik (Badge) */}
@@ -876,7 +882,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         const status = topik.statusPembayaranTopik || 'BELUM_DIBAYAR'
                         if (status === 'LUNAS') {
                           return (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1 gap-1 shadow-xs border border-emerald-700">
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-2.5 py-0.5 gap-1 shadow-xs border border-emerald-700 h-6">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                               Lunas
                             </Badge>
@@ -884,7 +890,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         }
                         if (status === 'MENUNGGU_BAYAR') {
                           return (
-                            <Badge variant="outline" className="text-amber-900 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 text-xs font-semibold px-3 py-1 gap-1.5 animate-pulse shadow-xs">
+                            <Badge variant="outline" className="text-amber-900 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 text-xs font-semibold px-2.5 py-0.5 gap-1.5 animate-pulse shadow-xs h-6">
                               <span className="w-2 h-2 rounded-full bg-amber-500" />
                               Menunggu Bayar ({formatCurrency(topik.totalMenungguBayarTopik || 0)})
                             </Badge>
@@ -892,13 +898,13 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         }
                         if (status === 'SEBAGIAN') {
                           return (
-                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 dark:text-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30 text-xs font-semibold px-3 py-1 gap-1 shadow-xs">
+                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 dark:text-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30 text-xs font-semibold px-2.5 py-0.5 gap-1 shadow-xs h-6">
                               Sebagian ({formatCurrency(topik.totalRealisasiLunasTopik || 0)})
                             </Badge>
                           )
                         }
                         return (
-                          <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 dark:text-slate-200 dark:bg-slate-800/90 dark:border-slate-700 text-xs font-medium px-3 py-1">
+                          <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 dark:text-slate-200 dark:bg-slate-800/90 dark:border-slate-700 text-xs font-medium px-2.5 py-0.5 h-6">
                             Belum Dibayar
                           </Badge>
                         )
@@ -907,7 +913,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                       {topik.totalRealisasiTopik > 0 && (
                         <Badge
                           variant="outline"
-                          className={`text-xs font-semibold px-2.5 py-1 ${isOverBudget ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300' : 'border-emerald-300 bg-emerald-100/70 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'}`}
+                          className={`text-xs font-semibold px-2 py-0.5 h-6 ${isOverBudget ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300' : 'border-emerald-300 bg-emerald-100/70 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'}`}
                         >
                           {isOverBudget ? '⚠ Over Budget' : '✓ Budget Aman'}
                         </Badge>
@@ -966,11 +972,11 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                       )}
                     </div>
                   </div>
-                </CardHeader>
+                </div>
 
                 {/* Konten Item Topik */}
                 {isExpanded && (
-                  <CardContent className="p-0">
+                  <div className="p-0">
                     {/* Riwayat Pembayaran Langsung Topik (jika ada transaksi level topik) */}
                     {topik.realisasiLangsung && topik.realisasiLangsung.length > 0 && (
                       <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 border-b border-emerald-200/60 dark:border-emerald-800/40 space-y-2">
@@ -1573,9 +1579,9 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         </div>
                       </>
                     )}
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
+              </div>
             )
           })}
         </div>

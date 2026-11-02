@@ -7,17 +7,14 @@ import {
   Users,
   Building2,
   FileText,
-  Plus,
   ArrowRight,
   Loader2,
-  TrendingUp,
   ShoppingCart,
   Wrench,
   Wallet,
   Coins,
   AlertTriangle,
   Package,
-  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ModuleKey } from './DashboardLayout'
@@ -63,7 +60,6 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [advStats, setAdvStats] = useState<AdvancedStats | null>(null)
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
-  const [projectTab, setProjectTab] = useState<string>('ALL')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -98,7 +94,6 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
           setRecentProjects(projectsData.data ?? [])
         }
       } catch {
-        // Silently fail
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -117,7 +112,6 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
     }).format(amount)
   }
 
-  // Kusale Top KPI Cards (Primary Business Metrics)
   const businessCards = [
     {
       icon: ShoppingCart,
@@ -128,16 +122,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       badgeClass:
         'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
       module: 'transactions' as ModuleKey,
-    },
-    {
-      icon: Wallet,
-      label: 'Pemasukan Bulan Ini',
-      value: advStats ? formatCurrency(advStats.balanceThisMonth) : 'Rp 0',
-      badge: 'Bulan Ini ▲',
-      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
-      badgeClass:
-        'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
-      module: 'finance' as ModuleKey,
+      isCurrency: false,
     },
     {
       icon: Wrench,
@@ -148,10 +133,31 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       badgeClass:
         'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
       module: 'services' as ModuleKey,
+      isCurrency: false,
+    },
+    {
+      icon: Wallet,
+      label: 'Pemasukan Bulan Ini',
+      value: advStats ? formatCurrency(advStats.balanceThisMonth) : 'Rp 0',
+      badge: 'Bulan Ini ▲',
+      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
+      badgeClass:
+        'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+      module: 'finance' as ModuleKey,
+      isCurrency: true,
+    },
+    {
+      icon: Coins,
+      label: 'Saldo Kas Kecil',
+      value: advStats ? formatCurrency(advStats.pettyCashBalance) : 'Rp 0',
+      badge: 'Kas Kecil',
+      iconBox: 'bg-[#EEF0FF] text-[#6366F1] dark:bg-indigo-500/15 dark:text-indigo-400',
+      badgeClass: 'bg-[#EEF0FF] text-[#4F46E5] dark:bg-indigo-500/20 dark:text-indigo-300',
+      module: 'finance' as ModuleKey,
+      isCurrency: true,
     },
   ]
 
-  // Secondary Kusale KPI Cards (Projects, Clients, Vendors, Petty Cash)
   const statCards = [
     {
       icon: FolderKanban,
@@ -161,24 +167,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       iconBox: 'bg-[#EEF0FF] text-primary dark:bg-primary/15 dark:text-[#8190FF]',
       badgeClass: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
       module: 'projects' as ModuleKey,
-    },
-    {
-      icon: Users,
-      label: 'Total Klien',
-      value: stats?.totalClients ?? 0,
-      badge: 'Terdaftar',
-      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
-      badgeClass: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
-      module: 'clients' as ModuleKey,
-    },
-    {
-      icon: Building2,
-      label: 'Total Vendor',
-      value: stats?.totalVendors ?? 0,
-      badge: 'Mitra Aktif',
-      iconBox: 'bg-[#FFF3E8] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400',
-      badgeClass: 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400',
-      module: 'vendors' as ModuleKey,
+      isCurrency: false,
     },
     {
       icon: FileText,
@@ -188,6 +177,27 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       iconBox: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
       badgeClass: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
       module: 'projects' as ModuleKey,
+      isCurrency: false,
+    },
+    {
+      icon: Building2,
+      label: 'Total Vendor',
+      value: stats?.totalVendors ?? 0,
+      badge: 'Mitra Aktif',
+      iconBox: 'bg-[#FFF3E8] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400',
+      badgeClass: 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400',
+      module: 'vendors' as ModuleKey,
+      isCurrency: false,
+    },
+    {
+      icon: Users,
+      label: 'Total Klien',
+      value: stats?.totalClients ?? 0,
+      badge: 'Terdaftar',
+      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
+      badgeClass: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+      module: 'clients' as ModuleKey,
+      isCurrency: false,
     },
   ]
 
@@ -217,10 +227,6 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
     { label: 'Terima Tiket Service', desc: 'Input servis masuk', icon: Wrench, module: 'services' as ModuleKey },
   ]
 
-  const filteredRecentProjects = recentProjects.filter((p) =>
-    projectTab === 'ALL' ? true : p.status === projectTab
-  )
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-56">
@@ -231,70 +237,89 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
 
   return (
     <div className="space-y-6">
-      {/* ===== TOP 3 KUSALE KPI CARDS ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {businessCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: idx * 0.07 }}
+            transition={{ duration: 0.3, delay: idx * 0.05 }}
             onClick={() => onNavigate(stat.module)}
-            className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
+            className="bg-card border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-emerald-400 transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className={`w-10 h-10 rounded-xl ${stat.iconBox} flex items-center justify-center`}>
-              <stat.icon className="w-5 h-5" />
+            <div>
+              <div className="flex items-center justify-between">
+                <div className={`w-9 h-9 rounded-xl ${stat.iconBox} flex items-center justify-center shrink-0`}>
+                  <stat.icon className="w-4.5 h-4.5" />
+                </div>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold shrink-0 ${stat.badgeClass}`}
+                >
+                  {stat.badge}
+                </span>
+              </div>
+              <p className="text-[12.5px] font-medium text-muted-foreground mt-3.5 leading-tight">{stat.label}</p>
             </div>
-            <p className="text-[13px] font-medium text-muted-foreground mt-4">{stat.label}</p>
-            <div className="flex items-end justify-between gap-2 mt-1.5">
-              <p className="text-[24px] sm:text-[28px] font-extrabold text-foreground tracking-tight leading-none truncate">
+            <div className="mt-2">
+              <p
+                className={`font-extrabold text-foreground tracking-tight leading-none ${
+                  stat.isCurrency
+                    ? 'text-[18px] sm:text-[20px] xl:text-[22px] truncate'
+                    : 'text-[24px] sm:text-[26px]'
+                }`}
+                title={typeof stat.value === 'string' ? stat.value : undefined}
+              >
                 {stat.value}
               </p>
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold shrink-0 ${stat.badgeClass}`}
-              >
-                {stat.badge}
-              </span>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* ===== SECONDARY 4 KUSALE KPI CARDS ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {statCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 + idx * 0.06 }}
+            transition={{ duration: 0.3, delay: 0.15 + idx * 0.05 }}
             onClick={() => onNavigate(stat.module)}
-            className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
+            className="bg-card border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-emerald-400 transition-all cursor-pointer flex flex-col justify-between"
           >
-            <div className={`w-9 h-9 rounded-xl ${stat.iconBox} flex items-center justify-center`}>
-              <stat.icon className="w-4.5 h-4.5" />
+            <div>
+              <div className="flex items-center justify-between">
+                <div className={`w-9 h-9 rounded-xl ${stat.iconBox} flex items-center justify-center shrink-0`}>
+                  <stat.icon className="w-4.5 h-4.5" />
+                </div>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold shrink-0 ${stat.badgeClass}`}
+                >
+                  {stat.badge}
+                </span>
+              </div>
+              <p className="text-[12.5px] font-medium text-muted-foreground mt-3.5 leading-tight">{stat.label}</p>
             </div>
-            <p className="text-[12.5px] font-medium text-muted-foreground mt-3.5">{stat.label}</p>
-            <div className="flex items-end justify-between gap-2 mt-1.5">
-              <p className="text-[24px] font-extrabold text-foreground tracking-tight leading-none">
+            <div className="mt-2">
+              <p
+                className={`font-extrabold text-foreground tracking-tight leading-none ${
+                  stat.isCurrency
+                    ? 'text-[18px] sm:text-[20px] xl:text-[22px] truncate'
+                    : 'text-[24px] sm:text-[26px]'
+                }`}
+                title={typeof stat.value === 'string' ? stat.value : undefined}
+              >
                 {stat.value}
               </p>
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${stat.badgeClass}`}
-              >
-                {stat.badge}
-              </span>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Hutang Vendor Alert (Dark & Light friendly) */}
       {Boolean(stats?.unpaidVendorInvoices && stats.unpaidVendorInvoices > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-[#FFF4E5] dark:bg-amber-500/10 border border-amber-300/60 dark:border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+          className="p-4 bg-[#FFF4E5] dark:bg-amber-500/10 border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
         >
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 bg-amber-500/15 rounded-xl flex items-center justify-center shrink-0">
@@ -324,50 +349,13 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         </motion.div>
       )}
 
-      {/* ===== BOTTOM GRID: RECENT PROJECTS TABLE (KUSALE STYLE) + QUICK ACTIONS ===== */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left 2 Columns: Recent Projects in Kusale Table Layout */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Segmented Project Status Tabs */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
-              {[
-                { key: 'ALL', label: 'All Projects' },
-                { key: 'IN_PROGRESS', label: 'In Progress' },
-                { key: 'DRAFT', label: 'Draft' },
-                { key: 'COMPLETED', label: 'Completed' },
-              ].map((t) => {
-                const active = projectTab === t.key
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => setProjectTab(t.key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all ${
-                      active
-                        ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
-                        : 'text-muted-foreground hover:text-foreground font-medium'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            <button
-              onClick={() => onNavigate('projects')}
-              className="h-9 px-3.5 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground inline-flex items-center gap-1.5 transition-colors"
-            >
-              <span>Lihat Semua Proyek</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
-            {filteredRecentProjects.length === 0 ? (
+        <div className="lg:col-span-2">
+          <div className="bg-card border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            {recentProjects.length === 0 ? (
               <div className="h-44 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
-                <p className="font-bold text-foreground text-sm">Belum ada proyek pada filter ini</p>
-                <p className="text-xs mt-1">Klik Aksi Cepat untuk membuat proyek baru.</p>
+                <p className="font-bold text-foreground text-sm">Belum ada proyek yang terdaftar</p>
+                <p className="text-xs mt-1">Gunakan Pintasan Cepat untuk membuat proyek baru.</p>
               </div>
             ) : (
               <div className="divide-y divide-border/60">
@@ -377,7 +365,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                   <div className="col-span-2">Type</div>
                   <div className="col-span-2 text-right">Status</div>
                 </div>
-                {filteredRecentProjects.map((project) => {
+                {recentProjects.map((project) => {
                   const st = statusBadges[project.status] || statusBadges.DRAFT
                   return (
                     <div
@@ -423,9 +411,8 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
           </div>
         </div>
 
-        {/* Right Column: Quick Actions & Kas Kecil Summary */}
-        <div className="space-y-5">
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        <div>
+          <div className="bg-card border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
             <h3 className="text-sm font-bold text-foreground">Pintasan Cepat</h3>
             <p className="text-xs text-muted-foreground mt-0.5 mb-4">
               Akses langsung ke modul operasional utama
@@ -435,7 +422,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                 <button
                   key={action.label}
                   onClick={() => onNavigate(action.module)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/[0.04] transition-all text-left group"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-emerald-400 hover:bg-emerald-500/[0.04] transition-all text-left group"
                 >
                   <div className="w-9 h-9 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center shrink-0">
                     <action.icon className="w-4 h-4 text-primary" />
@@ -450,24 +437,6 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
                 </button>
               ))}
             </div>
-          </div>
-
-          <div
-            onClick={() => onNavigate('finance')}
-            className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
-                <Coins className="w-4.5 h-4.5 text-[#F97316] dark:text-orange-400" />
-              </div>
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-muted text-muted-foreground">
-                Kas Kecil
-              </span>
-            </div>
-            <p className="text-xs font-medium text-muted-foreground mt-3.5">Saldo Kas Kecil Saat Ini</p>
-            <p className="text-xl font-extrabold text-foreground mt-1">
-              {advStats ? formatCurrency(advStats.pettyCashBalance) : 'Rp 0'}
-            </p>
           </div>
         </div>
       </div>

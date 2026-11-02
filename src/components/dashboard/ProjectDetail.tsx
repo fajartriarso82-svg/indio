@@ -815,358 +815,239 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
         </TabsList>
 
         {/* ─── TAB: INFO ─── */}
-        <TabsContent value="info" className="space-y-6 mt-4">
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Project Summary */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Ringkasan Proyek</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-muted-foreground">Kode Proyek:</span><p className="font-medium">{project.projectCode}</p></div>
-                  <div><span className="text-muted-foreground">Tipe:</span><p className="font-medium">{project.type}</p></div>
-                  <div>
-                    <span className="text-muted-foreground">Nomor PO:</span>
-                    <p className="font-medium">
-                      {project.poNumber || '—'}
-                      {project.poFileUrl && (
-                        <a href={project.poFileUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">
-                          [Lihat File]
-                        </a>
-                      )}
-                    </p>
-                  </div>
-                  <div><span className="text-muted-foreground">PIC Internal:</span><p className="font-medium">{project.internalPic || '—'}</p></div>
-                  <div><span className="text-muted-foreground">Tanggal Mulai:</span><p className="font-medium">{formatDate(project.startDate)}</p></div>
-                  <div><span className="text-muted-foreground">Tanggal Selesai:</span><p className="font-medium">{formatDate(project.endDate)}</p></div>
-                  {project.contractValue && (
-                    <div className="col-span-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                      <span className="text-blue-500 text-[11px] font-medium">Nilai Kontrak</span>
-                      <p className="font-bold text-blue-800">{formatCurrency(project.contractValue)}</p>
-                      {project.ppnFromClient && <p className="text-[10px] text-blue-400">Termasuk PPN dari klien → PPN = profit bruto</p>}
+        <TabsContent value="info" className="mt-4">
+          <div className="bg-card border border-emerald-500/60 dark:border-emerald-400/60 rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 bg-muted/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <FileText className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Informasi & Ringkasan Proyek</h3>
+                  <p className="text-xs text-muted-foreground">Detail kontrak, progres pembayaran klien, dan catatan pekerjaan</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-semibold px-3 shadow-xs shrink-0 self-start sm:self-auto"
+                onClick={openRecordPayment}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Catat Pembayaran
+              </Button>
+            </div>
+
+            <div className="p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] font-medium block">Klien</span>
+                <p className="font-semibold text-foreground text-sm truncate">{project.client?.name || '—'}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  PIC: {project.clientPicName || '—'}{project.clientPicPhone ? ` (${project.clientPicPhone})` : ''}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] font-medium block">Nomor PO & Berkas</span>
+                <p className="font-semibold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                  {project.poNumber || '—'}
+                  {project.poFileUrl && (
+                    <a
+                      href={project.poFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-xs font-medium"
+                    >
+                      [Lihat File]
+                    </a>
+                  )}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  PIC Internal: {project.internalPic || '—'}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] font-medium block">Periode Pengerjaan</span>
+                <p className="font-semibold text-foreground text-sm">
+                  {formatDate(project.startDate)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  s/d {formatDate(project.endDate)}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] font-medium block">Nilai Kontrak / PO</span>
+                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                  {formatCurrency(poTotal)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {project.ppnFromClient ? 'Termasuk PPN Klien' : 'Non-PPN'} · Tipe: {project.type}
+                </p>
+              </div>
+
+              {(project.clientAddress || project.notes) && (
+                <div className="col-span-2 lg:col-span-4 pt-2 border-t border-border/40 flex flex-col sm:flex-row gap-3 sm:gap-6 text-xs text-muted-foreground">
+                  {project.clientAddress && (
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">Alamat:</span> {project.clientAddress}
+                    </div>
+                  )}
+                  {project.notes && (
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">Catatan:</span> {project.notes}
                     </div>
                   )}
                 </div>
-                <Separator />
-                <div><span className="text-muted-foreground">Klien:</span><p className="font-medium">{project.client?.name}</p></div>
-                <div><span className="text-muted-foreground">PIC Klien:</span><p className="font-medium">{project.clientPicName || '—'} {project.clientPicPhone ? `· ${project.clientPicPhone}` : ''}</p></div>
-                {project.clientAddress && <div><span className="text-muted-foreground">Alamat:</span><p className="font-medium">{project.clientAddress}</p></div>}
-                {project.notes && <div><span className="text-muted-foreground">Catatan:</span><p className="font-medium whitespace-pre-wrap">{project.notes}</p></div>}
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            {/* RAB & Client Payment Summary Card */}
-            {isPengadaan ? (
-              <Card className="border-primary/25 shadow-xs">
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      {profit >= 0 ? (
-                        <TrendingUp className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <TrendingDown className="w-4 h-4 text-rose-600" />
-                      )}
-                      Ringkasan Laba / Rugi & Pembayaran
-                    </CardTitle>
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-medium shrink-0 shadow-xs"
-                      onClick={openRecordPayment}
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Catat Pembayaran
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Status Progress Pembayaran Klien */}
-                  <div className="p-3 bg-muted/40 rounded-lg border border-border/60 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-foreground flex items-center gap-1.5">
-                        <CreditCard className="w-3.5 h-3.5 text-primary" />
-                        Status Pembayaran Klien
-                      </span>
-                      {totalPaidByClient >= poTotal && poTotal > 0 ? (
-                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-300 text-[10px] font-semibold">
-                          ✓ LUNAS (100%)
-                        </Badge>
-                      ) : totalPaidByClient > 0 ? (
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300 text-[10px] font-semibold">
-                          TERMIN ({paymentPercent}%)
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-300 text-[10px]">
-                          BELUM DIBAYAR
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${totalPaidByClient >= poTotal && poTotal > 0 ? 'bg-emerald-500' : 'bg-primary'}`}
-                        style={{ width: `${Math.min(100, Math.max(0, paymentPercent))}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                      <span>
-                        Diterima: <strong className="text-foreground font-semibold">{formatCurrency(totalPaidByClient)}</strong>
-                      </span>
-                      <span>
-                        Sisa Tagihan: <strong className={remainingClientBill > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-600 font-semibold'}>
-                          {formatCurrency(remainingClientBill)}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ringkasan Angka: PO, Uang Masuk, Pengeluaran, Laba Kas */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-muted/30 rounded-lg border border-border/50">
-                      <span className="text-muted-foreground">Total Penjualan (PO)</span>
-                      <p className="text-base font-bold text-foreground mt-0.5">{formatCurrency(poTotal)}</p>
-                    </div>
-                    <div className="p-2.5 bg-muted/30 rounded-lg border border-border/50">
-                      <span className="text-muted-foreground">Total Pengeluaran</span>
-                      <p className="text-base font-bold text-destructive mt-0.5">{formatCurrency(totalCost)}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Beli: {formatCurrency(totalPurchases)} · Biaya: {formatCurrency(totalAddCosts)}
-                      </p>
-                    </div>
-                    <div className="p-2.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200/60">
-                      <span className="text-emerald-700 dark:text-emerald-400 font-medium">Uang Masuk (Kas)</span>
-                      <p className="text-base font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">{formatCurrency(totalPaidByClient)}</p>
-                    </div>
-                    <div className={`p-2.5 rounded-lg border ${realizedCashProfit >= 0 ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60' : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60'}`}>
-                      <span className={`font-medium ${realizedCashProfit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                        Laba Kas Aktual
-                      </span>
-                      <p className={`text-base font-bold mt-0.5 ${realizedCashProfit >= 0 ? 'text-emerald-800 dark:text-emerald-300' : 'text-rose-800 dark:text-rose-300'}`}>
-                        {formatCurrency(realizedCashProfit)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">(Kas Masuk - Pengeluaran)</p>
-                    </div>
-                  </div>
-
-                  {/* Estimasi Laba Akhir Proyek */}
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <div>
-                      <span className="text-xs text-muted-foreground">Estimasi Margin / Laba Bersih Akhir</span>
-                      <p className={`text-lg font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {formatCurrency(profit)}
-                      </p>
-                    </div>
-                    <Badge variant={profit >= 0 ? 'default' : 'destructive'} className="text-xs">
-                      {profit >= 0 ? 'Surplus / Profit' : 'Defisit'}
-                    </Badge>
-                  </div>
-
-                  <Separator />
-
-                  {/* Riwayat Pembayaran Klien */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                        <Receipt className="w-3.5 h-3.5 text-primary" />
-                        Riwayat Pembayaran Klien ({clientPayments.length})
-                      </span>
-                      {clientPayments.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground">
-                          Total: <strong className="text-foreground">{formatCurrency(totalPaidByClient)}</strong>
-                        </span>
-                      )}
-                    </div>
-
-                    {clientPayments.length === 0 ? (
-                      <div className="p-3 text-center rounded-lg border border-dashed border-border/80 text-muted-foreground text-xs space-y-1">
-                        <p>Belum ada catatan pembayaran dari klien.</p>
-                        <p className="text-[11px]">Klik tombol <strong>+ Catat Pembayaran</strong> di atas untuk memasukkan pembayaran.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                        {clientPayments.map((p: any) => (
-                          <div
-                            key={p.id}
-                            className="p-2.5 rounded-lg border border-border bg-card/80 space-y-1.5 text-xs shadow-2xs"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[9px] px-1.5 py-0 font-semibold ${p.type === 'LUNAS' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-blue-700 bg-blue-50 border-blue-300'}`}
-                                  >
-                                    {p.type === 'LUNAS' ? 'LUNAS' : `TERMIN ${p.terminNo || ''}`}
-                                  </Badge>
-                                  <span className="font-semibold text-foreground truncate">{p.title}</span>
-                                </div>
-                                <div className="text-[11px] text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
-                                  <span>📅 {formatDate(p.date)}</span>
-                                  <span>·</span>
-                                  <span>💳 {p.paymentMethod}</span>
-                                  {p.invoiceNumber && <span>· Inv: <strong>{p.invoiceNumber}</strong></span>}
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0 flex items-center gap-2">
-                                <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">
-                                  {formatCurrency(p.amount)}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setDeletePaymentId(p.id)}
-                                  title="Hapus pembayaran ini"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Dokumen Lampiran: Invoice & Bukti Bayar */}
-                            <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {p.invoiceUrl ? (
-                                  <a
-                                    href={p.invoiceUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
-                                  >
-                                    <FileText className="w-3 h-3" />
-                                    [Bukti Invoice]
-                                  </a>
-                                ) : (
-                                  <span className="text-muted-foreground/60 text-[10px]">Tanpa lampiran inv</span>
-                                )}
-
-                                {p.proofUrl ? (
-                                  <a
-                                    href={p.proofUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline font-medium"
-                                  >
-                                    <FileCheck className="w-3 h-3" />
-                                    [Bukti Transfer]
-                                  </a>
-                                ) : (
-                                  <span className="text-muted-foreground/60 text-[10px]">Tanpa bukti transfer</span>
-                                )}
-                              </div>
-                              {p.notes && (
-                                <span className="text-[10px] text-muted-foreground truncate max-w-[140px]" title={p.notes}>
-                                  {p.notes}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                <RABSummaryCard projectId={projectId} />
-                <Card className="border-primary/20 shadow-xs">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary" />
-                        Pembayaran dari Klien
-                      </CardTitle>
-                      <Button
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-medium shadow-xs"
-                        onClick={openRecordPayment}
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        Catat Pembayaran
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Total Diterima</span>
-                        <p className="text-base font-bold text-emerald-700 mt-0.5">{formatCurrency(totalPaidByClient)}</p>
-                      </div>
-                      <Badge variant={totalPaidByClient > 0 ? 'default' : 'outline'} className="text-xs">
-                        {clientPayments.length} Pembayaran
-                      </Badge>
-                    </div>
-
-                    {clientPayments.length > 0 && (
-                      <div className="space-y-2">
-                        {clientPayments.map((p: any) => (
-                          <div key={p.id} className="p-2.5 rounded-lg border border-border bg-card space-y-1.5 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold">{p.title}</span>
-                              <span className="font-bold text-emerald-600">{formatCurrency(p.amount)}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                              <span>📅 {formatDate(p.date)} · 💳 {p.paymentMethod}</span>
-                              <div className="flex items-center gap-2">
-                                {p.invoiceUrl && (
-                                  <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                    [Invoice]
-                                  </a>
-                                )}
-                                {p.proofUrl && (
-                                  <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
-                                    [Bukti Transfer]
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+            <div className="border-t border-border/60 p-4 sm:p-6 space-y-4 bg-muted/5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <span className="font-bold text-sm text-foreground">Status Pembayaran Klien</span>
+                </div>
+                {totalPaidByClient >= poTotal && poTotal > 0 ? (
+                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-semibold px-2.5 py-0.5">
+                    ✓ Lunas (100%)
+                  </Badge>
+                ) : totalPaidByClient > 0 ? (
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 text-xs font-semibold px-2.5 py-0.5">
+                    Termin ({paymentPercent}%)
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 text-xs font-medium px-2.5 py-0.5">
+                    Belum Dibayar
+                  </Badge>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Progress Notes */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Catatan Progres
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-3">
+              <div className="space-y-1.5">
+                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${totalPaidByClient >= poTotal && poTotal > 0 ? 'bg-emerald-500' : 'bg-primary'}`}
+                    style={{ width: `${Math.min(100, Math.max(0, paymentPercent))}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                  <span>Diterima: <strong className="text-foreground font-semibold">{formatCurrency(totalPaidByClient)}</strong> ({paymentPercent}%)</span>
+                  <span>Sisa Tagihan: <strong className={remainingClientBill > 0 ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-emerald-600 font-semibold'}>{formatCurrency(remainingClientBill)}</strong></span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="p-3 rounded-xl bg-background border border-border/70">
+                  <span className="text-[11px] text-muted-foreground block font-medium">Total Penjualan (PO)</span>
+                  <p className="text-base font-bold text-foreground mt-0.5 tabular-nums">{formatCurrency(poTotal)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border/70">
+                  <span className="text-[11px] text-muted-foreground block font-medium">Total Pengeluaran</span>
+                  <p className="text-base font-bold text-rose-600 dark:text-rose-400 mt-0.5 tabular-nums">{formatCurrency(totalCost)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border/70">
+                  <span className="text-[11px] text-muted-foreground block font-medium">Uang Masuk (Kas)</span>
+                  <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">{formatCurrency(totalPaidByClient)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border/70">
+                  <span className="text-[11px] text-muted-foreground block font-medium">Estimasi Laba Bersih</span>
+                  <p className={`text-base font-bold mt-0.5 tabular-nums ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {formatCurrency(profit)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
+                    Riwayat Pembayaran ({clientPayments.length})
+                  </span>
+                </div>
+
+                {clientPayments.length === 0 ? (
+                  <div className="p-3 text-center rounded-xl border border-dashed border-border text-muted-foreground text-xs">
+                    Belum ada riwayat pembayaran yang dicatat.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/60 rounded-xl border border-border bg-background overflow-hidden max-h-56 overflow-y-auto">
+                    {clientPayments.map((p: any) => (
+                      <div key={p.id} className="p-2.5 sm:px-3.5 flex items-center justify-between gap-3 text-xs hover:bg-muted/30 transition-colors">
+                        <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-2 py-0 font-semibold ${p.type === 'LUNAS' ? 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-blue-700 bg-blue-50 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'}`}
+                          >
+                            {p.type === 'LUNAS' ? 'LUNAS' : `TERMIN ${p.terminNo || ''}`}
+                          </Badge>
+                          <span className="font-semibold text-foreground truncate">{p.title}</span>
+                          <span className="text-muted-foreground text-[11px]">
+                            {formatDate(p.date)} · {p.paymentMethod}
+                          </span>
+                          {p.invoiceUrl && (
+                            <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] inline-flex items-center gap-0.5">
+                              <FileText className="w-3 h-3" /> [Invoice]
+                            </a>
+                          )}
+                          {p.proofUrl && (
+                            <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline text-[11px] inline-flex items-center gap-0.5">
+                              <FileCheck className="w-3 h-3" /> [Bukti]
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            {formatCurrency(p.amount)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeletePaymentId(p.id)}
+                            title="Hapus pembayaran ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-border/60 p-4 sm:p-6 space-y-3.5 bg-muted/10">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <span className="font-bold text-sm text-foreground">Catatan Progres Pekerjaan</span>
+              </div>
+
+              <div className="flex gap-2.5">
                 <Textarea
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Tambah catatan progres..."
+                  placeholder="Ketik catatan progres pekerjaan proyek..."
                   rows={2}
-                  className="flex-1"
+                  className="flex-1 text-xs resize-none bg-background"
                 />
                 <Button
                   onClick={handleAddNote}
                   disabled={submittingNote || !noteContent.trim()}
-                  className="self-end"
+                  className="self-end h-8 text-xs px-3.5 bg-primary font-medium"
                 >
-                  {submittingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Tambah'}
+                  {submittingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Tambah'}
                 </Button>
               </div>
-              <ScrollArea className="max-h-64">
-                <div className="space-y-3">
+
+              <ScrollArea className="max-h-48 pr-2">
+                <div className="space-y-2">
                   {(project.progressNotes || []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Belum ada catatan</p>
+                    <p className="text-xs text-muted-foreground text-center py-3">Belum ada catatan progres pekerjaan</p>
                   ) : (
                     project.progressNotes.map((note: any) => (
-                      <div key={note.id} className="p-3 rounded-lg bg-muted/30 border">
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1.5">
+                      <div key={note.id} className="p-2.5 rounded-xl bg-background border border-border/70 text-xs">
+                        <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
                           {note.createdBy || 'Staff'} · {formatDate(note.createdAt)}
                         </p>
                       </div>
@@ -1174,8 +1055,8 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   )}
                 </div>
               </ScrollArea>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* ─── TAB: RAB ─── */}
@@ -1906,22 +1787,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
             </div>
           ) : (
             /* Model RAB Jasa Pekerjaan (RAB Dinamis: Rencana, Realisasi Transaksi per Item, & Export) */
-            <div className="space-y-4">
-              <div className="flex items-center justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                  onClick={() => {
-                    window.open(`/api/projects/${projectId}/export-rab`, '_blank')
-                  }}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export Excel (.xlsx)
-                </Button>
-              </div>
-              <RABPlanningModule projectId={projectId} projectStatus={project.status} />
-            </div>
+            <RABPlanningModule projectId={projectId} projectStatus={project.status} />
           )}
         </TabsContent>
 
