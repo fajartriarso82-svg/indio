@@ -1,13 +1,72 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Wallet, Coins, ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState, useEffect } from 'react'
+import {
+  Plus,
+  Wallet,
+  Coins,
+  ArrowUpRight,
+  ArrowDownRight,
+  Receipt,
+  Loader2,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+interface CompletedTx {
+  id: string
+  transactionId: string
+  date: string
+  clientName: string | null
+  paymentMethod: string
+  grandTotal: number
+  status: string
+}
 
 export default function FinanceModule() {
-  const [activeTab, setActiveTab] = useState('penjualan')
+  const [activeTab, setActiveTab] = useState<'penjualan' | 'kaskecil'>('penjualan')
+  const [loading, setLoading] = useState(true)
+  const [balanceThisMonth, setBalanceThisMonth] = useState(0)
+  const [pettyCashBalance, setPettyCashBalance] = useState(0)
+  const [completedSales, setCompletedSales] = useState<CompletedTx[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadFinance = async () => {
+      try {
+        const [statsRes, txRes] = await Promise.all([
+          fetch('/api/dashboard/stats'),
+          fetch('/api/transactions'),
+        ])
+        const statsData = await statsRes.json().catch(() => ({}))
+        const txData = await txRes.json().catch(() => ({}))
+
+        if (!cancelled) {
+          setBalanceThisMonth(statsData?.balanceThisMonth ?? 0)
+          setPettyCashBalance(statsData?.pettyCashBalance ?? 0)
+          if (txData?.success && Array.isArray(txData.data)) {
+            setCompletedSales(txData.data.filter((t: CompletedTx) => t.status === 'SUCCESS'))
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    loadFinance()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -17,115 +76,210 @@ export default function FinanceModule() {
     }).format(amount)
   }
 
+  const totalSalesRevenue = completedSales.reduce((acc, s) => acc + (s.grandTotal || 0), 0)
+  const estProfit = Math.round(totalSalesRevenue * 0.18)
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Keuangan</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Laporan penjualan, profit, dan kelola kas kecil perusahaan.
-          </p>
+      {/* ===== KUSALE 4 KPI CARDS ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Pemasukan</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[20px] xl:text-[24px] font-extrabold text-foreground tracking-tight leading-none truncate">
+              {formatCurrency(totalSalesRevenue || balanceThisMonth)}
+            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              Bulan Ini ▲
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#E6F8F3] dark:bg-emerald-500/15 flex items-center justify-center">
+            <ArrowUpRight className="w-5 h-5 text-[#10B981] dark:text-emerald-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Estimasi Profit</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[20px] xl:text-[24px] font-extrabold text-foreground tracking-tight leading-none truncate">
+              {formatCurrency(estProfit)}
+            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              ~18% ▲
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+            <Coins className="w-5 h-5 text-[#F97316] dark:text-orange-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Saldo Kas Kecil</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[20px] xl:text-[24px] font-extrabold text-foreground tracking-tight leading-none truncate">
+              {formatCurrency(pettyCashBalance)}
+            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400">
+              Aktif
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#FFEFEF] dark:bg-rose-500/15 flex items-center justify-center">
+            <ArrowDownRight className="w-5 h-5 text-[#E11D48] dark:text-rose-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Pengeluaran Kas</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[20px] xl:text-[24px] font-extrabold text-foreground tracking-tight leading-none truncate">
+              {formatCurrency(0)}
+            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400">
+              Bulan Ini
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 lg:p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Wallet className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Total Pemasukan</p>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{formatCurrency(0)}</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-emerald-50 border-emerald-100">
-          <CardContent className="p-4 lg:p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <ArrowUpRight className="w-5 h-5 text-emerald-600" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Estimasi Profit</p>
-            </div>
-            <p className="text-2xl font-bold text-emerald-700">{formatCurrency(0)}</p>
-          </CardContent>
-        </Card>
+      {/* ===== SEGMENTED TABS ===== */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs">
+          <button
+            onClick={() => setActiveTab('penjualan')}
+            className={`px-4 py-1.5 rounded-lg text-[13px] transition-all ${
+              activeTab === 'penjualan'
+                ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                : 'text-muted-foreground hover:text-foreground font-medium'
+            }`}
+          >
+            Rekap Penjualan ({completedSales.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('kaskecil')}
+            className={`px-4 py-1.5 rounded-lg text-[13px] transition-all ${
+              activeTab === 'kaskecil'
+                ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                : 'text-muted-foreground hover:text-foreground font-medium'
+            }`}
+          >
+            Kas Kecil
+          </button>
+        </div>
 
-        <Card className="bg-orange-50 border-orange-100">
-          <CardContent className="p-4 lg:p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Coins className="w-5 h-5 text-orange-600" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Saldo Kas Kecil</p>
-            </div>
-            <p className="text-2xl font-bold text-orange-700">{formatCurrency(0)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-rose-50 border-rose-100">
-          <CardContent className="p-4 lg:p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-rose-100 rounded-lg">
-                <ArrowDownRight className="w-5 h-5 text-rose-600" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Pengeluaran Kas</p>
-            </div>
-            <p className="text-2xl font-bold text-rose-700">{formatCurrency(0)}</p>
-          </CardContent>
-        </Card>
+        {activeTab === 'kaskecil' && (
+          <div className="flex items-center gap-2">
+            <button className="h-10 px-3.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold inline-flex items-center gap-2 transition-colors">
+              <Plus className="w-4 h-4 text-emerald-500" />
+              <span>Tambah Saldo</span>
+            </button>
+            <button className="h-10 px-3.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all">
+              <Plus className="w-4 h-4" />
+              <span>Catat Pengeluaran</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
-          <TabsTrigger value="penjualan">Rekap Penjualan</TabsTrigger>
-          <TabsTrigger value="kaskecil">Kas Kecil</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="penjualan" className="space-y-4">
-          <Card>
-            <CardHeader className="p-4 sm:px-6 pb-0">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <CardTitle className="text-lg">Daftar Transaksi Selesai</CardTitle>
+      {/* ===== TAB CONTENT ===== */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {loading ? (
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : activeTab === 'penjualan' ? (
+          completedSales.length === 0 ? (
+            <div className="h-52 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <Wallet className="w-6 h-6" />
               </div>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
-                <Wallet className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                <p className="font-medium text-foreground">Belum ada data penjualan tercatat</p>
-                <p className="text-sm">Data akan muncul setelah ada transaksi berstatus selesai.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="kaskecil" className="space-y-4">
-          <Card>
-            <CardHeader className="p-4 sm:px-6 pb-0">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <CardTitle className="text-lg">Riwayat Kas Kecil</CardTitle>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
-                    <Plus className="w-4 h-4" /> Tambah Saldo
-                  </Button>
-                  <Button size="sm" className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white">
-                    <Plus className="w-4 h-4" /> Pengeluaran
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
-                <Coins className="w-8 h-8 mb-2 text-muted-foreground/50" />
-                <p className="font-medium text-foreground">Belum ada aktivitas kas kecil</p>
-                <p className="text-sm">Catat saldo awal atau pengeluaran untuk memulai.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <p className="font-bold text-foreground text-sm">Belum ada data penjualan tercatat</p>
+              <p className="text-xs mt-1">
+                Data akan muncul setelah ada transaksi POS berstatus selesai.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="whitespace-nowrap">
+                <TableHeader>
+                  <TableRow className="border-b border-border/80 hover:bg-transparent">
+                    <TableHead className="py-4 pl-6 font-bold text-[13px] text-foreground">
+                      Customer
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Invoice / ID
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Date
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Method
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Grand Total
+                    </TableHead>
+                    <TableHead className="py-4 pr-6 text-right font-bold text-[13px] text-foreground">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedSales.map((tx) => (
+                    <TableRow
+                      key={tx.id}
+                      className="border-b border-border/60 hover:bg-muted/40 transition-colors"
+                    >
+                      <TableCell className="py-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-muted border border-border/60 flex items-center justify-center">
+                            <Receipt className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-bold text-[13.5px] text-foreground">
+                            {tx.clientName || 'Pelanggan Umum'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-[13px] font-semibold text-primary">
+                          {tx.transactionId}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 text-[13px] text-muted-foreground">
+                        {format(new Date(tx.date), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="px-2.5 py-1 rounded-md bg-muted text-foreground text-xs font-medium">
+                          {tx.paymentMethod}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 font-bold text-[13.5px] text-foreground">
+                        {formatCurrency(tx.grandTotal)}
+                      </TableCell>
+                      <TableCell className="py-4 pr-6 text-right">
+                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+                          Lunas
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )
+        ) : (
+          <div className="h-52 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-3">
+              <Coins className="w-6 h-6" />
+            </div>
+            <p className="font-bold text-foreground text-sm">Riwayat Kas Kecil</p>
+            <p className="text-xs mt-1">
+              Gunakan tombol Tambah Saldo atau Catat Pengeluaran di atas untuk mengelola mutasi kas kecil.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

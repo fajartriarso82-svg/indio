@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains), monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -118,6 +118,83 @@
   --sidebar-ring: oklch(0.65 0.15 165);
 }
 
+/* ===== KUSALE DASHBOARD THEME (Scoped to Dashboard only; Landing Page stays untouched) ===== */
+html.dashboard-kusale,
+.dashboard-kusale {
+  --radius: 0.75rem;
+  --brand: #3B4DF8;
+  --brand-foreground: #FFFFFF;
+  --background: #FFFFFF;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #3B4DF8;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F4F6FA;
+  --secondary-foreground: #1E293B;
+  --muted: #F8F9FB;
+  --muted-foreground: #64748B;
+  --accent: #EEF0FF;
+  --accent-foreground: #3B4DF8;
+  --destructive: #EF4444;
+  --border: #ECEEF2;
+  --input: #E2E8F0;
+  --ring: #3B4DF8;
+  --chart-1: #3B4DF8;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EC4899;
+  --sidebar: #F8F9FB;
+  --sidebar-foreground: #475569;
+  --sidebar-primary: #3B4DF8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EEF0FF;
+  --sidebar-accent-foreground: #3B4DF8;
+  --sidebar-border: #ECEEF2;
+  --sidebar-ring: #3B4DF8;
+}
+
+html.dashboard-kusale.dark,
+.dashboard-kusale.dark {
+  --brand: #5263FF;
+  --brand-foreground: #FFFFFF;
+  --background: #0B0E14;
+  /* Off-white lembut anti-silau (anti-halation) untuk pengguna berkacamata di Dark Mode */
+  --foreground: #E8EEF5;
+  --card: #131722;
+  --card-foreground: #E8EEF5;
+  --popover: #171C29;
+  --popover-foreground: #E8EEF5;
+  --primary: #5B6BFF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E2433;
+  --secondary-foreground: #E2E8F0;
+  --muted: #181D2A;
+  --muted-foreground: #9FB0C7;
+  --accent: #1C233D;
+  --accent-foreground: #8C9AFF;
+  --destructive: #FB7185;
+  --border: #232B3E;
+  --input: #262E42;
+  --ring: #5B6BFF;
+  --chart-1: #5B6BFF;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #F472B6;
+  --sidebar: #0F131C;
+  --sidebar-foreground: #9FB0C7;
+  --sidebar-primary: #5B6BFF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A2138;
+  --sidebar-accent-foreground: #8C9AFF;
+  --sidebar-border: #1E2433;
+  --sidebar-ring: #5B6BFF;
+}
+
 @layer base {
   html {
     /* Meningkatkan skala font dasar agar tampilan 100% lebih besar, lugas, dan nyaman dibaca */
@@ -135,15 +212,39 @@
     }
   }
 
+  /* ===== ERGONOMIC TYPOGRAPHY UNTUK DASHBOARD (Ramah Usia 30+ & Pengguna Kacamata) ===== */
+  html.dashboard-kusale {
+    font-size: 15.5px;
+    /* Spasi antar-huruf positif agar huruf tidak saling menempel/dempet */
+    letter-spacing: 0.012em;
+    word-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  @media (min-width: 1536px) {
+    html.dashboard-kusale {
+      font-size: 16px;
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: 1.6;
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Gunakan Inter dengan Open Digits (cv02, cv03, cv04, cv11) & Tabular Numerals di Dashboard */
+  html.dashboard-kusale body,
+  .dashboard-kusale {
+    font-family: var(--font-inter), var(--font-jakarta), system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1;
+    font-variant-numeric: tabular-nums;
   }
   /* Target sentuh minimal nyaman di mobile */
   @media (max-width: 767px) {
@@ -153,6 +254,26 @@
       touch-action: manipulation;
     }
   }
+}
+
+/* Mencegah efek huruf tebal yang rapat/menempel (anti-halation) di Dashboard */
+.dashboard-kusale .tracking-tight,
+.dashboard-kusale .tracking-tighter {
+  letter-spacing: 0.01em !important;
+}
+
+.dashboard-kusale .font-bold,
+.dashboard-kusale .font-semibold,
+.dashboard-kusale th,
+.dashboard-kusale strong {
+  letter-spacing: 0.016em;
+}
+
+/* Di Dark Mode, kurangi ketebalan optik berlebih pada teks bold di tabel/list agar lubang huruf (e, a, 6, 8, 9) tetap terbuka jelas */
+.dashboard-kusale.dark td .font-bold,
+.dashboard-kusale.dark .card-topic-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* Normalisasi font-size micro agar nyaman dibaca dan tidak kekecilan pada 100% zoom */

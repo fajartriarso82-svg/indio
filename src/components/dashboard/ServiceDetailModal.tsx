@@ -232,8 +232,8 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
                     <p className="text-sm">{service.completeness || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground text-rose-500 font-medium mt-2">Keluhan</p>
-                    <p className="text-sm bg-rose-50 text-rose-700 p-2 rounded border border-rose-100">{service.complaint}</p>
+                    <p className="text-xs text-rose-500 font-medium mt-2">Keluhan</p>
+                    <p className="text-sm bg-[#FFEFEF] dark:bg-rose-500/15 text-[#E11D48] dark:text-rose-300 p-2 rounded-lg border border-rose-500/20">{service.complaint}</p>
                   </div>
                 </div>
               </div>
@@ -251,15 +251,15 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
             {/* Aksi & Biaya Kanan */}
             <div className="space-y-6">
               
-              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-4">
-                <h4 className="text-sm font-bold text-blue-800 uppercase tracking-wider">
+              <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-4">
+                <h4 className="text-sm font-bold text-primary uppercase tracking-wider">
                   Update Progres Service
                 </h4>
                 
                 <div className="space-y-2">
                   <Label>Status Service</Label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-card">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -278,13 +278,13 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
                     placeholder="Nama Teknisi (Opsional)" 
                     value={newTechnician} 
                     onChange={e => setNewTechnician(e.target.value)} 
-                    className="bg-white"
+                    className="bg-card"
                   />
                   <Textarea 
                     placeholder="Catatan tindakan yang dilakukan..." 
                     value={newAction} 
                     onChange={e => setNewAction(e.target.value)}
-                    className="bg-white"
+                    className="bg-card"
                   />
                 </div>
               </div>
@@ -370,15 +370,15 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
               <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                 {service.actions.map((act) => (
                   <div key={act.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                      <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-border bg-muted text-muted-foreground shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
                     </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded border shadow-sm">
+                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-card p-4 rounded-xl border border-border shadow-xs">
                       <div className="flex items-center justify-between space-x-2 mb-1">
-                        <div className="font-bold text-slate-900">{act.technician || 'Teknisi'}</div>
-                        <time className="font-caveat font-medium text-indigo-500">{format(new Date(act.createdAt), 'dd/MM/yyyy HH:mm')}</time>
+                        <div className="font-bold text-foreground">{act.technician || 'Teknisi'}</div>
+                        <time className="font-medium text-xs text-primary">{format(new Date(act.createdAt), 'dd/MM/yyyy HH:mm')}</time>
                       </div>
-                      <div className="text-slate-500 text-sm whitespace-pre-wrap">{act.action}</div>
+                      <div className="text-muted-foreground text-sm whitespace-pre-wrap">{act.action}</div>
                     </div>
                   </div>
                 ))}
@@ -397,7 +397,7 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              className="border-blue-200 text-blue-600 hover:bg-blue-50"
+              className="border-primary/30 text-primary hover:bg-primary/10"
               onClick={() => window.open(`/print/service/${service.id}/ticket`, '_blank')}
             >
               <Printer className="w-4 h-4" />
@@ -405,13 +405,13 @@ export default function ServiceDetailModal({ open, onOpenChange, service, onSucc
             </Button>
             <Button 
               variant="secondary" 
-              className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200"
+              className="bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 hover:opacity-90"
               onClick={() => window.open(`/print/service/${service.id}/invoice`, '_blank')}
             >
               <Printer className="w-4 h-4" />
               Cetak Ringkasan
             </Button>
-            <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={handleSave} disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <Save className="w-4 h-4" />
               Simpan Perubahan

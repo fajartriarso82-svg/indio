@@ -16,10 +16,10 @@ import {
   Wallet,
   Coins,
   AlertTriangle,
+  Package,
+  Eye,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import type { ModuleKey } from './DashboardLayout'
 
 interface DashboardHomeProps {
@@ -63,6 +63,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [advStats, setAdvStats] = useState<AdvancedStats | null>(null)
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
+  const [projectTab, setProjectTab] = useState<string>('ALL')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         const [statsRes, advStatsRes, projectsRes] = await Promise.all([
           fetch('/api/projects/stats'),
           fetch('/api/dashboard/stats'),
-          fetch('/api/projects?limit=5'),
+          fetch('/api/projects?limit=8'),
         ])
 
         const statsData = await statsRes.json()
@@ -103,43 +104,10 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
       }
     }
     fetchData()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
-
-  const statCards = [
-    {
-      icon: FolderKanban,
-      label: 'Proyek Aktif',
-      value: stats?.activeProjects ?? '—',
-      change: 'Berjalan',
-      color: 'text-primary',
-      bg: 'bg-primary/10',
-    },
-    {
-      icon: Users,
-      label: 'Total Klien',
-      value: stats?.totalClients ?? '—',
-      change: 'Terdaftar',
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
-    },
-    {
-      icon: Building2,
-      label: 'Total Vendor',
-      value: stats?.totalVendors ?? '—',
-      change: 'Supplier aktif',
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-    {
-      icon: FileText,
-      label: 'Invoice Tertunda',
-      value: stats?.pendingInvoices ?? '—',
-      change: 'Menunggu pembayaran',
-      color: 'text-rose-600',
-      bg: 'bg-rose-50',
-    },
-  ]
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -149,61 +117,113 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
     }).format(amount)
   }
 
+  // Kusale Top KPI Cards (Primary Business Metrics)
   const businessCards = [
     {
       icon: ShoppingCart,
-      label: 'Transaksi POS',
+      label: 'Transaksi POS Hari Ini',
       value: advStats?.transactions.today ?? 0,
-      change: `${advStats?.transactions.thisMonth ?? 0} bulan ini`,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      badge: `${advStats?.transactions.thisMonth ?? 0} bln ini ▲`,
+      iconBox: 'bg-[#EEF0FF] text-primary dark:bg-primary/15 dark:text-[#8190FF]',
+      badgeClass:
+        'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
       module: 'transactions' as ModuleKey,
     },
     {
-      icon: Wrench,
-      label: 'Service Aktif',
-      value: advStats?.services.process ?? 0,
-      change: `${advStats?.services.success ?? 0} Selesai, ${advStats?.services.pending ?? 0} Pending`,
-      color: 'text-violet-600',
-      bg: 'bg-violet-50',
-      module: 'services' as ModuleKey,
-    },
-    {
       icon: Wallet,
-      label: 'Saldo Bulan Ini',
-      value: advStats ? formatCurrency(advStats.balanceThisMonth) : '—',
-      change: 'Total Pemasukan',
-      color: 'text-teal-600',
-      bg: 'bg-teal-50',
+      label: 'Pemasukan Bulan Ini',
+      value: advStats ? formatCurrency(advStats.balanceThisMonth) : 'Rp 0',
+      badge: 'Bulan Ini ▲',
+      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
+      badgeClass:
+        'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
       module: 'finance' as ModuleKey,
     },
     {
-      icon: Coins,
-      label: 'Kas Kecil',
-      value: advStats ? formatCurrency(advStats.pettyCashBalance) : '—',
-      change: 'Saldo saat ini',
-      color: 'text-orange-600',
-      bg: 'bg-orange-50',
-      module: 'finance' as ModuleKey,
+      icon: Wrench,
+      label: 'Tiket Service Aktif',
+      value: `${advStats?.services.process ?? 0} Items`,
+      badge: `${advStats?.services.pending ?? 0} Pending`,
+      iconBox: 'bg-[#FFF3E8] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400',
+      badgeClass:
+        'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+      module: 'services' as ModuleKey,
     },
   ]
 
-  const statusColors: Record<string, string> = {
-    DRAFT: 'bg-gray-100 text-gray-700',
-    IN_PROGRESS: 'bg-primary/10 text-primary',
-    COMPLETED: 'bg-emerald-50 text-emerald-700',
-    CANCELLED: 'bg-rose-50 text-rose-700',
+  // Secondary Kusale KPI Cards (Projects, Clients, Vendors, Petty Cash)
+  const statCards = [
+    {
+      icon: FolderKanban,
+      label: 'Proyek Aktif',
+      value: stats?.activeProjects ?? 0,
+      badge: 'Berjalan',
+      iconBox: 'bg-[#EEF0FF] text-primary dark:bg-primary/15 dark:text-[#8190FF]',
+      badgeClass: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+      module: 'projects' as ModuleKey,
+    },
+    {
+      icon: Users,
+      label: 'Total Klien',
+      value: stats?.totalClients ?? 0,
+      badge: 'Terdaftar',
+      iconBox: 'bg-[#E6F8F3] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-400',
+      badgeClass: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+      module: 'clients' as ModuleKey,
+    },
+    {
+      icon: Building2,
+      label: 'Total Vendor',
+      value: stats?.totalVendors ?? 0,
+      badge: 'Mitra Aktif',
+      iconBox: 'bg-[#FFF3E8] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400',
+      badgeClass: 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400',
+      module: 'vendors' as ModuleKey,
+    },
+    {
+      icon: FileText,
+      label: 'Invoice Tertunda',
+      value: stats?.pendingInvoices ?? 0,
+      badge: 'Menunggu',
+      iconBox: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
+      badgeClass: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
+      module: 'projects' as ModuleKey,
+    },
+  ]
+
+  const statusBadges: Record<string, { label: string; className: string }> = {
+    DRAFT: {
+      label: 'Draft',
+      className: 'bg-muted text-muted-foreground',
+    },
+    IN_PROGRESS: {
+      label: 'In Progress',
+      className: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+    },
+    COMPLETED: {
+      label: 'Completed',
+      className: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+    },
+    CANCELLED: {
+      label: 'Cancelled',
+      className: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
+    },
   }
 
   const quickActions = [
-    { label: 'Proyek Baru', icon: FolderKanban, module: 'projects' as ModuleKey },
-    { label: 'Transaksi Baru', icon: ShoppingCart, module: 'transactions' as ModuleKey },
-    { label: 'Terima Service', icon: Wrench, module: 'services' as ModuleKey },
+    { label: 'Kelola Stok Barang', desc: 'Cek & tambah produk baru', icon: Package, module: 'inventory' as ModuleKey },
+    { label: 'Buat Proyek Baru', desc: 'Input proyek & RAB', icon: FolderKanban, module: 'projects' as ModuleKey },
+    { label: 'Transaksi POS Baru', desc: 'Kasir penjualan langsung', icon: ShoppingCart, module: 'transactions' as ModuleKey },
+    { label: 'Terima Tiket Service', desc: 'Input servis masuk', icon: Wrench, module: 'services' as ModuleKey },
   ]
+
+  const filteredRecentProjects = recentProjects.filter((p) =>
+    projectTab === 'ALL' ? true : p.status === projectTab
+  )
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48">
+      <div className="flex items-center justify-center h-56">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
@@ -211,98 +231,91 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
 
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Selamat datang, {staff.name.split(' ')[0]}
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">
-          Berikut ringkasan aktivitas perusahaan Anda hari ini.
-        </p>
-      </motion.div>
-
-      {/* Business Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* ===== TOP 3 KUSALE KPI CARDS ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {businessCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: idx * 0.1 }}
-            className="cursor-pointer"
+            transition={{ duration: 0.3, delay: idx * 0.07 }}
             onClick={() => onNavigate(stat.module)}
+            className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
           >
-            <Card className="hover:border-primary/50 transition-colors shadow-xs">
-              <CardContent className="p-5 lg:p-5.5">
-                <div className="flex items-center justify-between mb-3.5">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center shadow-xs`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                </div>
-                <p className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight truncate">{stat.value}</p>
-                <p className="text-sm font-medium text-muted-foreground mt-1">{stat.label}</p>
-                <p className="text-xs text-muted-foreground/80 mt-1 truncate">{stat.change}</p>
-              </CardContent>
-            </Card>
+            <div className={`w-10 h-10 rounded-xl ${stat.iconBox} flex items-center justify-center`}>
+              <stat.icon className="w-5 h-5" />
+            </div>
+            <p className="text-[13px] font-medium text-muted-foreground mt-4">{stat.label}</p>
+            <div className="flex items-end justify-between gap-2 mt-1.5">
+              <p className="text-[24px] sm:text-[28px] font-extrabold text-foreground tracking-tight leading-none truncate">
+                {stat.value}
+              </p>
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold shrink-0 ${stat.badgeClass}`}
+              >
+                {stat.badge}
+              </span>
+            </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Project Stats cards */}
-      <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">Ringkasan Proyek</h2>
+      {/* ===== SECONDARY 4 KUSALE KPI CARDS ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {statCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 + (idx * 0.1) }}
+            transition={{ duration: 0.3, delay: 0.15 + idx * 0.06 }}
+            onClick={() => onNavigate(stat.module)}
+            className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
           >
-            <Card className="shadow-xs">
-              <CardContent className="p-5 lg:p-5.5">
-                <div className="flex items-center justify-between mb-3.5">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center shadow-xs`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                </div>
-                <p className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
-                <p className="text-sm font-medium text-muted-foreground mt-1">{stat.label}</p>
-                <p className="text-xs text-muted-foreground/80 mt-1">{stat.change}</p>
-              </CardContent>
-            </Card>
+            <div className={`w-9 h-9 rounded-xl ${stat.iconBox} flex items-center justify-center`}>
+              <stat.icon className="w-4.5 h-4.5" />
+            </div>
+            <p className="text-[12.5px] font-medium text-muted-foreground mt-3.5">{stat.label}</p>
+            <div className="flex items-end justify-between gap-2 mt-1.5">
+              <p className="text-[24px] font-extrabold text-foreground tracking-tight leading-none">
+                {stat.value}
+              </p>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${stat.badgeClass}`}
+              >
+                {stat.badge}
+              </span>
+            </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Hutang Vendor Alert */}
+      {/* Hutang Vendor Alert (Dark & Light friendly) */}
       {Boolean(stats?.unpaidVendorInvoices && stats.unpaidVendorInvoices > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-sm"
+          className="p-4 bg-[#FFF4E5] dark:bg-amber-500/10 border border-amber-300/60 dark:border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
         >
           <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg shrink-0">
-              <AlertTriangle className="w-5 h-5 text-amber-700" />
+            <div className="w-10 h-10 bg-amber-500/15 rounded-xl flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-[#D97706] dark:text-amber-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-amber-950">
+              <p className="text-sm font-bold text-foreground">
                 {stats?.unpaidVendorInvoices} Tagihan / Invoice Vendor Belum Dibayar
               </p>
-              <p className="text-xs text-amber-800/90 mt-0.5">
-                Total kewajiban pembayaran yang masih berjalan: <span className="font-bold">{formatCurrency(stats?.totalHutangVendor ?? 0)}</span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Total kewajiban pembayaran yang masih berjalan:{' '}
+                <span className="font-bold text-foreground">
+                  {formatCurrency(stats?.totalHutangVendor ?? 0)}
+                </span>
               </p>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="text-xs border-amber-300 bg-white hover:bg-amber-100 text-amber-900 shrink-0"
+            className="text-xs rounded-xl shrink-0"
             onClick={() => onNavigate('projects')}
           >
             Buka Modul Proyek
@@ -311,111 +324,152 @@ export default function DashboardHome({ staff, onNavigate }: DashboardHomeProps)
         </motion.div>
       )}
 
+      {/* ===== BOTTOM GRID: RECENT PROJECTS TABLE (KUSALE STYLE) + QUICK ACTIONS ===== */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recent projects */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          className="lg:col-span-2"
-        >
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Proyek Terbaru</CardTitle>
-                  <CardDescription>Aktivitas proyek terbaru</CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate('projects')}
-                >
-                  Lihat Semua
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+        {/* Left 2 Columns: Recent Projects in Kusale Table Layout */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Segmented Project Status Tabs */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+              {[
+                { key: 'ALL', label: 'All Projects' },
+                { key: 'IN_PROGRESS', label: 'In Progress' },
+                { key: 'DRAFT', label: 'Draft' },
+                { key: 'COMPLETED', label: 'Completed' },
+              ].map((t) => {
+                const active = projectTab === t.key
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setProjectTab(t.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all ${
+                      active
+                        ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                        : 'text-muted-foreground hover:text-foreground font-medium'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => onNavigate('projects')}
+              className="h-9 px-3.5 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground inline-flex items-center gap-1.5 transition-colors"
+            >
+              <span>Lihat Semua Proyek</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            {filteredRecentProjects.length === 0 ? (
+              <div className="h-44 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+                <p className="font-bold text-foreground text-sm">Belum ada proyek pada filter ini</p>
+                <p className="text-xs mt-1">Klik Aksi Cepat untuk membuat proyek baru.</p>
               </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {recentProjects.length === 0 ? (
-                <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
-                  <p className="font-medium text-foreground">Belum ada proyek</p>
-                  <p className="text-sm">Buat proyek pertama Anda untuk memulai.</p>
+            ) : (
+              <div className="divide-y divide-border/60">
+                <div className="hidden sm:grid sm:grid-cols-12 px-5 py-3.5 text-xs font-bold text-foreground bg-muted/30">
+                  <div className="col-span-5">Project</div>
+                  <div className="col-span-3">Code</div>
+                  <div className="col-span-2">Type</div>
+                  <div className="col-span-2 text-right">Status</div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentProjects.map((project) => (
+                {filteredRecentProjects.map((project) => {
+                  const st = statusBadges[project.status] || statusBadges.DRAFT
+                  return (
                     <div
                       key={project.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer"
                       onClick={() => onNavigate('projects')}
+                      className="grid grid-cols-1 sm:grid-cols-12 items-center gap-2 px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FolderKanban className="w-4 h-4 text-primary" />
+                      <div className="sm:col-span-5 flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-muted border border-border/60 flex items-center justify-center shrink-0">
+                          <FolderKanban className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13.5px] font-bold text-foreground truncate">
+                            {project.name}
+                          </p>
+                          <p className="text-[11.5px] text-muted-foreground truncate">
+                            {project.client?.name || 'Klien Umum'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{project.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {project.projectCode} · {project.client?.name || 'Tidak ada klien'}
-                        </p>
+                      <div className="sm:col-span-3">
+                        <span className="text-xs font-semibold text-primary">
+                          {project.projectCode}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      <div className="sm:col-span-2">
+                        <span className="text-xs font-medium text-muted-foreground">
                           {project.type}
-                        </Badge>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || 'bg-gray-100 text-gray-700'}`}>
-                          {project.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="sm:col-span-2 flex sm:justify-end">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${st.className}`}
+                        >
+                          {st.label}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Quick actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.5 }}
-          className="space-y-6"
-        >
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Aksi Cepat</CardTitle>
-              <CardDescription>Pintasan menu</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-2">
+        {/* Right Column: Quick Actions & Kas Kecil Summary */}
+        <div className="space-y-5">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            <h3 className="text-sm font-bold text-foreground">Pintasan Cepat</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-4">
+              Akses langsung ke modul operasional utama
+            </p>
+            <div className="space-y-2.5">
               {quickActions.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => onNavigate(action.module)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/[0.04] transition-all text-left group"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
-                    <Plus className="w-4 h-4 text-primary" />
+                  <div className="w-9 h-9 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center shrink-0">
+                    <action.icon className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">{action.label}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary ml-auto transition-colors shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-foreground group-hover:text-primary transition-colors">
+                      {action.label}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">{action.desc}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                 </button>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-primary/5 border-primary/10">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-foreground text-sm">Tips</h3>
+          <div
+            onClick={() => onNavigate('finance')}
+            className="bg-card border border-border rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-primary/40 transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+                <Coins className="w-4.5 h-4.5 text-[#F97316] dark:text-orange-400" />
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Gunakan menu di sidebar untuk berpindah antar modul dengan cepat. Anda juga dapat menggunakan pintasan Aksi Cepat untuk tugas sehari-hari.
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-muted text-muted-foreground">
+                Kas Kecil
+              </span>
+            </div>
+            <p className="text-xs font-medium text-muted-foreground mt-3.5">Saldo Kas Kecil Saat Ini</p>
+            <p className="text-xl font-extrabold text-foreground mt-1">
+              {advStats ? formatCurrency(advStats.pettyCashBalance) : 'Rp 0'}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

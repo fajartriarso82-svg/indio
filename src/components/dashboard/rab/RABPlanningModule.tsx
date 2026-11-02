@@ -844,11 +844,11 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <span className="font-bold text-sm text-emerald-950 dark:text-emerald-100 tracking-tight truncate">
+                        <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                          <span className="card-topic-title font-semibold text-[15px] text-emerald-950 dark:text-emerald-100 truncate">
                             {topikIdx + 1}. {topik.nama}
                           </span>
-                          <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/90 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full border border-emerald-300/70 dark:border-emerald-700/60">
+                          <span className="text-xs text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/90 dark:bg-emerald-900/60 px-2.5 py-0.5 rounded-full border border-emerald-300/70 dark:border-emerald-700/60">
                             {topik.items.length} item
                           </span>
                         </div>
@@ -856,16 +856,19 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                     </div>
 
                     {/* Ringkasan Angka Topik & Aksi */}
-                    <div className="flex items-center gap-2.5 self-end sm:self-auto flex-wrap">
-                      <div className="text-right text-xs">
-                        <span className="text-muted-foreground text-[10px] block font-medium">RAB:</span>
-                        <span className="font-bold text-foreground">{formatCurrency(topik.totalRencanaTopik)}</span>
-                      </div>
-                      <div className="text-right text-xs">
-                        <span className="text-muted-foreground text-[10px] block font-medium">Realisasi:</span>
-                        <span className="font-bold text-destructive">
-                          {formatCurrency(topik.totalRealisasiTopik)}
-                        </span>
+                    <div className="flex items-center gap-3.5 self-end sm:self-auto flex-wrap">
+                      <div className="flex items-center gap-3 px-3 py-1 rounded-lg bg-background/60 dark:bg-slate-900/60 border border-emerald-200/70 dark:border-emerald-800/60">
+                        <div className="text-right">
+                          <span className="text-muted-foreground text-[11px] block font-medium leading-tight">RAB</span>
+                          <span className="font-semibold text-[13px] text-foreground tabular-nums">{formatCurrency(topik.totalRencanaTopik)}</span>
+                        </div>
+                        <div className="w-px h-6 bg-border" />
+                        <div className="text-right">
+                          <span className="text-muted-foreground text-[11px] block font-medium leading-tight">Realisasi</span>
+                          <span className="font-semibold text-[13px] text-rose-600 dark:text-rose-400 tabular-nums">
+                            {formatCurrency(topik.totalRealisasiTopik)}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Status Pembayaran Topik (Badge) */}
@@ -873,7 +876,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         const status = topik.statusPembayaranTopik || 'BELUM_DIBAYAR'
                         if (status === 'LUNAS') {
                           return (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-2.5 py-0.5 gap-1 shadow-xs border border-emerald-700">
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1 gap-1 shadow-xs border border-emerald-700">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                               Lunas
                             </Badge>
@@ -881,21 +884,21 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         }
                         if (status === 'MENUNGGU_BAYAR') {
                           return (
-                            <Badge variant="outline" className="text-amber-900 bg-amber-50 border-amber-300 text-[11px] font-bold px-2.5 py-0.5 gap-1.5 animate-pulse shadow-xs">
-                              <span className="w-2 h-2 rounded-full bg-amber-600" />
+                            <Badge variant="outline" className="text-amber-900 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 text-xs font-semibold px-3 py-1 gap-1.5 animate-pulse shadow-xs">
+                              <span className="w-2 h-2 rounded-full bg-amber-500" />
                               Menunggu Bayar ({formatCurrency(topik.totalMenungguBayarTopik || 0)})
                             </Badge>
                           )
                         }
                         if (status === 'SEBAGIAN') {
                           return (
-                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 text-[11px] font-semibold px-2 py-0.5 gap-1 shadow-xs">
+                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 dark:text-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30 text-xs font-semibold px-3 py-1 gap-1 shadow-xs">
                               Sebagian ({formatCurrency(topik.totalRealisasiLunasTopik || 0)})
                             </Badge>
                           )
                         }
                         return (
-                          <Badge variant="outline" className="text-slate-600 bg-slate-100 border-slate-300 text-[11px] font-medium px-2 py-0.5">
+                          <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 dark:text-slate-200 dark:bg-slate-800/90 dark:border-slate-700 text-xs font-medium px-3 py-1">
                             Belum Dibayar
                           </Badge>
                         )
@@ -904,7 +907,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                       {topik.totalRealisasiTopik > 0 && (
                         <Badge
                           variant="outline"
-                          className={`text-[10px] font-semibold ${isOverBudget ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-emerald-300 bg-emerald-100/70 text-emerald-800'}`}
+                          className={`text-xs font-semibold px-2.5 py-1 ${isOverBudget ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300' : 'border-emerald-300 bg-emerald-100/70 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'}`}
                         >
                           {isOverBudget ? '⚠ Over Budget' : '✓ Budget Aman'}
                         </Badge>

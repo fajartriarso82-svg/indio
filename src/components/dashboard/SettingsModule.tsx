@@ -19,6 +19,9 @@ import {
   AlertCircle,
   Images,
   Upload,
+  Sun,
+  Moon,
+  Palette,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,9 +31,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { useDashboardTheme } from '@/hooks/use-dashboard-theme'
 import GalleryModule from './GalleryModule'
 
 export default function SettingsModule() {
+  const { theme, setTheme, isDark } = useDashboardTheme()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
@@ -337,21 +342,68 @@ export default function SettingsModule() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">Pengaturan Sistem & Perusahaan</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Kelola profil perusahaan, link kanal pengadaan, karyawan, dan keamanan akun dashboard.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            Settings & Preferences
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Kelola tema tampilan dashboard, profil perusahaan, kanal pengadaan, karyawan, dan keamanan akun.
+          </p>
+        </div>
+
+        {/* Quick Theme Switcher Card in Settings Header */}
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setTheme('light')}
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all ${
+              !isDark
+                ? 'bg-[#EEF0FF] text-primary font-semibold shadow-2xs'
+                : 'text-muted-foreground hover:text-foreground font-medium'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            Light Mode
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme('dark')}
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all ${
+              isDark
+                ? 'bg-primary/20 text-[#8190FF] font-semibold shadow-2xs'
+                : 'text-muted-foreground hover:text-foreground font-medium'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5" />
+            Dark Mode
+          </button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full sm:w-[750px] grid-cols-5">
-          <TabsTrigger value="profile">Profil & Dokumen</TabsTrigger>
-          <TabsTrigger value="channels">Kanal Pengadaan</TabsTrigger>
-          <TabsTrigger value="gallery">Galeri Proyek</TabsTrigger>
-          <TabsTrigger value="members">Karyawan</TabsTrigger>
-          <TabsTrigger value="security">Ganti Password</TabsTrigger>
-        </TabsList>
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+          {[
+            { key: 'profile', label: 'Profil & Dokumen' },
+            { key: 'channels', label: 'Kanal Pengadaan' },
+            { key: 'gallery', label: 'Galeri Proyek' },
+            { key: 'members', label: 'Karyawan' },
+            { key: 'security', label: 'Ganti Password' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={`px-3.5 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-all ${
+                activeTab === t.key
+                  ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                  : 'text-muted-foreground hover:text-foreground font-medium'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
         <TabsContent value="profile" className="space-y-6">
           <Card>
@@ -456,7 +508,7 @@ export default function SettingsModule() {
 
               </div>
               <div className="pt-4 flex justify-end">
-                <Button onClick={handleSaveProfile} disabled={loading} className="bg-violet-600 hover:bg-violet-700 text-white">
+                <Button onClick={handleSaveProfile} disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   {loading ? 'Menyimpan...' : <><Save className="w-4 h-4" /> Simpan Perubahan</>}
                 </Button>
               </div>
@@ -474,7 +526,7 @@ export default function SettingsModule() {
                 </CardTitle>
                 <CardDescription>Kelola data karyawan & teknisi.</CardDescription>
               </div>
-              <Button size="sm" onClick={() => openEmpModal()} className="bg-violet-600 hover:bg-violet-700">
+              <Button size="sm" onClick={() => openEmpModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Plus className="w-4 h-4" /> Tambah Karyawan
               </Button>
             </CardHeader>
@@ -497,9 +549,9 @@ export default function SettingsModule() {
                             <p className="text-xs text-muted-foreground mt-0.5">{emp.employeeId}</p>
                           </div>
                           {emp.isActive ? (
-                            <Badge variant="outline" className="shrink-0 bg-emerald-50 text-emerald-600">Aktif</Badge>
+                            <Badge variant="outline" className="shrink-0 bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 border-emerald-500/20">Aktif</Badge>
                           ) : (
-                            <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-600">Non-Aktif</Badge>
+                            <Badge variant="outline" className="shrink-0 bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400 border-rose-500/20">Non-Aktif</Badge>
                           )}
                         </div>
 
@@ -553,7 +605,7 @@ export default function SettingsModule() {
                             <TableCell>{emp.position || '-'}</TableCell>
                             <TableCell>{emp.phone || '-'}</TableCell>
                             <TableCell className="text-center">
-                              {emp.isActive ? <Badge variant="outline" className="bg-emerald-50 text-emerald-600">Aktif</Badge> : <Badge variant="outline" className="bg-rose-50 text-rose-600">Non-Aktif</Badge>}
+                              {emp.isActive ? <Badge variant="outline" className="bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 border-emerald-500/20">Aktif</Badge> : <Badge variant="outline" className="bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400 border-rose-500/20">Non-Aktif</Badge>}
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-1">
@@ -1015,7 +1067,7 @@ export default function SettingsModule() {
           </div>
           <div className="flex justify-end gap-2 border-t pt-4">
             <Button variant="outline" onClick={() => setEmpModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSaveEmployee} disabled={loading} className="bg-violet-600 hover:bg-violet-700 text-white">Simpan</Button>
+            <Button onClick={handleSaveEmployee} disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">Simpan</Button>
           </div>
         </DialogContent>
       </Dialog>

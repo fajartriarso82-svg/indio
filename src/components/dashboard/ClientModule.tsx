@@ -108,9 +108,9 @@ const typeLabels: Record<string, string> = {
 }
 
 const typeColors: Record<string, string> = {
-  corporate: 'bg-primary/10 text-primary',
-  government: 'bg-amber-50 text-amber-700',
-  individual: 'bg-emerald-50 text-emerald-700',
+  corporate: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+  government: 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400',
+  individual: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
 }
 
 export default function ClientModule() {
@@ -118,6 +118,7 @@ export default function ClientModule() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeTypeTab, setActiveTypeTab] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
@@ -142,12 +143,15 @@ export default function ClientModule() {
     fetchClients()
   }, [fetchClients])
 
-  const filteredClients = clients.filter(
-    (c) =>
+  const filteredClients = clients.filter((c) => {
+    if (activeTypeTab === 'starred' && !c.isStarred) return false
+    if (activeTypeTab !== 'all' && activeTypeTab !== 'starred' && c.type !== activeTypeTab) return false
+    return (
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.picName || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(search.toLowerCase())
-  )
+    )
+  })
 
   const handleOpenCreate = () => {
     setEditing(null)
@@ -281,37 +285,110 @@ export default function ClientModule() {
     }
   }
 
+  const starredCount = clients.filter((c) => c.isStarred).length
+  const corpCount = clients.filter((c) => c.type === 'corporate' || c.type === 'government').length
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Klien</h2>
-          <p className="text-sm text-muted-foreground mt-1">Kelola daftar klien Anda</p>
+      {/* ===== KUSALE 3 KPI CARDS ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Pelanggan / Klien</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {clients.length}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              Terdaftar ▲
+            </span>
+          </div>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> Tambah Klien
-        </Button>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#E6F8F3] dark:bg-emerald-500/15 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-[#10B981] dark:text-emerald-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Korporat & Instansi</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {corpCount}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]">
+              B2B / B2G
+            </span>
+          </div>
+        </div>
+
+        <div
+          onClick={() => setActiveTypeTab('starred')}
+          className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:border-primary/30 transition-all"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+            <Star className="w-5 h-5 text-[#F97316] dark:text-orange-400 fill-current" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Tampil di Landing Page</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {starredCount} Klien
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="p-4 sm:px-6 pb-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Daftar Klien</CardTitle>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Cari klien..."
-                  className="pl-9 h-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
+      {/* ===== KUSALE TOOLBAR ===== */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+          {[
+            { key: 'all', label: 'All Customers' },
+            { key: 'corporate', label: 'Korporat' },
+            { key: 'government', label: 'Pemerintah' },
+            { key: 'individual', label: 'Perorangan' },
+            { key: 'starred', label: '⭐ Unggulan' },
+          ].map((tab) => {
+            const active = activeTypeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTypeTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-all ${
+                  active
+                    ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:flex-initial sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="search"
+              placeholder="Search customer, PIC, email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-card border border-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
           </div>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+
+          <button
+            onClick={handleOpenCreate}
+            className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Klien</span>
+          </button>
+        </div>
+      </div>
+
+      <Card className="rounded-2xl border-border shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+        <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-48">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />

@@ -318,7 +318,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, product }: Produc
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-700">
+          <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {loading ? 'Menyimpan...' : 'Simpan Barang'}
           </Button>
         </DialogFooter>

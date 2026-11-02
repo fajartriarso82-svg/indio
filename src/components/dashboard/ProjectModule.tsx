@@ -1,21 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus,
   Search,
   Loader2,
-  Filter,
   FolderKanban,
   ChevronRight,
   Trash2,
   Archive,
+  CheckCircle2,
+  Clock,
+  Eye,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,18 +54,23 @@ interface ProjectListItem {
   createdAt: string
 }
 
-const statusColors: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  IN_PROGRESS: 'bg-primary/10 text-primary',
-  COMPLETED: 'bg-emerald-50 text-emerald-700',
-  CANCELLED: 'bg-rose-50 text-rose-700',
-}
-
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Draft',
-  IN_PROGRESS: 'Berjalan',
-  COMPLETED: 'Selesai',
-  CANCELLED: 'Dibatalkan',
+const statusBadges: Record<string, { label: string; className: string }> = {
+  DRAFT: {
+    label: 'Draft',
+    className: 'bg-muted text-muted-foreground',
+  },
+  IN_PROGRESS: {
+    label: 'In Progress',
+    className: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+  },
+  COMPLETED: {
+    label: 'Completed',
+    className: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    className: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
+  },
 }
 
 export default function ProjectModule() {
@@ -111,7 +113,9 @@ export default function ProjectModule() {
       if (data.success) {
         toast({
           title: 'Proyek Dihapus',
-          description: data.message || 'Proyek dan seluruh file terkait di Supabase Storage telah dibersihkan.',
+          description:
+            data.message ||
+            'Proyek dan seluruh file terkait di Supabase Storage telah dibersihkan.',
         })
         fetchProjects()
       } else {
@@ -149,7 +153,7 @@ export default function ProjectModule() {
     } finally {
       setLoading(false)
     }
-  }, [search, filterType, filterStatus])
+  }, [search, filterType, filterStatus, toast])
 
   useEffect(() => {
     fetchProjects()
@@ -160,7 +164,14 @@ export default function ProjectModule() {
     fetchProjects()
   }
 
-  // If a project is selected, show ProjectDetail
+  const kpi = useMemo(() => {
+    const total = projects.length
+    const active = projects.filter((p) => p.status === 'IN_PROGRESS').length
+    const completed = projects.filter((p) => p.status === 'COMPLETED').length
+    const draft = projects.filter((p) => p.status === 'DRAFT').length
+    return { total, active, completed, draft }
+  }, [projects])
+
   if (selectedProjectId) {
     return (
       <ProjectDetail
@@ -175,258 +186,325 @@ export default function ProjectModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Proyek</h2>
-          <p className="text-sm text-muted-foreground mt-1">Kelola semua proyek</p>
+      {/* ===== KUSALE 3 KPI CARDS ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center">
+            <FolderKanban className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Proyek</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {kpi.total}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]">
+              {kpi.active} Aktif
+            </span>
+          </div>
         </div>
-        <Button onClick={() => setFormOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Proyek Baru
-        </Button>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#E6F8F3] dark:bg-emerald-500/15 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-[#10B981] dark:text-emerald-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Proyek Selesai</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {kpi.completed}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              Completed ▲
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-[#F97316] dark:text-orange-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Draft & Perencanaan</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {kpi.draft} Items
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="p-4 sm:px-6 pb-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Daftar Proyek</CardTitle>
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Cari proyek..."
-                  className="pl-9 h-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full sm:w-[140px] h-9">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Tipe</SelectItem>
-                  <SelectItem value="PENGADAAN">Pengadaan</SelectItem>
-                  <SelectItem value="JASA">Jasa</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-[140px] h-9">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
-                  <SelectItem value="COMPLETED">Selesai</SelectItem>
-                  <SelectItem value="CANCELLED">Dibatalkan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* ===== KUSALE TOOLBAR ===== */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* Segmented Status Tabs */}
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+          {[
+            { key: 'all', label: 'All Projects' },
+            { key: 'IN_PROGRESS', label: 'In Progress' },
+            { key: 'DRAFT', label: 'Draft' },
+            { key: 'COMPLETED', label: 'Completed' },
+            { key: 'CANCELLED', label: 'Cancelled' },
+          ].map((tab) => {
+            const active = filterStatus === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setFilterStatus(tab.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-all ${
+                  active
+                    ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Search, Type Select & New Project Button */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:flex-initial sm:w-60">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-card border border-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
           </div>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[140px] h-10 rounded-xl bg-card text-[13px]">
+              <SelectValue placeholder="Semua Tipe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Tipe</SelectItem>
+              <SelectItem value="PENGADAAN">Pengadaan</SelectItem>
+              <SelectItem value="JASA">Jasa</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={() => setFormOpen(true)}
+            className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Proyek Baru</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ===== KUSALE TABLE ===== */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {loading ? (
+          <div className="flex items-center justify-center h-56">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="h-52 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+              <FolderKanban className="w-6 h-6" />
             </div>
-          ) : projects.length === 0 ? (
-            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
-              <p className="font-medium text-foreground">Belum ada proyek</p>
-              <p className="text-sm">Buat proyek pertama Anda untuk memulai.</p>
-            </div>
-          ) : (
-            <>
-              {/* ===== MOBILE: Card list ===== */}
-              <div className="md:hidden divide-y divide-border border-t border-border">
-                {projects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="w-full p-4 space-y-3"
-                  >
+            <p className="font-bold text-foreground text-sm">Belum ada proyek ditemukan</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Buat proyek baru atau ubah filter pencarian di atas.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-border">
+              {projects.map((project) => {
+                const st = statusBadges[project.status] || statusBadges.DRAFT
+                return (
+                  <div key={project.id} className="w-full p-4 space-y-3">
                     <div
                       onClick={() => setSelectedProjectId(project.id)}
-                      className="cursor-pointer space-y-2.5 active:opacity-70"
+                      className="cursor-pointer space-y-2.5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-semibold text-sm">{project.name}</p>
+                          <p className="text-xs font-bold text-primary">{project.projectCode}</p>
+                          <p className="font-bold text-sm text-foreground mt-0.5">{project.name}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {project.projectCode}
+                            {project.client?.name || '—'}
                             {project.poNumber && ` · PO: ${project.poNumber}`}
                           </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5" />
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
-                          {statusLabels[project.status] || project.status}
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold shrink-0 ${st.className}`}
+                        >
+                          {st.label}
                         </span>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {project.type}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="min-w-0">
-                          <p className="text-muted-foreground">Klien</p>
-                          <p className="truncate mt-0.5">{project.client?.name || '—'}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Item</p>
-                          <p className="mt-0.5">
-                            <Badge variant="secondary" className="text-[11px]">
-                              {project._count?.items ?? 0}
-                            </Badge>
-                          </p>
-                        </div>
                       </div>
                     </div>
 
-                    {/* Action buttons for mobile */}
                     <div
-                      className="flex items-center justify-between pt-2.5 border-t border-border mt-2"
+                      className="flex items-center justify-between pt-2 border-t border-border/60"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
                         disabled={downloadingZipId === project.id}
-                        className="text-xs h-7.5 gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
                         onClick={() => handleDownloadZip(project.id, project.name)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors"
                       >
                         {downloadingZipId === project.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Archive className="w-3.5 h-3.5" />
+                          <Archive className="w-3.5 h-3.5 text-primary" />
                         )}
                         Unduh ZIP
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7.5 gap-1 text-destructive hover:bg-destructive/10 border-destructive/30"
-                        onClick={() => {
-                          setProjectToDelete(project)
-                          setDeleteOpen(true)
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Hapus
-                      </Button>
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProjectId(project.id)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProjectToDelete(project)
+                            setDeleteOpen(true)
+                          }}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                )
+              })}
+            </div>
 
-              {/* ===== DESKTOP: Tabel ===== */}
-              <div className="hidden md:block border rounded-md overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Proyek</TableHead>
-                        <TableHead className="hidden md:table-cell">Tipe</TableHead>
-                        <TableHead className="hidden sm:table-cell">Klien</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="hidden lg:table-cell">Item</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projects.map((project) => (
-                        <TableRow
-                          key={project.id}
-                          className="cursor-pointer hover:bg-primary/5"
-                          onClick={() => setSelectedProjectId(project.id)}
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table className="whitespace-nowrap">
+                <TableHeader>
+                  <TableRow className="border-b border-border/80 hover:bg-transparent">
+                    <TableHead className="py-4 pl-6 font-bold text-[13px] text-foreground">
+                      Project Name
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Code / PO
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Client
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Type
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Items
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="py-4 pr-6 text-right font-bold text-[13px] text-foreground">
+                      Action
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projects.map((project) => {
+                    const st = statusBadges[project.status] || statusBadges.DRAFT
+                    return (
+                      <TableRow
+                        key={project.id}
+                        className="border-b border-border/60 hover:bg-muted/40 transition-colors cursor-pointer"
+                        onClick={() => setSelectedProjectId(project.id)}
+                      >
+                        <TableCell className="py-4 pl-6">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-10 h-10 rounded-xl bg-muted border border-border/60 flex items-center justify-center shrink-0">
+                              <FolderKanban className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-[13.5px] text-foreground truncate max-w-[260px]">
+                                {project.name}
+                              </p>
+                              <p className="text-[12px] text-muted-foreground mt-0.5">
+                                {project.poNumber ? `PO: ${project.poNumber}` : 'Tanpa Nomor PO'}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span className="text-[13px] font-semibold text-primary">
+                            {project.projectCode}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 text-[13px] font-medium text-muted-foreground">
+                          {project.client?.name || '—'}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span className="px-2.5 py-1 rounded-md bg-muted text-foreground text-xs font-medium">
+                            {project.type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 font-semibold text-[13.5px] text-foreground">
+                          {project._count?.items ?? 0}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${st.className}`}
+                          >
+                            {st.label}
+                          </span>
+                        </TableCell>
+                        <TableCell
+                          className="py-4 pr-6 text-right"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <TableCell>
-                            <div className="font-semibold text-foreground">{project.name}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {project.projectCode}
-                              {project.poNumber && ` · PO: ${project.poNumber}`}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {project.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell text-sm">
-                            {project.client?.name || '—'}
-                          </TableCell>
-                          <TableCell>
-                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColors[project.status] || ''}`}>
-                              {statusLabels[project.status] || project.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <Badge variant="secondary" className="text-[11px]">
-                              {project._count?.items ?? 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Unduh Arsip .ZIP */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={downloadingZipId === project.id}
-                                className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                                onClick={() => handleDownloadZip(project.id, project.name)}
-                                title="Download semua file proyek (.zip)"
-                              >
-                                {downloadingZipId === project.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Archive className="w-3.5 h-3.5" />
-                                )}
-                                <span className="hidden xl:inline">Unduh ZIP</span>
-                              </Button>
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              disabled={downloadingZipId === project.id}
+                              onClick={() => handleDownloadZip(project.id, project.name)}
+                              className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground inline-flex items-center gap-1.5 transition-colors"
+                              title="Download arsip proyek (.zip)"
+                            >
+                              {downloadingZipId === project.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Archive className="w-3.5 h-3.5 text-primary" />
+                              )}
+                              <span className="hidden xl:inline">ZIP</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedProjectId(project.id)}
+                              className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Buka Detail Proyek"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setProjectToDelete(project)
+                                setDeleteOpen(true)
+                              }}
+                              className="p-2 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                              title="Hapus Proyek"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </div>
 
-                              {/* Hapus Proyek */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
-                                onClick={() => {
-                                  setProjectToDelete(project)
-                                  setDeleteOpen(true)
-                                }}
-                                title="Hapus proyek dan file di bucket"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-
-                              {/* Buka Detail */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8"
-                                onClick={() => setSelectedProjectId(project.id)}
-                                title="Buka Detail Proyek"
-                              >
-                                <ChevronRight className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Confirm: Hapus Proyek dari Daftar */}
+      {/* Confirm: Hapus Proyek */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-destructive" />
@@ -435,14 +513,23 @@ export default function ProjectModule() {
             <AlertDialogDescription asChild>
               <div className="space-y-2.5 text-sm text-foreground/80">
                 <div>
-                  Apakah Anda yakin ingin menghapus proyek <strong>{projectToDelete?.name}</strong> ({projectToDelete?.projectCode})?
+                  Apakah Anda yakin ingin menghapus proyek{' '}
+                  <strong>{projectToDelete?.name}</strong> ({projectToDelete?.projectCode})?
                 </div>
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1">
-                  <div className="font-bold text-rose-900">⚠️ PEMBERSIHAN DATA & BUCKET STORAGE:</div>
+                <div className="p-3.5 bg-[#FFEFEF] dark:bg-rose-500/10 border border-rose-300/60 dark:border-rose-500/20 rounded-xl text-xs text-rose-900 dark:text-rose-200 space-y-1">
+                  <div className="font-bold">⚠️ PEMBERSIHAN DATA & BUCKET STORAGE:</div>
                   <ul className="list-disc list-inside space-y-0.5">
-                    <li>Semua file proyek di Supabase Storage (PO, Invoice, RAB, Surat Jalan, bukti transfer, dll) akan <strong>dihapus permanen dari bucket</strong>.</li>
-                    <li>Semua item, invoice, kuitansi, dan realisasi RAB proyek akan dihapus dari database.</li>
-                    <li>Tindakan ini <strong>tidak dapat dibatalkan</strong>.</li>
+                    <li>
+                      Semua file proyek di Supabase Storage (PO, Invoice, RAB, Surat Jalan, bukti
+                      transfer, dll) akan <strong>dihapus permanen dari bucket</strong>.
+                    </li>
+                    <li>
+                      Semua item, invoice, kuitansi, dan realisasi RAB proyek akan dihapus dari
+                      database.
+                    </li>
+                    <li>
+                      Tindakan ini <strong>tidak dapat dibatalkan</strong>.
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -459,7 +546,10 @@ export default function ProjectModule() {
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Menghapus & Membersihkan Bucket...</>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                  Menghapus & Membersihkan Bucket...
+                </>
               ) : (
                 'Hapus Proyek & File'
               )}

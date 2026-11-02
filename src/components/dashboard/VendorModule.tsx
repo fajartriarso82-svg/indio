@@ -109,9 +109,9 @@ const categoryLabels: Record<string, string> = {
 }
 
 const categoryColors: Record<string, string> = {
-  supplier: 'bg-primary/10 text-primary',
-  contractor: 'bg-amber-50 text-amber-700',
-  'service-provider': 'bg-emerald-50 text-emerald-700',
+  supplier: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+  contractor: 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400',
+  'service-provider': 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
 }
 
 export default function VendorModule() {
@@ -119,6 +119,7 @@ export default function VendorModule() {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeCatTab, setActiveCatTab] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [editing, setEditing] = useState<Vendor | null>(null)
@@ -142,12 +143,15 @@ export default function VendorModule() {
     fetchVendors()
   }, [fetchVendors])
 
-  const filteredVendors = vendors.filter(
-    (v) =>
+  const filteredVendors = vendors.filter((v) => {
+    if (activeCatTab === 'pkp' && !v.isPKP) return false
+    if (activeCatTab !== 'all' && activeCatTab !== 'pkp' && v.category !== activeCatTab) return false
+    return (
       v.name.toLowerCase().includes(search.toLowerCase()) ||
       (v.picName || '').toLowerCase().includes(search.toLowerCase()) ||
       (v.email || '').toLowerCase().includes(search.toLowerCase())
-  )
+    )
+  })
 
   const handleOpenCreate = () => {
     setEditing(null)
@@ -226,37 +230,107 @@ export default function VendorModule() {
     }
   }
 
+  const pkpCount = vendors.filter((v) => v.isPKP).length
+  const supplierCount = vendors.filter((v) => v.category === 'supplier').length
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Vendor</h2>
-          <p className="text-sm text-muted-foreground mt-1">Kelola daftar vendor Anda</p>
+      {/* ===== KUSALE 3 KPI CARDS ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Mitra Vendor</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {vendors.length}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              Aktif ▲
+            </span>
+          </div>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> Tambah Vendor
-        </Button>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#E6F8F3] dark:bg-emerald-500/15 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-[#10B981] dark:text-emerald-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Vendor PKP (Pajak PPN)</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {pkpCount}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]">
+              PKP
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-[#F97316] dark:text-orange-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Supplier Barang</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {supplierCount} Vendor
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="p-4 sm:px-6 pb-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Daftar Vendor</CardTitle>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Cari vendor..."
-                  className="pl-9 h-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
+      {/* ===== KUSALE TOOLBAR ===== */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+          {[
+            { key: 'all', label: 'All Vendors' },
+            { key: 'supplier', label: 'Supplier' },
+            { key: 'contractor', label: 'Kontraktor' },
+            { key: 'service-provider', label: 'Penyedia Layanan' },
+            { key: 'pkp', label: 'PKP' },
+          ].map((tab) => {
+            const active = activeCatTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveCatTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-all ${
+                  active
+                    ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:flex-initial sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="search"
+              placeholder="Search vendor, PIC, email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-card border border-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
           </div>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
+
+          <button
+            onClick={handleOpenCreate}
+            className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Vendor</span>
+          </button>
+        </div>
+      </div>
+
+      <Card className="rounded-2xl border-border shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+        <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-48">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -303,11 +377,11 @@ export default function VendorModule() {
                         <p className="text-muted-foreground">Pajak</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {vendor.isPKP ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                            <Badge variant="outline" className="bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0">
                               PKP
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] px-1.5 py-0">
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] px-1.5 py-0">
                               Non-PKP
                             </Badge>
                           )}
@@ -371,11 +445,11 @@ export default function VendorModule() {
                           <TableCell className="hidden sm:table-cell text-xs">
                             <div className="flex items-center gap-1.5">
                               {vendor.isPKP ? (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                                <Badge variant="outline" className="bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0">
                                   PKP
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] px-1.5 py-0">
+                                <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] px-1.5 py-0">
                                   Non-PKP
                                 </Badge>
                               )}

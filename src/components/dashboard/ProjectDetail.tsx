@@ -87,10 +87,10 @@ interface ProjectDetailProps {
 }
 
 const statusColors: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  IN_PROGRESS: 'bg-primary/10 text-primary',
-  COMPLETED: 'bg-emerald-50 text-emerald-700',
-  CANCELLED: 'bg-rose-50 text-rose-700',
+  DRAFT: 'bg-muted text-muted-foreground',
+  IN_PROGRESS: 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF]',
+  COMPLETED: 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400',
+  CANCELLED: 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400',
 }
 
 const formatCurrency = (value: number) =>

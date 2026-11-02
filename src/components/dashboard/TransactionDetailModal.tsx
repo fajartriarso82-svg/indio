@@ -203,7 +203,7 @@ export default function TransactionDetailModal({
             {transaction.paymentMethod !== 'CASH' && transaction.paymentProofUrl && (
               <Button 
                 variant="outline" 
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                className="border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => window.open(transaction.paymentProofUrl || undefined, '_blank')}
               >
                 Lihat Bukti Bayar
@@ -211,7 +211,7 @@ export default function TransactionDetailModal({
             )}
             <Button 
               variant="secondary" 
-              className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200"
+              className="bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 hover:opacity-90"
               onClick={() => window.open(`/print/transaction/${transaction.id}`, '_blank')}
             >
               <Printer className="w-4 h-4" />

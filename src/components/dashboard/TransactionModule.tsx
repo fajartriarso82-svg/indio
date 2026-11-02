@@ -1,13 +1,21 @@
-"use client"
-import { useState, useEffect } from "react"
-import { Plus, Search, FileDown, Eye, Loader2, Trash2 } from "lucide-react"
-import { format } from "date-fns"
-import { id } from "date-fns/locale"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useMemo } from 'react'
+import {
+  Plus,
+  Search,
+  FileDown,
+  Eye,
+  Loader2,
+  Trash2,
+  ShoppingBag,
+  Wallet,
+  Clock,
+  ChevronDown,
+  Receipt,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 import {
   Table,
   TableBody,
@@ -15,11 +23,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import * as XLSX from "xlsx"
+} from '@/components/ui/table'
+import * as XLSX from 'xlsx'
 
-import TransactionFormModal from "./TransactionFormModal"
-import TransactionDetailModal from "./TransactionDetailModal"
+import TransactionFormModal from './TransactionFormModal'
+import TransactionDetailModal from './TransactionDetailModal'
 
 interface TransactionItem {
   id: string
@@ -46,11 +54,14 @@ interface Transaction {
   items?: TransactionItem[]
 }
 
+type TxStatusTab = 'ALL' | 'SUCCESS' | 'PENDING' | 'CANCELLED'
+
 export default function TransactionModule() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>("desc")
+  const [search, setSearch] = useState('')
+  const [statusTab, setStatusTab] = useState<TxStatusTab>('ALL')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
@@ -82,17 +93,17 @@ export default function TransactionModule() {
     }).format(amount)
   }
 
-  const statusClass = (status: string) =>
+  const statusBadgeClass = (status: string) =>
     status === 'SUCCESS'
-      ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+      ? 'bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400'
       : status === 'PENDING'
-        ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
-        : 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20'
+      ? 'bg-[#FFF4E5] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400'
+      : 'bg-[#FFEFEF] text-[#E11D48] dark:bg-rose-500/15 dark:text-rose-400'
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (txId: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) return
     try {
-      const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) {
         fetchTransactions()
@@ -121,7 +132,7 @@ export default function TransactionModule() {
       'PPN (Rp)': t.tax,
       'Ongkir (Rp)': t.shippingCost,
       'Grand Total (Rp)': t.grandTotal,
-      'Status': t.status
+      'Status': t.status,
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(exportData)
@@ -132,191 +143,327 @@ export default function TransactionModule() {
     XLSX.writeFile(workbook, `Transaksi_Z-Indio_${dateStr}.xlsx`)
   }
 
-  const filteredTransactions = transactions
-    .filter(
-      (t) =>
-        t.transactionId.toLowerCase().includes(search.toLowerCase()) ||
-        (t.clientName && t.clientName.toLowerCase().includes(search.toLowerCase()))
-    )
-    .sort((a, b) => {
-      if (sortOrder === 'desc') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime()
-      }
-      return new Date(a.date).getTime() - new Date(b.date).getTime()
-    })
+  // KPI Summary
+  const kpi = useMemo(() => {
+    const totalOrders = transactions.length
+    const successTx = transactions.filter((t) => t.status === 'SUCCESS')
+    const totalRevenue = successTx.reduce((acc, t) => acc + (t.grandTotal || 0), 0)
+    const pendingCount = transactions.filter((t) => t.status === 'PENDING').length
+    return {
+      totalOrders,
+      successCount: successTx.length,
+      totalRevenue,
+      pendingCount,
+    }
+  }, [transactions])
+
+  const filteredTransactions = useMemo(() => {
+    return transactions
+      .filter((t) => {
+        if (statusTab !== 'ALL' && t.status !== statusTab) return false
+        const q = search.toLowerCase()
+        return (
+          !q ||
+          t.transactionId.toLowerCase().includes(q) ||
+          (t.clientName && t.clientName.toLowerCase().includes(q))
+        )
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'desc') {
+          return new Date(b.date).getTime() - new Date(a.date).getTime()
+        }
+        return new Date(a.date).getTime() - new Date(b.date).getTime()
+      })
+  }, [transactions, statusTab, search, sortOrder])
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">POS Transaksi</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Kelola penjualan toko, pesanan, dan faktur.
-          </p>
+      {/* ===== KUSALE 3 KPI SUMMARY CARDS ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] dark:bg-primary/15 flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Orders</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {kpi.totalOrders}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400">
+              {kpi.successCount} Selesai ▲
+            </span>
+          </div>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleExportExcel}>
-            <FileDown className="w-4 h-4" />
-            Export Excel
-          </Button>
-          <Button className="flex-1 sm:flex-none" onClick={() => setIsModalOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Transaksi Baru
-          </Button>
+
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-10 h-10 rounded-xl bg-[#E6F8F3] dark:bg-emerald-500/15 flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-[#10B981] dark:text-emerald-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Total Revenue</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[22px] sm:text-[26px] font-extrabold text-foreground tracking-tight leading-none truncate">
+              {formatCurrency(kpi.totalRevenue)}
+            </p>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#E6F8F3] text-[#0D9488] dark:bg-emerald-500/15 dark:text-emerald-400 shrink-0">
+              Lunas ▲
+            </span>
+          </div>
+        </div>
+
+        <div
+          onClick={() => setStatusTab('PENDING')}
+          className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:border-primary/30 transition-all"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#FFF3E8] dark:bg-orange-500/15 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-[#F97316] dark:text-orange-400" />
+          </div>
+          <p className="text-[13px] font-medium text-muted-foreground mt-4">Pending Orders</p>
+          <div className="flex items-end justify-between gap-2 mt-1.5">
+            <p className="text-[28px] sm:text-[30px] font-extrabold text-foreground tracking-tight leading-none">
+              {kpi.pendingCount} Orders
+            </p>
+          </div>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="p-4 sm:px-6 pb-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Daftar Transaksi</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari ID atau Nama Klien..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
+      {/* ===== KUSALE TOOLBAR ===== */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* Segmented Tabs */}
+        <div className="inline-flex items-center p-1 rounded-xl bg-card border border-border shadow-2xs overflow-x-auto max-w-full">
+          {(
+            [
+              { key: 'ALL', label: 'All Orders' },
+              { key: 'SUCCESS', label: 'Completed' },
+              { key: 'PENDING', label: 'Pending' },
+              { key: 'CANCELLED', label: 'Cancelled' },
+            ] as { key: TxStatusTab; label: string }[]
+          ).map((tab) => {
+            const active = statusTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setStatusTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-all ${
+                  active
+                    ? 'bg-[#EEF0FF] text-primary dark:bg-primary/20 dark:text-[#8190FF] font-semibold'
+                    : 'text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Search & Actions */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:flex-initial sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search orders or customer..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-card border border-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
           </div>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filteredTransactions.length === 0 ? (
-            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4">
-              <p className="font-medium text-foreground">Tidak ada transaksi ditemukan</p>
-              <p className="text-sm">Buat transaksi baru untuk memulai.</p>
-            </div>
-          ) : (
-            <>
-              {/* ===== MOBILE: Card list (md ke bawah) ===== */}
-              <div className="md:hidden divide-y divide-border border-t border-border">
-                {filteredTransactions.map((tx) => (
-                  <div key={tx.id} className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{tx.transactionId}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {format(new Date(tx.date), 'dd MMM yyyy, HH:mm', { locale: id })}
-                        </p>
-                      </div>
-                      <Badge className={`shrink-0 ${statusClass(tx.status)}`}>{tx.status}</Badge>
-                    </div>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">Pelanggan</p>
-                        <p className="text-sm truncate">{tx.clientName || 'Pelanggan Umum'}</p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0">{tx.paymentMethod}</Badge>
-                    </div>
+          <button
+            onClick={handleExportExcel}
+            className="h-10 px-3.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-[13px] font-medium inline-flex items-center gap-2 transition-colors"
+          >
+            <FileDown className="w-4 h-4 text-muted-foreground" />
+            <span>Export</span>
+          </button>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                        <p className="font-semibold text-sm">{formatCurrency(tx.grandTotal)}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9"
-                          onClick={() => {
-                            setSelectedTransaction(tx)
-                            setDetailModalOpen(true)
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                          Detail
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(tx.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Transaksi Baru</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ===== KUSALE DATA TABLE ===== */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {loading ? (
+          <div className="flex items-center justify-center h-56">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="h-52 flex flex-col items-center justify-center text-muted-foreground px-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+              <Receipt className="w-6 h-6" />
+            </div>
+            <p className="font-bold text-foreground text-sm">Tidak ada transaksi ditemukan</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Klik &apos;Transaksi Baru&apos; untuk mulai mencatat penjualan.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-border">
+              {filteredTransactions.map((tx) => (
+                <div key={tx.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-primary">{tx.transactionId}</p>
+                      <p className="font-bold text-sm text-foreground mt-0.5">
+                        {tx.clientName || 'Pelanggan Umum'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(tx.date), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusBadgeClass(
+                        tx.status
+                      )}`}
+                    >
+                      {tx.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{tx.paymentMethod}</p>
+                      <p className="font-bold text-sm text-foreground">
+                        {formatCurrency(tx.grandTotal)}
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => {
+                          setSelectedTransaction(tx)
+                          setDetailModalOpen(true)
+                        }}
+                        className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(tx.id)}
+                        className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* ===== DESKTOP: Tabel (md ke atas) ===== */}
-              <div className="hidden md:block border rounded-md overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="min-w-[120px]">ID Transaksi</TableHead>
-                        <TableHead
-                          className="min-w-[150px] cursor-pointer"
-                          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        >
-                          Tanggal {sortOrder === 'asc' ? '↑' : '↓'}
-                        </TableHead>
-                        <TableHead className="min-w-[120px]">Pelanggan</TableHead>
-                        <TableHead className="min-w-[120px]">Metode Bayar</TableHead>
-                        <TableHead className="text-right min-w-[80px]">Total</TableHead>
-                        <TableHead className="text-center min-w-[80px]">Status</TableHead>
-                        <TableHead className="min-w-[80px] text-center">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTransactions.map((tx) => (
-                        <TableRow key={tx.id}>
-                          <TableCell className="font-medium">{tx.transactionId}</TableCell>
-                          <TableCell>
-                            {format(new Date(tx.date), 'dd MMM yyyy, HH:mm', { locale: id })}
-                          </TableCell>
-                          <TableCell>{tx.clientName || 'Pelanggan Umum'}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{tx.paymentMethod}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(tx.grandTotal)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge className={statusClass(tx.status)}>{tx.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-blue-500"
-                                onClick={() => {
-                                  setSelectedTransaction(tx)
-                                  setDetailModalOpen(true)
-                                }}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-rose-500 hover:bg-rose-100"
-                                onClick={() => handleDelete(tx.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table className="whitespace-nowrap">
+                <TableHeader>
+                  <TableRow className="border-b border-border/80 hover:bg-transparent">
+                    <TableHead className="py-4 pl-6 font-bold text-[13px] text-foreground">
+                      Customer
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Order ID
+                    </TableHead>
+                    <TableHead
+                      className="py-4 font-bold text-[13px] text-foreground cursor-pointer"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        Date
+                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                      </span>
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Payment
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Total
+                    </TableHead>
+                    <TableHead className="py-4 font-bold text-[13px] text-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="py-4 pr-6 text-right font-bold text-[13px] text-foreground">
+                      Action
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.map((tx) => (
+                    <TableRow
+                      key={tx.id}
+                      className="border-b border-border/60 hover:bg-muted/40 transition-colors"
+                    >
+                      <TableCell className="py-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-muted border border-border/60 flex items-center justify-center shrink-0">
+                            <Receipt className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-[13.5px] text-foreground">
+                              {tx.clientName || 'Pelanggan Umum'}
+                            </p>
+                            <p className="text-[11.5px] text-muted-foreground">
+                              {tx.items?.length ? `${tx.items.length} Item` : 'Transaksi POS'}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-[13px] font-semibold text-primary">
+                          {tx.transactionId}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 text-[13px] text-muted-foreground font-medium">
+                        {format(new Date(tx.date), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="px-2.5 py-1 rounded-md bg-muted text-foreground text-xs font-medium">
+                          {tx.paymentMethod}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 font-bold text-[13.5px] text-foreground">
+                        {formatCurrency(tx.grandTotal)}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${statusBadgeClass(
+                            tx.status
+                          )}`}
+                        >
+                          {tx.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 pr-6 text-right">
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedTransaction(tx)
+                              setDetailModalOpen(true)
+                            }}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(tx.id)}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                            title="Hapus Transaksi"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </div>
 
       <TransactionFormModal
         open={isModalOpen}
