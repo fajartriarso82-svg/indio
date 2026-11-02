@@ -251,6 +251,21 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
   const [deleteRealisasiId, setDeleteRealisasiId] = useState<string | null>(null)
   const [deletingRealisasi, setDeletingRealisasi] = useState(false)
 
+  // Edit Realisasi
+  const [editRealisasiModal, setEditRealisasiModal] = useState<any | null>(null)
+  const [editRealisasiForm, setEditRealisasiForm] = useState({
+    vendorNama: '',
+    vendorId: '',
+    nomorInvoice: '',
+    tanggalInvoice: '',
+    tanggalBayar: '',
+    jumlah: '',
+    statusBayar: 'sudah_dibayar',
+    keterangan: '',
+  })
+  const [editRealisasiVendorType, setEditRealisasiVendorType] = useState<'EXISTING' | 'NEW'>('NEW')
+  const [submittingEditRealisasi, setSubmittingEditRealisasi] = useState(false)
+
   const isInitialLoad = useRef(true)
 
   const fetchData = useCallback(async (isSilent = false) => {
@@ -756,6 +771,60 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
     }
   }
 
+  const openEditRealisasiModal = (r: any) => {
+    setEditRealisasiModal(r)
+    const hasVendorId = Boolean(r.vendorId && vendorOptions.some((v) => v.id === r.vendorId))
+    setEditRealisasiVendorType(hasVendorId ? 'EXISTING' : 'NEW')
+    setEditRealisasiForm({
+      vendorNama: r.vendorNama || r.vendor?.name || '',
+      vendorId: r.vendorId || '',
+      nomorInvoice: r.nomorInvoice || '',
+      tanggalInvoice: r.tanggalInvoice ? new Date(r.tanggalInvoice).toISOString().split('T')[0] : '',
+      tanggalBayar: r.tanggalBayar ? new Date(r.tanggalBayar).toISOString().split('T')[0] : (r.statusBayar === 'sudah_dibayar' ? new Date().toISOString().split('T')[0] : ''),
+      jumlah: formatThousandSeparator(String(r.jumlah || 0)),
+      statusBayar: r.statusBayar || 'sudah_dibayar',
+      keterangan: r.keterangan || '',
+    })
+  }
+
+  const handleUpdateRealisasi = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editRealisasiModal) return
+    setSubmittingEditRealisasi(true)
+    try {
+      const rawJumlah = parseFormattedNumber(editRealisasiForm.jumlah)
+      const selectedVendor = editRealisasiVendorType === 'EXISTING' ? vendorOptions.find((v) => v.id === editRealisasiForm.vendorId) : null
+      const payload = {
+        vendorNama: editRealisasiVendorType === 'EXISTING' ? selectedVendor?.name || null : (editRealisasiForm.vendorNama || null),
+        vendorId: editRealisasiVendorType === 'EXISTING' ? (editRealisasiForm.vendorId || null) : null,
+        nomorInvoice: editRealisasiForm.nomorInvoice || null,
+        tanggalInvoice: editRealisasiForm.tanggalInvoice || null,
+        tanggalBayar: editRealisasiForm.statusBayar === 'sudah_dibayar' ? (editRealisasiForm.tanggalBayar || new Date().toISOString()) : null,
+        jumlah: rawJumlah,
+        statusBayar: editRealisasiForm.statusBayar,
+        keterangan: editRealisasiForm.keterangan || null,
+      }
+
+      const res = await fetch(`/api/projects/${projectId}/rab-realisasi/${editRealisasiModal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Berhasil', description: 'Transaksi realisasi berhasil diperbarui.' })
+        setEditRealisasiModal(null)
+        await fetchData(true)
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal memperbarui transaksi', variant: 'destructive' })
+    } finally {
+      setSubmittingEditRealisasi(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -875,6 +944,15 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         <span className={`font-semibold tabular-nums text-xs ${topik.totalRealisasiTopik > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}>
                           {formatCurrency(topik.totalRealisasiTopik)}
                         </span>
+                        {topik.statusPembayaranTopik !== 'LUNAS' && topik.totalRealisasiTopik > 0 && (topik.totalRencanaTopik - topik.totalRealisasiTopik) > 0 && (
+                          <>
+                            <span className="text-muted-foreground/30 font-light mx-0.5">|</span>
+                            <span className="text-amber-600 dark:text-amber-400 text-[11px] font-medium">Kurang:</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400 tabular-nums text-xs">
+                              {formatCurrency(topik.totalRencanaTopik - topik.totalRealisasiTopik)}
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       {/* Status Pembayaran Topik (Badge) */}
@@ -898,8 +976,8 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                         }
                         if (status === 'SEBAGIAN') {
                           return (
-                            <Badge variant="outline" className="text-blue-900 bg-blue-50 border-blue-300 dark:text-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30 text-xs font-semibold px-2.5 py-0.5 gap-1 shadow-xs h-6">
-                              Sebagian ({formatCurrency(topik.totalRealisasiLunasTopik || 0)})
+                            <Badge variant="outline" className="text-amber-800 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 text-xs font-semibold px-2.5 py-0.5 gap-1 shadow-xs h-6">
+                              Sebagian (DP)
                             </Badge>
                           )
                         }
@@ -994,7 +1072,31 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                             <div key={r.id} className="p-2.5 rounded bg-background border border-emerald-200/80 shadow-2xs text-xs space-y-1">
                               <div className="flex items-center justify-between">
                                 <span className="font-semibold truncate text-foreground">{r.vendor?.name || r.vendorNama || 'Pembayaran Topik'}</span>
-                                <span className="font-bold text-emerald-600">{formatCurrency(r.jumlah)}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="font-bold text-emerald-600">{formatCurrency(r.jumlah)}</span>
+                                  {!isReadOnly && (
+                                    <div className="flex items-center gap-0.5 ml-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                        onClick={() => openEditRealisasiModal(r)}
+                                        title="Edit pembayaran topik ini jika ada kesalahan"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => setDeleteRealisasiId(r.id)}
+                                        title="Hapus pembayaran topik ini"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                 <span>📅 {formatDate(r.tanggalBayar || r.tanggalInvoice)}</span>
@@ -1140,18 +1242,26 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                       </div>
                                     </div>
                                   </div>
-                                  {!isReadOnly && (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 text-xs gap-1"
-                                        onClick={() => openAddRealisasi(item)}
-                                        title="Bayar / catat realisasi pengeluaran item ini"
-                                      >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Realisasi
-                                      </Button>
+                                  {!isReadOnly && (() => {
+                                    const rList = item.realisasi || []
+                                    const unpaid = rList.filter((r) => r.statusBayar !== 'sudah_dibayar').length
+                                    const isItemLunas =
+                                      topik.statusPembayaranTopik === 'LUNAS' ||
+                                      item.statusBayarItem === 'lunas' ||
+                                      (rList.length > 0 && unpaid === 0)
+                                    return (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-8 text-xs gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                          disabled={isItemLunas}
+                                          onClick={() => openAddRealisasi(item)}
+                                          title={isItemLunas ? "Pembayaran item sudah lunas. Edit transaksi jika ada kesalahan." : "Bayar / catat realisasi pengeluaran item ini"}
+                                        >
+                                          <Plus className="w-3.5 h-3.5" />
+                                          Realisasi
+                                        </Button>
                                       <Button
                                         size="sm"
                                         variant="ghost"
@@ -1174,7 +1284,8 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                         <Edit className="w-3.5 h-3.5" />
                                       </Button>
                                     </div>
-                                  )}
+                                  )
+                                })()}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2 text-xs bg-card/60 p-2.5 rounded-lg border border-border/60">
@@ -1271,6 +1382,28 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                               >
                                                 Konfirmasi Bayar
                                               </Button>
+                                            )}
+                                            {!isReadOnly && (
+                                              <div className="flex items-center gap-1 ml-auto">
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                  onClick={() => openEditRealisasiModal(r)}
+                                                  title="Edit transaksi ini jika ada kesalahan"
+                                                >
+                                                  <Edit className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                  onClick={() => setDeleteRealisasiId(r.id)}
+                                                  title="Hapus transaksi ini"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                              </div>
                                             )}
                                           </div>
                                         </div>
@@ -1417,18 +1550,27 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                          {!isReadOnly && (
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="h-8 text-xs px-2.5 gap-1"
-                                              onClick={() => openAddRealisasi(item)}
-                                              title="Catat pengeluaran / invoice vendor untuk item ini"
-                                            >
-                                              <Plus className="w-3.5 h-3.5 mr-0.5" />
-                                              Realisasi
-                                            </Button>
-                                          )}
+                                          {!isReadOnly && (() => {
+                                            const realisasiList = item.realisasi || []
+                                            const unpaidCount = realisasiList.filter((r) => r.statusBayar !== 'sudah_dibayar').length
+                                            const isItemLunas =
+                                              topik.statusPembayaranTopik === 'LUNAS' ||
+                                              item.statusBayarItem === 'lunas' ||
+                                              (realisasiList.length > 0 && unpaidCount === 0)
+                                            return (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs px-2.5 gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                disabled={isItemLunas}
+                                                onClick={() => openAddRealisasi(item)}
+                                                title={isItemLunas ? "Pembayaran item sudah lunas. Edit transaksi di bawah jika ada kesalahan." : "Catat pengeluaran / invoice vendor untuk item ini"}
+                                              >
+                                                <Plus className="w-3.5 h-3.5 mr-0.5" />
+                                                Realisasi
+                                              </Button>
+                                            )
+                                          })()}
                                           {!isReadOnly && (
                                             <>
                                               <Button
@@ -1553,15 +1695,26 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                                       </Button>
                                                     )}
                                                     {!isReadOnly && (
-                                                      <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                        onClick={() => setDeleteRealisasiId(r.id)}
-                                                        title="Hapus transaksi ini"
-                                                      >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                      </Button>
+                                                      <>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="ghost"
+                                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                          onClick={() => openEditRealisasiModal(r)}
+                                                          title="Edit transaksi realisasi ini jika ada kesalahan"
+                                                        >
+                                                          <Edit className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="ghost"
+                                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                          onClick={() => setDeleteRealisasiId(r.id)}
+                                                          title="Hapus transaksi ini"
+                                                        >
+                                                          <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                      </>
                                                     )}
                                                   </div>
                                                 </div>
@@ -2556,6 +2709,145 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ─── MODAL: Edit Transaksi Realisasi ─── */}
+      <Dialog open={!!editRealisasiModal} onOpenChange={(open) => { if (!open) setEditRealisasiModal(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Edit className="w-4 h-4 text-primary" />
+              Edit Pembayaran / Realisasi
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Perbaiki data transaksi pengeluaran atau pembayaran jika terdapat kesalahan input.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateRealisasi} className="space-y-3 pt-1">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Vendor / Toko / Penerima Dana</Label>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setEditRealisasiVendorType('EXISTING')}
+                    className={`hover:underline ${editRealisasiVendorType === 'EXISTING' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                  >
+                    Pilih Database
+                  </button>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditRealisasiVendorType('NEW')}
+                    className={`hover:underline ${editRealisasiVendorType === 'NEW' ? 'font-bold text-primary' : 'text-muted-foreground'}`}
+                  >
+                    Input Bebas
+                  </button>
+                </div>
+              </div>
+
+              {editRealisasiVendorType === 'EXISTING' ? (
+                <Select
+                  value={editRealisasiForm.vendorId}
+                  onValueChange={(val) => setEditRealisasiForm((prev) => ({ ...prev, vendorId: val }))}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Pilih vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendorOptions.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="h-9 text-xs"
+                  value={editRealisasiForm.vendorNama}
+                  onChange={(e) => setEditRealisasiForm((prev) => ({ ...prev, vendorNama: e.target.value }))}
+                  placeholder="Nama toko / vendor / perorangan"
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nomor Invoice / Nota</Label>
+                <Input
+                  className="h-9 text-xs"
+                  value={editRealisasiForm.nomorInvoice}
+                  onChange={(e) => setEditRealisasiForm((prev) => ({ ...prev, nomorInvoice: e.target.value }))}
+                  placeholder="Contoh: INV-001"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nominal Pembayaran (Rp) *</Label>
+                <Input
+                  className="h-9 text-xs font-semibold"
+                  value={editRealisasiForm.jumlah}
+                  onChange={(e) => setEditRealisasiForm((prev) => ({ ...prev, jumlah: formatThousandSeparator(e.target.value) }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Status Pembayaran</Label>
+                <Select
+                  value={editRealisasiForm.statusBayar}
+                  onValueChange={(val) => setEditRealisasiForm((prev) => ({ ...prev, statusBayar: val }))}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sudah_dibayar">Sudah Dibayar (Lunas)</SelectItem>
+                    <SelectItem value="belum_dibayar">Menunggu Bayar (Request)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tanggal Transaksi / Bayar</Label>
+                <Input
+                  type="date"
+                  className="h-9 text-xs"
+                  value={editRealisasiForm.statusBayar === 'sudah_dibayar' ? editRealisasiForm.tanggalBayar : editRealisasiForm.tanggalInvoice}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setEditRealisasiForm((prev) => ({
+                      ...prev,
+                      tanggalInvoice: v,
+                      tanggalBayar: v,
+                    }))
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Keterangan / Catatan</Label>
+              <Textarea
+                rows={2}
+                className="text-xs"
+                value={editRealisasiForm.keterangan}
+                onChange={(e) => setEditRealisasiForm((prev) => ({ ...prev, keterangan: e.target.value }))}
+                placeholder="Catatan tambahan pembayaran..."
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditRealisasiModal(null)}>
+                Batal
+              </Button>
+              <Button type="submit" size="sm" className="bg-primary text-white" disabled={submittingEditRealisasi}>
+                {submittingEditRealisasi ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── CONFIRM: Hapus Realisasi ─── */}
       <AlertDialog open={!!deleteRealisasiId} onOpenChange={(open) => { if (!open) setDeleteRealisasiId(null) }}>
