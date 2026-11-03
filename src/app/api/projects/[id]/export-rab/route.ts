@@ -25,6 +25,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { projectId, isDeleted: false },
       orderBy: { urutan: 'asc' },
       include: {
+        realisasi: {
+          where: { isAdditional: false },
+          include: { vendor: { select: { name: true } } },
+        },
         items: {
           orderBy: { urutan: 'asc' },
           include: {
@@ -56,54 +60,84 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const headerFill: ExcelJS.Fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF1E3A8A' }, // Navy Blue
+      fgColor: { argb: 'FF1E293B' }, // Slate 800
     }
     const topicFill: ExcelJS.Fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFE2E8F0' }, // Slate 200
+      fgColor: { argb: 'FFF1F5F9' }, // Slate 100
     }
-    const overBudgetFill: ExcelJS.Fill = {
+    const totalFill: ExcelJS.Fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFFFE4E6' }, // Rose 100
+      fgColor: { argb: 'FFF8FAFC' }, // Slate 50
     }
-    const headerFont = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
-    const boldFont = { name: 'Calibri', size: 11, bold: true }
-    const regularFont = { name: 'Calibri', size: 11 }
-    const rupiahFormat = '"Rp"#,##0;("Rp"#,##0);"-"'
+
+    const headerFont = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } }
+    const boldFont = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF0F172A' } }
+    const regularFont = { name: 'Calibri', size: 10.5, color: { argb: 'FF0F172A' } }
+    const numberFormat = '#,##0;[Red]-#,##0;"-"'
+
+    const thinBorder: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    }
+
+    const topicBorder: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    }
+
+    const totalBorder: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin', color: { argb: 'FF0F172A' } },
+      bottom: { style: 'double', color: { argb: 'FF0F172A' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    }
 
     // ==========================================
-    // SHEET 1: RAB Rencana vs Realisasi
+    // SHEET 1: Rekapitulasi RAB
     // ==========================================
-    const ws1 = workbook.addWorksheet('RAB Rencana vs Realisasi', {
+    const ws1 = workbook.addWorksheet('Rekapitulasi RAB', {
       views: [{ state: 'frozen', ySplit: 5 }],
     })
 
-    // Project Info Banner
-    ws1.mergeCells('A1:I1')
-    ws1.getCell('A1').value = `RENCANA ANGGARAN BIAYA (RAB) — ${project.name.toUpperCase()}`
-    ws1.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } }
+    // Project Info Banner (Rows 1-3)
+    ws1.mergeCells('A1:K1')
+    ws1.getCell('A1').value = 'REKAPITULASI RENCANA ANGGARAN BIAYA (RAB)'
+    ws1.getCell('A1').font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF0F172A' } }
+    ws1.getCell('A1').alignment = { vertical: 'middle', horizontal: 'left' }
 
-    ws1.mergeCells('A2:I2')
-    ws1.getCell('A2').value = `Kode Proyek: ${project.projectCode} | Klien: ${project.client?.name || '—'} | Tipe: ${project.type} | Status: ${project.status}`
-    ws1.getCell('A2').font = { name: 'Calibri', size: 10, italic: true }
+    ws1.mergeCells('A2:K2')
+    ws1.getCell('A2').value = `PROYEK: ${project.name} (${project.projectCode})`
+    ws1.getCell('A2').font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF334155' } }
+    ws1.getCell('A2').alignment = { vertical: 'middle', horizontal: 'left' }
 
-    ws1.mergeCells('A3:I3')
-    ws1.getCell('A3').value = `Nilai Kontrak: Rp ${(project.contractValue || 0).toLocaleString('id-ID')}${project.ppnFromClient ? ' (Include PPN)' : ''}`
-    ws1.getCell('A3').font = { name: 'Calibri', size: 11, bold: true }
+    ws1.mergeCells('A3:K3')
+    ws1.getCell('A3').value = `Klien: ${project.client?.name || '—'} | Nilai Kontrak: Rp ${(project.contractValue || 0).toLocaleString('id-ID')}${project.ppnFromClient ? ' (Include PPN)' : ''}`
+    ws1.getCell('A3').font = { name: 'Calibri', size: 10.5, color: { argb: 'FF64748B' } }
+    ws1.getCell('A3').alignment = { vertical: 'middle', horizontal: 'left' }
+
+    // Row 4: Empty spacing
+    ws1.getRow(4).height = 10
 
     // Header Row (Row 5)
     const headers1 = [
       'No',
-      'Topik / Uraian Item RAB',
-      'Satuan',
+      'Deskripsi / Nama Item',
       'Volume',
-      'Harga Satuan (Rp)',
-      'Total Rencana (Rp)',
-      'Realisasi Biaya (Rp)',
-      'Sisa Anggaran (Rp)',
-      '% Serap / Status',
+      'Satuan',
+      'Harga Satuan',
+      'Total',
+      'Jumlah',
+      'Realisasi',
+      'Kurang',
+      'Vendor Terkait',
+      'Status',
     ]
 
     const headerRow1 = ws1.getRow(5)
@@ -112,112 +146,252 @@ export async function GET(request: NextRequest, context: RouteContext) {
       cell.value = h
       cell.fill = headerFill
       cell.font = headerFont
-      cell.alignment = { vertical: 'middle', horizontal: idx === 1 ? 'left' : 'center', wrapText: true }
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: idx === 1 ? 'left' : 'center',
+        wrapText: true,
+      }
+      cell.border = thinBorder
     })
-    headerRow1.height = 28
+    headerRow1.height = 26
 
     ws1.columns = [
-      { width: 6 },  // No
-      { width: 38 }, // Topik / Item
-      { width: 10 }, // Satuan
-      { width: 10 }, // Volume
-      { width: 18 }, // Harga Satuan
-      { width: 20 }, // Total Rencana
-      { width: 20 }, // Realisasi
-      { width: 20 }, // Sisa
-      { width: 16 }, // Status
+      { width: 6 },  // A: No
+      { width: 44 }, // B: Deskripsi / Nama Item
+      { width: 10 }, // C: Volume
+      { width: 10 }, // D: Satuan
+      { width: 16 }, // E: Harga Satuan
+      { width: 18 }, // F: Total
+      { width: 18 }, // G: Jumlah
+      { width: 18 }, // H: Realisasi
+      { width: 18 }, // I: Kurang
+      { width: 24 }, // J: Vendor Terkait
+      { width: 16 }, // K: Status
     ]
 
     let currentRow1 = 6
+    let itemCounter = 1
+    const topicRows: number[] = []
+
     let totalRencanaAll = 0
     let totalRealisasiAll = 0
 
-    topiks.forEach((topik, tIdx) => {
-      // Topik row
-      const topicRow = ws1.getRow(currentRow1)
-      ws1.mergeCells(`A${currentRow1}:B${currentRow1}`)
-      topicRow.getCell(1).value = `${tIdx + 1}. ${topik.nama.toUpperCase()}`
-      topicRow.font = boldFont
-      for (let c = 1; c <= 9; c++) {
-        topicRow.getCell(c).fill = topicFill
+    topiks.forEach((topik) => {
+      const topicRowIdx = currentRow1
+      topicRows.push(topicRowIdx)
+      const tRow = ws1.getRow(topicRowIdx)
+      tRow.height = 22
+
+      // Topik Title in Column B
+      tRow.getCell(2).value = `[TOPIK] ${topik.nama}`
+      tRow.getCell(2).font = boldFont
+
+      // Topik realisasi calculation
+      const realisasiItems = topik.items.flatMap((i) => i.realisasi || [])
+      const realisasiTopikLangsung = topik.realisasi || []
+      const semuaRealisasiTopik = [...realisasiItems, ...realisasiTopikLangsung]
+
+      const totalRealisasiTopik = semuaRealisasiTopik.reduce((s, r) => s + (Number(r.jumlah) || 0), 0)
+      const totalLunasTopik = semuaRealisasiTopik
+        .filter((r) => r.statusBayar === 'sudah_dibayar')
+        .reduce((s, r) => s + (Number(r.jumlah) || 0), 0)
+      const unpaidCountTopik = semuaRealisasiTopik.filter((r) => r.statusBayar !== 'sudah_dibayar').length
+
+      const totalRencanaTopik = topik.items.reduce(
+        (s, i) => s + (Number(i.volumeRencana) || 0) * (Number(i.hargaSatuanRencana) || 0),
+        0
+      )
+
+      totalRencanaAll += totalRencanaTopik
+      totalRealisasiAll += totalRealisasiTopik
+
+      let statusLabel = ''
+      if (unpaidCountTopik > 0) {
+        statusLabel = 'Menunggu Bayar'
+      } else if (totalLunasTopik > 0) {
+        if (
+          (totalRencanaTopik > 0 && totalLunasTopik >= totalRencanaTopik) ||
+          (topik.items.length > 0 &&
+            topik.items.every(
+              (i) => i.realisasi && i.realisasi.length > 0 && i.realisasi.every((r) => r.statusBayar === 'sudah_dibayar')
+            ))
+        ) {
+          statusLabel = 'Lunas'
+        } else {
+          statusLabel = 'Sebagian (DP)'
+        }
+      }
+
+      // Vendor for Topic Row
+      let topicVendor = ''
+      if (realisasiTopikLangsung.length > 0) {
+        topicVendor = realisasiTopikLangsung[0].vendor?.name || realisasiTopikLangsung[0].vendorNama || ''
+      } else if (topik.items.some((i) => i.realisasi && i.realisasi.length > 0)) {
+        const vNames = Array.from(
+          new Set(
+            topik.items
+              .flatMap((i) => i.realisasi || [])
+              .map((r) => r.vendor?.name || r.vendorNama)
+              .filter(Boolean)
+          )
+        )
+        if (vNames.length > 0) topicVendor = vNames.join(', ')
       }
 
       const itemStartRow = currentRow1 + 1
 
-      topik.items.forEach((item, iIdx) => {
+      // Render Item Rows
+      topik.items.forEach((item) => {
         currentRow1++
-        const rRow = ws1.getRow(currentRow1)
-        const jumlahRencana = item.volumeRencana * item.hargaSatuanRencana
-        const realisasiItem = item.realisasi.reduce((sum, r) => sum + r.jumlah, 0)
-        const sisa = jumlahRencana - realisasiItem
-        const pct = jumlahRencana > 0 ? (realisasiItem / jumlahRencana) * 100 : 0
-        const isOver = realisasiItem > jumlahRencana
+        const iRow = ws1.getRow(currentRow1)
+        iRow.height = 20
 
-        totalRencanaAll += jumlahRencana
-        totalRealisasiAll += realisasiItem
+        const vol = Number(item.volumeRencana) || 0
+        const harga = Number(item.hargaSatuanRencana) || 0
+        const totalItem = vol * harga
 
-        rRow.getCell(1).value = `${tIdx + 1}.${iIdx + 1}`
-        rRow.getCell(1).alignment = { horizontal: 'center' }
-        rRow.getCell(2).value = `   ${item.namaItem}`
-        rRow.getCell(3).value = item.satuan
-        rRow.getCell(3).alignment = { horizontal: 'center' }
-        rRow.getCell(4).value = item.volumeRencana
-        rRow.getCell(4).numFmt = '#,##0.##'
-        rRow.getCell(5).value = item.hargaSatuanRencana
-        rRow.getCell(5).numFmt = rupiahFormat
-        rRow.getCell(6).value = jumlahRencana
-        rRow.getCell(6).numFmt = rupiahFormat
-        rRow.getCell(7).value = realisasiItem
-        rRow.getCell(7).numFmt = rupiahFormat
-        rRow.getCell(8).value = sisa
-        rRow.getCell(8).numFmt = rupiahFormat
-        rRow.getCell(9).value = isOver ? `OVER (${pct.toFixed(0)}%)` : `${pct.toFixed(0)}%`
-        rRow.getCell(9).alignment = { horizontal: 'center' }
+        let itemVendor = '—'
+        if (item.realisasi && item.realisasi.length > 0) {
+          const v = item.realisasi[0].vendor?.name || item.realisasi[0].vendorNama
+          if (v) itemVendor = v
+        }
 
-        if (isOver) {
-          for (let c = 1; c <= 9; c++) {
-            rRow.getCell(c).fill = overBudgetFill
-          }
-          rRow.getCell(9).font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFBE123C' } }
-        } else {
-          rRow.font = regularFont
+        iRow.getCell(1).value = itemCounter++
+        iRow.getCell(1).alignment = { horizontal: 'center' }
+
+        iRow.getCell(2).value = item.namaItem
+        iRow.getCell(2).alignment = { horizontal: 'left' }
+
+        iRow.getCell(3).value = vol
+        iRow.getCell(3).alignment = { horizontal: 'center' }
+        iRow.getCell(3).numFmt = '#,##0.##'
+
+        iRow.getCell(4).value = item.satuan
+        iRow.getCell(4).alignment = { horizontal: 'center' }
+
+        iRow.getCell(5).value = harga
+        iRow.getCell(5).alignment = { horizontal: 'right' }
+        iRow.getCell(5).numFmt = numberFormat
+
+        // Formula Total: =C{row}*E{row}
+        iRow.getCell(6).value = {
+          formula: `C${currentRow1}*E${currentRow1}`,
+          result: totalItem,
+        }
+        iRow.getCell(6).alignment = { horizontal: 'right' }
+        iRow.getCell(6).numFmt = numberFormat
+
+        iRow.getCell(10).value = itemVendor
+        iRow.getCell(10).alignment = { horizontal: 'center' }
+
+        for (let c = 1; c <= 11; c++) {
+          iRow.getCell(c).border = thinBorder
+          iRow.getCell(c).font = regularFont
         }
       })
 
-      // Subtotal per topik
       const itemEndRow = currentRow1
+
+      // Topic Row Formulas & Values
       if (topik.items.length > 0) {
-        topicRow.getCell(6).value = { formula: `SUM(F${itemStartRow}:F${itemEndRow})`, result: topik.items.reduce((s, i) => s + i.volumeRencana * i.hargaSatuanRencana, 0) }
-        topicRow.getCell(6).numFmt = rupiahFormat
-        topicRow.getCell(7).value = { formula: `SUM(G${itemStartRow}:G${itemEndRow})`, result: topik.items.reduce((s, i) => s + i.realisasi.reduce((sr, r) => sr + r.jumlah, 0), 0) }
-        topicRow.getCell(7).numFmt = rupiahFormat
-        topicRow.getCell(8).value = { formula: `F${currentRow1 - topik.items.length}-G${currentRow1 - topik.items.length}`, result: 0 }
-        topicRow.getCell(8).numFmt = rupiahFormat
+        tRow.getCell(7).value = {
+          formula: `SUM(F${itemStartRow}:F${itemEndRow})`,
+          result: totalRencanaTopik,
+        }
+      } else {
+        tRow.getCell(7).value = 0
+      }
+      tRow.getCell(7).alignment = { horizontal: 'right' }
+      tRow.getCell(7).numFmt = numberFormat
+      tRow.getCell(7).font = boldFont
+
+      if (totalRealisasiTopik > 0) {
+        tRow.getCell(8).value = totalRealisasiTopik
+        tRow.getCell(8).alignment = { horizontal: 'right' }
+        tRow.getCell(8).numFmt = numberFormat
+        tRow.getCell(8).font = boldFont
+
+        // Kurang: H - G (negatif jika realisasi < rencana)
+        if (statusLabel !== 'Lunas') {
+          tRow.getCell(9).value = {
+            formula: `H${topicRowIdx}-G${topicRowIdx}`,
+            result: totalRealisasiTopik - totalRencanaTopik,
+          }
+          tRow.getCell(9).alignment = { horizontal: 'right' }
+          tRow.getCell(9).numFmt = numberFormat
+          tRow.getCell(9).font = boldFont
+        }
+      }
+
+      if (topicVendor) {
+        tRow.getCell(10).value = topicVendor
+        tRow.getCell(10).alignment = { horizontal: 'center' }
+        tRow.getCell(10).font = boldFont
+      }
+
+      if (statusLabel) {
+        tRow.getCell(11).value = statusLabel
+        tRow.getCell(11).alignment = { horizontal: 'center' }
+        tRow.getCell(11).font = {
+          name: 'Calibri',
+          size: 10.5,
+          bold: true,
+          color: {
+            argb: statusLabel === 'Lunas' ? 'FF16A34A' : statusLabel === 'Sebagian (DP)' ? 'FFD97706' : 'FFE11D48',
+          },
+        }
+      }
+
+      for (let c = 1; c <= 11; c++) {
+        tRow.getCell(c).fill = topicFill
+        tRow.getCell(c).border = topicBorder
       }
 
       currentRow1++
     })
 
-    // Total Keseluruhan Row
+    // Blank row before Grand Total
+    currentRow1++
+
+    // Grand Total Row
     const grandTotalRow = ws1.getRow(currentRow1)
-    ws1.mergeCells(`A${currentRow1}:E${currentRow1}`)
-    grandTotalRow.getCell(1).value = 'TOTAL KESELURUHAN RAB'
-    grandTotalRow.getCell(1).font = boldFont
-    grandTotalRow.getCell(1).alignment = { horizontal: 'right' }
-    grandTotalRow.getCell(6).value = totalRencanaAll
-    grandTotalRow.getCell(6).numFmt = rupiahFormat
+    grandTotalRow.height = 24
+
+    grandTotalRow.getCell(6).value = 'Jumlah'
+    grandTotalRow.getCell(6).alignment = { horizontal: 'right' }
     grandTotalRow.getCell(6).font = boldFont
-    grandTotalRow.getCell(7).value = totalRealisasiAll
-    grandTotalRow.getCell(7).numFmt = rupiahFormat
-    grandTotalRow.getCell(7).font = boldFont
-    grandTotalRow.getCell(8).value = totalRencanaAll - totalRealisasiAll
-    grandTotalRow.getCell(8).numFmt = rupiahFormat
-    grandTotalRow.getCell(8).font = boldFont
-    for (let c = 1; c <= 9; c++) {
-      grandTotalRow.getCell(c).border = {
-        top: { style: 'thin' },
-        bottom: { style: 'double' },
+
+    // Formula for Col G: SUM of topic G cells
+    if (topicRows.length > 0) {
+      const gCells = topicRows.map((r) => `G${r}`).join(',')
+      grandTotalRow.getCell(7).value = {
+        formula: `SUM(${gCells})`,
+        result: totalRencanaAll,
       }
+    } else {
+      grandTotalRow.getCell(7).value = 0
+    }
+    grandTotalRow.getCell(7).alignment = { horizontal: 'right' }
+    grandTotalRow.getCell(7).numFmt = numberFormat
+    grandTotalRow.getCell(7).font = boldFont
+
+    // Formula for Col H: SUM of topic H cells
+    if (topicRows.length > 0) {
+      const hCells = topicRows.map((r) => `H${r}`).join(',')
+      grandTotalRow.getCell(8).value = {
+        formula: `SUM(${hCells})`,
+        result: totalRealisasiAll,
+      }
+    } else {
+      grandTotalRow.getCell(8).value = 0
+    }
+    grandTotalRow.getCell(8).alignment = { horizontal: 'right' }
+    grandTotalRow.getCell(8).numFmt = numberFormat
+    grandTotalRow.getCell(8).font = boldFont
+
+    for (let c = 1; c <= 11; c++) {
+      grandTotalRow.getCell(c).fill = totalFill
+      grandTotalRow.getCell(c).border = totalBorder
     }
 
     // ==========================================
@@ -229,7 +403,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     ws2.mergeCells('A1:J1')
     ws2.getCell('A1').value = `DAFTAR TRANSAKSI REALISASI BIAYA & INVOICE VENDOR — ${project.name}`
-    ws2.getCell('A1').font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1E3A8A' } }
+    ws2.getCell('A1').font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF0F172A' } }
 
     const headers2 = [
       'No',
@@ -251,6 +425,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       cell.fill = headerFill
       cell.font = headerFont
       cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      cell.border = thinBorder
     })
     headerRow2.height = 26
 
@@ -269,8 +444,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     let row2Idx = 3
     let sumTotalRealisasi = 0
-    let sumTotalLunas = 0
-    let sumTotalHutang = 0
 
     allRealisasi.forEach((rel, idx) => {
       const row = ws2.getRow(row2Idx)
@@ -284,8 +457,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const statusLabel = rel.statusBayar === 'sudah_dibayar' ? 'Sudah Dibayar' : 'Belum Dibayar'
 
       sumTotalRealisasi += rel.jumlah
-      if (rel.statusBayar === 'sudah_dibayar') sumTotalLunas += rel.jumlah
-      else sumTotalHutang += rel.jumlah
 
       row.getCell(1).value = idx + 1
       row.getCell(1).alignment = { horizontal: 'center' }
@@ -297,19 +468,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
       row.getCell(6).value = tipe
       row.getCell(6).alignment = { horizontal: 'center' }
       row.getCell(7).value = rel.jumlah
-      row.getCell(7).numFmt = rupiahFormat
+      row.getCell(7).numFmt = numberFormat
       row.getCell(8).value = rel.kenaPPN ? `Ya (${rel.persenPPN}%)` : 'Tidak'
       row.getCell(8).alignment = { horizontal: 'center' }
       row.getCell(9).value = statusLabel
       row.getCell(9).alignment = { horizontal: 'center' }
       row.getCell(9).font = {
         name: 'Calibri',
-        size: 11,
+        size: 10.5,
         bold: true,
         color: { argb: rel.statusBayar === 'sudah_dibayar' ? 'FF16A34A' : 'FFE11D48' },
       }
       row.getCell(10).value = tglByr
       row.getCell(10).alignment = { horizontal: 'center' }
+
+      for (let c = 1; c <= 10; c++) {
+        row.getCell(c).border = thinBorder
+        if (c !== 9) row.getCell(c).font = regularFont
+      }
 
       row2Idx++
     })
@@ -321,85 +497,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     totalRow2.getCell(1).font = boldFont
     totalRow2.getCell(1).alignment = { horizontal: 'right' }
     totalRow2.getCell(7).value = sumTotalRealisasi
-    totalRow2.getCell(7).numFmt = rupiahFormat
+    totalRow2.getCell(7).numFmt = numberFormat
     totalRow2.getCell(7).font = boldFont
     for (let c = 1; c <= 10; c++) {
-      totalRow2.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'double' } }
+      totalRow2.getCell(c).border = totalBorder
+      totalRow2.getCell(c).fill = totalFill
     }
-
-    // ==========================================
-    // SHEET 3: Ringkasan Untung Rugi
-    // ==========================================
-    const ws3 = workbook.addWorksheet('Ringkasan Finansial')
-
-    ws3.mergeCells('A1:D1')
-    ws3.getCell('A1').value = `RINGKASAN LABA / RUGI PROYEK — ${project.name}`
-    ws3.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } }
-
-    ws3.columns = [
-      { width: 4 },  // spacing
-      { width: 34 }, // Indikator
-      { width: 24 }, // Nilai (Rp)
-      { width: 30 }, // Keterangan
-    ]
-
-    const contractVal = project.contractValue || 0
-    const marginRencana = contractVal - totalRencanaAll
-    const marginAktual = contractVal - sumTotalRealisasi
-    const ppnBonus = project.ppnFromClient ? contractVal * 0.11 : 0
-    const labaKotorAktual = marginAktual + ppnBonus
-
-    const financialRows: Array<{ label: string; value: number | string; note?: string; isBold?: boolean; isHighlight?: boolean; isNegative?: boolean }> = [
-      { label: 'Nilai Kontrak (PO dari Klien)', value: contractVal, note: project.ppnFromClient ? 'Termasuk PPN dari Klien' : 'Harga dasar', isBold: true },
-      { label: 'Total RAB Rencana', value: totalRencanaAll, note: 'Anggaran awal disetujui', isBold: false },
-      { label: 'Margin Rencana', value: marginRencana, note: `${contractVal > 0 ? ((marginRencana / contractVal) * 100).toFixed(1) : '0'}% dari kontrak`, isBold: true, isHighlight: true },
-      { label: '', value: '' }, // divider
-      { label: 'Realisasi Biaya Item RAB', value: totalRealisasiAll, note: 'Tagihan vendor item RAB', isBold: false },
-      { label: 'Biaya Tambahan (Ongkir/Akomodasi/dll)', value: sumTotalRealisasi - totalRealisasiAll, note: 'Pengeluaran di luar item RAB', isBold: false },
-      { label: 'Total Realisasi Keseluruhan', value: sumTotalRealisasi, note: 'Total biaya proyek aktual', isBold: true },
-      { label: 'Margin Realisasi Aktual', value: marginAktual, note: `${contractVal > 0 ? ((marginAktual / contractVal) * 100).toFixed(1) : '0'}% dari kontrak`, isBold: true, isHighlight: true, isNegative: marginAktual < 0 },
-      { label: 'Bonus Margin PPN Klien', value: ppnBonus, note: project.ppnFromClient ? '11% dari nilai kontrak' : 'Tidak berlaku', isBold: false },
-      { label: 'Laba Kotor Proyek Aktual', value: labaKotorAktual, note: 'Margin Aktual + Bonus PPN', isBold: true, isHighlight: true, isNegative: labaKotorAktual < 0 },
-      { label: '', value: '' }, // divider
-      { label: 'Invoice Vendor LUNAS', value: sumTotalLunas, note: 'Sudah dibayar kas / transfer', isBold: false },
-      { label: 'Hutang Vendor (Belum Dibayar)', value: sumTotalHutang, note: 'Kewajiban pembayaran aktif', isBold: true, isNegative: sumTotalHutang > 0 },
-    ]
-
-    let r3 = 3
-    financialRows.forEach((item) => {
-      const row = ws3.getRow(r3)
-      if (item.label === '') {
-        r3++
-        return
-      }
-
-      row.getCell(2).value = item.label
-      row.getCell(2).font = item.isBold ? boldFont : regularFont
-
-      if (typeof item.value === 'number') {
-        row.getCell(3).value = item.value
-        row.getCell(3).numFmt = rupiahFormat
-        row.getCell(3).font = {
-          name: 'Calibri',
-          size: 11,
-          bold: item.isBold,
-          color: { argb: item.isNegative ? 'FFE11D48' : item.isHighlight ? 'FF1E40AF' : 'FF000000' },
-        }
-      } else {
-        row.getCell(3).value = item.value
-      }
-
-      row.getCell(4).value = item.note || ''
-      row.getCell(4).font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } }
-
-      if (item.isHighlight) {
-        row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-        row.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-        row.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-      }
-
-      r3++
-    })
 
     // Output buffer
     const buffer = await workbook.xlsx.writeBuffer()
