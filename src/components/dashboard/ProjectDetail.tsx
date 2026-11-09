@@ -77,6 +77,7 @@ import {
 } from './DocumentFormDialogs'
 import { useToast } from '@/hooks/use-toast'
 import dynamic from 'next/dynamic'
+import ProjectForm from './ProjectForm'
 
 const RABPlanningModule = dynamic(() => import('./rab/RABPlanningModule'), { ssr: false })
 const RABSummaryCard = dynamic(() => import('./rab/RABSummaryCard'), { ssr: false })
@@ -198,6 +199,151 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [downloadingZip, setDownloadingZip] = useState(false)
+
+  // Edit Project Modal
+  const [editProjectModalOpen, setEditProjectModalOpen] = useState(false)
+
+  // Pengadaan Item Management
+  const [editItemModal, setEditItemModal] = useState<any | null>(null)
+  const [editItemForm, setEditItemForm] = useState({
+    itemId: '',
+    itemCode: '',
+    itemName: '',
+    qty: '1',
+    unit: 'pcs',
+    unitPrice: '0',
+    deadline: '',
+  })
+  const [addItemModalOpen, setAddItemModalOpen] = useState(false)
+  const [addItemForm, setAddItemForm] = useState({
+    itemId: '',
+    itemCode: '',
+    itemName: '',
+    qty: '1',
+    unit: 'pcs',
+    unitPrice: '0',
+    deadline: '',
+  })
+  const [deleteItemConfirm, setDeleteItemConfirm] = useState<any | null>(null)
+  const [submittingItemAction, setSubmittingItemAction] = useState(false)
+
+  const openEditItemModal = (item: any) => {
+    setEditItemModal(item)
+    setEditItemForm({
+      itemId: item.itemId || '',
+      itemCode: item.itemCode || '',
+      itemName: item.itemName || '',
+      qty: formatThousandSeparator(String(item.qty ?? 1)),
+      unit: item.unit || 'pcs',
+      unitPrice: formatThousandSeparator(String(item.unitPrice ?? 0)),
+      deadline: item.deadline ? new Date(item.deadline).toISOString().split('T')[0] : '',
+    })
+  }
+
+  const handleSaveEditItem = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editItemModal) return
+    if (!editItemForm.itemName.trim()) {
+      toast({ title: 'Validasi', description: 'Nama item wajib diisi', variant: 'destructive' })
+      return
+    }
+    setSubmittingItemAction(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/items`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editItemModal.id,
+          itemId: editItemForm.itemId,
+          itemCode: editItemForm.itemCode,
+          itemName: editItemForm.itemName,
+          qty: parseFormattedNumber(editItemForm.qty),
+          unit: editItemForm.unit,
+          unitPrice: parseFormattedNumber(editItemForm.unitPrice),
+          deadline: editItemForm.deadline ? new Date(editItemForm.deadline).toISOString() : null,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Berhasil', description: 'Item berhasil diperbarui' })
+        setEditItemModal(null)
+        await fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error || 'Gagal memperbarui item', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal memperbarui item', variant: 'destructive' })
+    } finally {
+      setSubmittingItemAction(false)
+    }
+  }
+
+  const handleSaveAddItem = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addItemForm.itemName.trim()) {
+      toast({ title: 'Validasi', description: 'Nama item wajib diisi', variant: 'destructive' })
+      return
+    }
+    setSubmittingItemAction(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: addItemForm.itemId,
+          itemCode: addItemForm.itemCode,
+          itemName: addItemForm.itemName,
+          qty: parseFormattedNumber(addItemForm.qty),
+          unit: addItemForm.unit,
+          unitPrice: parseFormattedNumber(addItemForm.unitPrice),
+          deadline: addItemForm.deadline ? new Date(addItemForm.deadline).toISOString() : null,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Berhasil', description: 'Item baru berhasil ditambahkan' })
+        setAddItemModalOpen(false)
+        setAddItemForm({
+          itemId: '',
+          itemCode: '',
+          itemName: '',
+          qty: '1',
+          unit: 'pcs',
+          unitPrice: '0',
+          deadline: '',
+        })
+        await fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error || 'Gagal menambahkan item', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal menambahkan item', variant: 'destructive' })
+    } finally {
+      setSubmittingItemAction(false)
+    }
+  }
+
+  const handleDeleteItem = async () => {
+    if (!deleteItemConfirm) return
+    setSubmittingItemAction(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/items?itemId=${deleteItemConfirm.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: 'Berhasil', description: 'Item berhasil dihapus' })
+        setDeleteItemConfirm(null)
+        await fetchProject()
+      } else {
+        toast({ title: 'Error', description: data.error || 'Gagal menghapus item', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal menghapus item', variant: 'destructive' })
+    } finally {
+      setSubmittingItemAction(false)
+    }
+  }
 
   const handleDownloadZip = () => {
     setDownloadingZip(true)
@@ -731,6 +877,18 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Edit Proyek */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditProjectModalOpen(true)}
+            className="border-primary/40 text-primary hover:bg-primary/10 gap-1.5"
+            title="Edit Informasi Proyek & Item RAB Pengadaan"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Proyek
+          </Button>
+
           {/* Download Arsip .ZIP */}
           <Button
             variant="outline"
@@ -1192,36 +1350,72 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   <CardDescription>Lacak kebutuhan, kekurangan pembelian, dan realisasi biaya setiap item</CardDescription>
                 </div>
 
-                {project.items && project.items.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {(() => {
-                      const completedCount = project.items.filter((i: any) => {
-                        const totalBuyQty = i.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
-                        return totalBuyQty >= i.qty
-                      }).length
-                      const pendingCount = project.items.length - completedCount
-                      return (
-                        <>
-                          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-300">
-                            ✓ {completedCount} Lengkap
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-primary hover:bg-primary/90 text-white gap-1.5 shadow-2xs font-semibold"
+                    onClick={() => {
+                      setAddItemForm({
+                        itemId: '',
+                        itemCode: '',
+                        itemName: '',
+                        qty: '1',
+                        unit: 'pcs',
+                        unitPrice: '0',
+                        deadline: '',
+                      })
+                      setAddItemModalOpen(true)
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Tambah Item RAB
+                  </Button>
+                  {project.items && project.items.length > 0 && (() => {
+                    const completedCount = project.items.filter((i: any) => {
+                      const totalBuyQty = i.purchases?.reduce((s: number, p: any) => s + (p.qty || 0), 0) || 0
+                      return totalBuyQty >= i.qty
+                    }).length
+                    const pendingCount = project.items.length - completedCount
+                    return (
+                      <>
+                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-300">
+                          ✓ {completedCount} Lengkap
+                        </Badge>
+                        {pendingCount > 0 && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                            ⚠️ {pendingCount} Belum Lengkap
                           </Badge>
-                          {pendingCount > 0 && (
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
-                              ⚠️ {pendingCount} Belum Lengkap
-                            </Badge>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
-                )}
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 mt-4 sm:mt-0">
               {(project.items || []).length === 0 ? (
-                <div className="h-32 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
+                <div className="h-36 flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
                   <p className="font-medium text-foreground">Belum ada item RAB</p>
-                  <p className="text-sm">Tambahkan item proyek untuk mulai melacak pembelian.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Tambahkan item proyek untuk mulai melacak pembelian.</p>
+                  <Button
+                    size="sm"
+                    className="mt-3 text-xs gap-1.5"
+                    onClick={() => {
+                      setAddItemForm({
+                        itemId: '',
+                        itemCode: '',
+                        itemName: '',
+                        qty: '1',
+                        unit: 'pcs',
+                        unitPrice: '0',
+                        deadline: '',
+                      })
+                      setAddItemModalOpen(true)
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Tambah Item RAB
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -1250,15 +1444,35 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                                 </p>
                               </div>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 shrink-0 text-xs"
-                              onClick={() => openAddPurchase(item)}
-                            >
-                              <Plus className="w-3.5 h-3.5 mr-1" />
-                              Beli
-                            </Button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => openAddPurchase(item)}
+                              >
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Beli
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                onClick={() => openEditItemModal(item)}
+                                title="Edit item RAB"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteItemConfirm(item)}
+                                title="Hapus item RAB"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 text-xs bg-card/60 p-2.5 rounded-lg border border-border/60">
@@ -1402,7 +1616,7 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                           <TableHead className="text-right min-w-[120px]">Total RAB</TableHead>
                           <TableHead className="text-right min-w-[120px]">Total Beli</TableHead>
                           <TableHead className="text-right min-w-[120px]">Margin</TableHead>
-                          <TableHead className="text-right min-w-[90px]">Aksi</TableHead>
+                          <TableHead className="text-right min-w-[130px]">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1453,14 +1667,35 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                                   {formatCurrency(margin)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => openAddPurchase(item)}
-                                  >
-                                    <Plus className="w-3.5 h-3.5 mr-1" />
-                                    Beli
-                                  </Button>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs"
+                                      onClick={() => openAddPurchase(item)}
+                                    >
+                                      <Plus className="w-3.5 h-3.5 mr-1" />
+                                      Beli
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                      onClick={() => openEditItemModal(item)}
+                                      title="Edit item RAB"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => setDeleteItemConfirm(item)}
+                                      title="Hapus item RAB"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
 
@@ -2409,6 +2644,273 @@ export default function ProjectDetail({ projectId, onBack }: ProjectDetailProps)
                   }}
                 >
                   {deletingPayment ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menghapus...</> : 'Ya, Hapus'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* ─── MODAL: Edit Proyek (Form Lengkap) ─── */}
+          <ProjectForm
+            open={editProjectModalOpen}
+            onOpenChange={setEditProjectModalOpen}
+            onCreated={fetchProject}
+            projectToEdit={project}
+            onUpdated={fetchProject}
+          />
+
+          {/* ─── MODAL: Edit Item RAB Pengadaan ─── */}
+          <Dialog open={!!editItemModal} onOpenChange={(open) => { if (!open) setEditItemModal(null) }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Edit className="w-4 h-4 text-primary" />
+                  Edit Item RAB Pengadaan
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Perbaiki rincian item barang, kuantitas, atau harga jual satuan.
+                </DialogDescription>
+              </DialogHeader>
+
+              {editItemModal && (
+                <form onSubmit={handleSaveEditItem} className="space-y-3 pt-1">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nama Item / Barang *</Label>
+                    <Input
+                      className="h-9 text-xs"
+                      value={editItemForm.itemName}
+                      onChange={(e) => setEditItemForm({ ...editItemForm, itemName: e.target.value })}
+                      placeholder="Nama barang / produk pengadaan"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">ID Item (maks 3 digit)</Label>
+                      <Input
+                        className="h-9 text-xs"
+                        value={editItemForm.itemId}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, itemId: e.target.value })}
+                        placeholder="001"
+                        maxLength={3}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Kode Barang</Label>
+                      <Input
+                        className="h-9 text-xs"
+                        value={editItemForm.itemCode}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, itemCode: e.target.value })}
+                        placeholder="Contoh: KBL-01"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Target Kuantitas (Qty) *</Label>
+                      <Input
+                        className="h-9 text-xs font-semibold"
+                        value={editItemForm.qty}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, qty: formatThousandSeparator(e.target.value) })}
+                        placeholder="1"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Satuan *</Label>
+                      <Input
+                        className="h-9 text-xs"
+                        value={editItemForm.unit}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, unit: e.target.value })}
+                        placeholder="pcs / unit / roll"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Harga Jual Satuan (Rp) *</Label>
+                      <Input
+                        className="h-9 text-xs font-semibold"
+                        value={editItemForm.unitPrice}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, unitPrice: formatThousandSeparator(e.target.value) })}
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Deadline Pengadaan</Label>
+                      <Input
+                        type="date"
+                        className="h-9 text-xs"
+                        value={editItemForm.deadline}
+                        onChange={(e) => setEditItemForm({ ...editItemForm, deadline: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded bg-muted/40 text-xs flex justify-between items-center">
+                    <span className="text-muted-foreground">Total Nilai Item:</span>
+                    <span className="font-bold text-foreground">
+                      {formatCurrency(parseFormattedNumber(editItemForm.qty) * parseFormattedNumber(editItemForm.unitPrice))}
+                    </span>
+                  </div>
+
+                  <DialogFooter className="pt-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setEditItemModal(null)} disabled={submittingItemAction}>
+                      Batal
+                    </Button>
+                    <Button type="submit" size="sm" className="bg-primary text-white" disabled={submittingItemAction}>
+                      {submittingItemAction ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menyimpan...</> : 'Simpan Perubahan'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* ─── MODAL: Tambah Item RAB Pengadaan ─── */}
+          <Dialog open={addItemModalOpen} onOpenChange={setAddItemModalOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Plus className="w-4 h-4 text-primary" />
+                  Tambah Item RAB Pengadaan
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Tambahkan item barang pengadaan baru ke proyek ini.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSaveAddItem} className="space-y-3 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nama Item / Barang *</Label>
+                  <Input
+                    className="h-9 text-xs"
+                    value={addItemForm.itemName}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, itemName: e.target.value })}
+                    placeholder="Nama barang / produk pengadaan"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">ID Item (maks 3 digit)</Label>
+                    <Input
+                      className="h-9 text-xs"
+                      value={addItemForm.itemId}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, itemId: e.target.value })}
+                      placeholder="001"
+                      maxLength={3}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Kode Barang</Label>
+                    <Input
+                      className="h-9 text-xs"
+                      value={addItemForm.itemCode}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, itemCode: e.target.value })}
+                      placeholder="Contoh: KBL-01"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target Kuantitas (Qty) *</Label>
+                    <Input
+                      className="h-9 text-xs font-semibold"
+                      value={addItemForm.qty}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, qty: formatThousandSeparator(e.target.value) })}
+                      placeholder="1"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Satuan *</Label>
+                    <Input
+                      className="h-9 text-xs"
+                      value={addItemForm.unit}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, unit: e.target.value })}
+                      placeholder="pcs / unit / roll"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Harga Jual Satuan (Rp) *</Label>
+                    <Input
+                      className="h-9 text-xs font-semibold"
+                      value={addItemForm.unitPrice}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, unitPrice: formatThousandSeparator(e.target.value) })}
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Deadline Pengadaan</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-xs"
+                      value={addItemForm.deadline}
+                      onChange={(e) => setAddItemForm({ ...addItemForm, deadline: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2 rounded bg-muted/40 text-xs flex justify-between items-center">
+                  <span className="text-muted-foreground">Total Nilai Item:</span>
+                  <span className="font-bold text-foreground">
+                    {formatCurrency(parseFormattedNumber(addItemForm.qty) * parseFormattedNumber(addItemForm.unitPrice))}
+                  </span>
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAddItemModalOpen(false)} disabled={submittingItemAction}>
+                    Batal
+                  </Button>
+                  <Button type="submit" size="sm" className="bg-primary text-white" disabled={submittingItemAction}>
+                    {submittingItemAction ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menambahkan...</> : 'Tambah Item'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* ─── CONFIRM: Hapus Item RAB Pengadaan ─── */}
+          <AlertDialog open={!!deleteItemConfirm} onOpenChange={(open) => { if (!open) setDeleteItemConfirm(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                  Hapus Item RAB?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin menghapus item <strong>{deleteItemConfirm?.itemName}</strong>?
+                  {deleteItemConfirm?.purchases && deleteItemConfirm.purchases.length > 0 && (
+                    <span className="block mt-1 text-rose-600 font-semibold">
+                      Peringatan: Item ini memiliki {deleteItemConfirm.purchases.length} catatan riwayat pembelian yang juga akan dihapus.
+                    </span>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={submittingItemAction}>Batal</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  disabled={submittingItemAction}
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    await handleDeleteItem()
+                  }}
+                >
+                  {submittingItemAction ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Menghapus...</> : 'Ya, Hapus Item'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

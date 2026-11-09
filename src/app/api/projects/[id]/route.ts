@@ -128,6 +128,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       startDate,
       endDate,
       notes,
+      items,
     } = body
 
     const existing = await db.project.findUnique({ where: { id } })
@@ -136,6 +137,64 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         { success: false, error: 'Project not found' },
         { status: 404 }
       )
+    }
+
+    if (items !== undefined && Array.isArray(items)) {
+      const existingItems = await db.projectItem.findMany({
+        where: { projectId: id },
+        include: { purchases: true },
+      })
+      const submittedIds = new Set(items.filter((it: any) => it.id).map((it: any) => it.id))
+
+      // Delete items not in submittedIds
+      for (const ex of existingItems) {
+        if (!submittedIds.has(ex.id)) {
+          await db.projectItem.delete({ where: { id: ex.id } })
+        }
+      }
+
+      // Upsert / update items
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        const qty = Number(item.qty) || 0
+        const unitPrice = Number(item.unitPrice) || 0
+        const total = qty * unitPrice
+        const deadline = item.deadline ? new Date(item.deadline) : null
+
+        if (item.id && existingItems.some((e) => e.id === item.id)) {
+          await db.projectItem.update({
+            where: { id: item.id },
+            data: {
+              itemId: item.itemId !== undefined ? String(item.itemId) : '',
+              itemCode: item.itemCode ? String(item.itemCode) : null,
+              itemName: item.itemName ? String(item.itemName) : '',
+              qty,
+              unit: item.unit ? String(item.unit) : 'pcs',
+              unitPrice,
+              total,
+              deadline,
+              sortOrder: i,
+              ...(item.notes !== undefined ? { notes: item.notes } : {}),
+            },
+          })
+        } else {
+          await db.projectItem.create({
+            data: {
+              projectId: id,
+              itemId: item.itemId ? String(item.itemId) : '',
+              itemCode: item.itemCode ? String(item.itemCode) : null,
+              itemName: item.itemName ? String(item.itemName) : '',
+              qty,
+              unit: item.unit ? String(item.unit) : 'pcs',
+              unitPrice,
+              total,
+              deadline,
+              sortOrder: i,
+              notes: item.notes || null,
+            },
+          })
+        }
+      }
     }
 
     const project = await db.project.update({

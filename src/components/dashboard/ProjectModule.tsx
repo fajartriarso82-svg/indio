@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   Eye,
+  Edit,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -82,6 +83,26 @@ export default function ProjectModule() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [projectToEdit, setProjectToEdit] = useState<any | null>(null)
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null)
+
+  const handleOpenEdit = async (projectId: string) => {
+    try {
+      setLoadingEditId(projectId)
+      const res = await fetch(`/api/projects/${projectId}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        setProjectToEdit(data.data)
+        setFormOpen(true)
+      } else {
+        toast({ title: 'Error', description: data.error || 'Gagal memuat data proyek', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Gagal mengambil detail proyek untuk diedit', variant: 'destructive' })
+    } finally {
+      setLoadingEditId(null)
+    }
+  }
 
   // Delete & Archive State
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -284,7 +305,10 @@ export default function ProjectModule() {
           </Select>
 
           <button
-            onClick={() => setFormOpen(true)}
+            onClick={() => {
+              setProjectToEdit(null)
+              setFormOpen(true)
+            }}
             className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-semibold inline-flex items-center gap-2 shadow-sm shadow-primary/20 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -360,8 +384,22 @@ export default function ProjectModule() {
                           type="button"
                           onClick={() => setSelectedProjectId(project.id)}
                           className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title="Lihat Detail"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={loadingEditId === project.id}
+                          onClick={() => handleOpenEdit(project.id)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title="Edit Proyek"
+                        >
+                          {loadingEditId === project.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          ) : (
+                            <Edit className="w-4 h-4" />
+                          )}
                         </button>
                         <button
                           type="button"
@@ -370,6 +408,7 @@ export default function ProjectModule() {
                             setDeleteOpen(true)
                           }}
                           className="p-2 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                          title="Hapus Proyek"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -481,6 +520,18 @@ export default function ProjectModule() {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
+                              disabled={loadingEditId === project.id}
+                              onClick={() => handleOpenEdit(project.id)}
+                              className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Edit Proyek"
+                            >
+                              {loadingEditId === project.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                              ) : (
+                                <Edit className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
                               onClick={() => {
                                 setProjectToDelete(project)
                                 setDeleteOpen(true)
@@ -561,8 +612,13 @@ export default function ProjectModule() {
       {/* Project Form Dialog */}
       <ProjectForm
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) setProjectToEdit(null)
+        }}
         onCreated={handleProjectCreated}
+        projectToEdit={projectToEdit}
+        onUpdated={fetchProjects}
       />
     </div>
   )

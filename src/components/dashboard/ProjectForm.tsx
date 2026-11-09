@@ -32,6 +32,8 @@ interface ProjectFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: () => void
+  projectToEdit?: any | null
+  onUpdated?: () => void
 }
 
 interface ClientOption {
@@ -44,6 +46,7 @@ interface ClientOption {
 }
 
 interface ItemRow {
+  id?: string
   itemId: string
   itemCode: string
   itemName: string
@@ -71,7 +74,7 @@ const formatThousandSeparator = (val: string): string => {
 // Sentinel value for "create new client" option in the client dropdown.
 const NEW_CLIENT_VALUE = '__new_client__'
 
-export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFormProps) {
+export default function ProjectForm({ open, onOpenChange, onCreated, projectToEdit, onUpdated }: ProjectFormProps) {
   const { toast } = useToast()
   const [clients, setClients] = useState<ClientOption[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -104,8 +107,45 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
           if (data.success) setClients(data.data)
         })
         .catch(() => {})
+
+      if (projectToEdit) {
+        setType(projectToEdit.type || 'PENGADAAN')
+        setName(projectToEdit.name || '')
+        setClientId(projectToEdit.clientId || '')
+        setNewClientName('')
+        setClientPicName(projectToEdit.clientPicName || projectToEdit.client?.picName || '')
+        setClientPicEmail(projectToEdit.clientPicEmail || projectToEdit.client?.picEmail || '')
+        setClientPicPhone(projectToEdit.clientPicPhone || projectToEdit.client?.phone || '')
+        setClientAddress(projectToEdit.clientAddress || projectToEdit.client?.address || '')
+        setPoNumber(projectToEdit.poNumber || '')
+        setPoFile(null)
+        setInternalPic(projectToEdit.internalPic || '')
+        setContractValue(projectToEdit.contractValue ? formatThousandSeparator(String(projectToEdit.contractValue)) : '')
+        setPpnFromClient(Boolean(projectToEdit.ppnFromClient))
+        setStartDate(projectToEdit.startDate ? new Date(projectToEdit.startDate).toISOString().split('T')[0] : '')
+        setEndDate(projectToEdit.endDate ? new Date(projectToEdit.endDate).toISOString().split('T')[0] : '')
+        setNotes(projectToEdit.notes || '')
+        if (projectToEdit.items && projectToEdit.items.length > 0) {
+          setItems(
+            projectToEdit.items.map((it: any) => ({
+              id: it.id,
+              itemId: it.itemId || '',
+              itemCode: it.itemCode || '',
+              itemName: it.itemName || '',
+              qty: formatThousandSeparator(String(it.qty ?? 1)),
+              unit: it.unit || 'pcs',
+              unitPrice: formatThousandSeparator(String(it.unitPrice ?? 0)),
+              deadline: it.deadline ? new Date(it.deadline).toISOString().split('T')[0] : '',
+            }))
+          )
+        } else {
+          setItems([{ itemId: '', itemCode: '', itemName: '', qty: '1', unit: 'pcs', unitPrice: '0', deadline: '' }])
+        }
+      } else {
+        resetForm()
+      }
     }
-  }, [open])
+  }, [open, projectToEdit])
 
   const isNewClient = clientId === NEW_CLIENT_VALUE
 
@@ -233,7 +273,7 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
         resolvedClientId = clientData.data.id
       }
 
-      let uploadedPoUrl = ''
+      let uploadedPoUrl = projectToEdit?.poFileUrl || ''
       if (poFile) {
         const formData = new FormData()
         formData.append('file', poFile)
@@ -243,6 +283,54 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
         })
         const uploadData = await uploadRes.json()
         if (uploadData.success) uploadedPoUrl = uploadData.url
+      }
+
+      if (projectToEdit) {
+        const res = await fetch(`/api/projects/${projectToEdit.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            type,
+            clientId: resolvedClientId,
+            clientPicName,
+            clientPicEmail,
+            clientPicPhone,
+            clientAddress,
+            poNumber,
+            poFileUrl: uploadedPoUrl || null,
+            internalPic,
+            contractValue: contractValue ? parseFormattedNumber(contractValue) : null,
+            ppnFromClient,
+            startDate: startDate || null,
+            endDate: endDate || null,
+            notes,
+            items: validItems.map((item) => ({
+              id: item.id,
+              itemId: item.itemId,
+              itemCode: item.itemCode,
+              itemName: item.itemName,
+              qty: parseFormattedNumber(item.qty) || 0,
+              unit: item.unit,
+              unitPrice: parseFormattedNumber(item.unitPrice) || 0,
+              deadline: item.deadline ? new Date(item.deadline).toISOString() : null,
+            })),
+          }),
+        })
+
+        const data = await res.json()
+        if (data.success) {
+          toast({
+            title: 'Proyek Diperbarui',
+            description: `Perubahan pada proyek ${name} berhasil disimpan.`,
+          })
+          onOpenChange(false)
+          if (onUpdated) onUpdated()
+          else onCreated()
+        } else {
+          toast({ title: 'Error', description: data.error || 'Gagal memperbarui proyek', variant: 'destructive' })
+        }
+        return
       }
 
       const res = await fetch('/api/projects', {
@@ -423,9 +511,9 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[95vw] md:max-w-6xl lg:max-w-7xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Buat Proyek Baru</DialogTitle>
+          <DialogTitle>{projectToEdit ? `Edit Proyek ${projectToEdit.projectCode ? `(${projectToEdit.projectCode})` : ''}` : 'Buat Proyek Baru'}</DialogTitle>
           <DialogDescription>
-            Tambah proyek baru dengan item RAB
+            {projectToEdit ? 'Perbaiki data proyek atau sesuaikan daftar item RAB pengadaan' : 'Tambah proyek baru dengan item RAB'}
           </DialogDescription>
         </DialogHeader>
 
@@ -793,9 +881,9 @@ export default function ProjectForm({ open, onOpenChange, onCreated }: ProjectFo
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Membuat...</>
+                <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />{projectToEdit ? 'Menyimpan...' : 'Membuat...'}</>
               ) : (
-                'Buat Proyek'
+                projectToEdit ? 'Simpan Perubahan' : 'Buat Proyek'
               )}
             </Button>
           </div>
