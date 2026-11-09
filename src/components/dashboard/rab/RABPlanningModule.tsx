@@ -3088,7 +3088,8 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleUpdateRealisasi} className="space-y-3 pt-1">
+          {editRealisasiModal && (
+            <form onSubmit={handleUpdateRealisasi} className="space-y-3 pt-1">
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Vendor / Toko / Penerima Dana</Label>
@@ -3208,9 +3209,9 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                   <Upload className="w-3.5 h-3.5 text-primary" />
                   Bukti Transfer / Pembayaran
                 </Label>
-                {editRealisasiModal.buktiBayarUrl && !editRealisasiRemoveBuktiBayar && !editRealisasiPayProofFile && (
+                {editRealisasiModal?.buktiBayarUrl && !editRealisasiRemoveBuktiBayar && !editRealisasiPayProofFile && (
                   <a
-                    href={editRealisasiModal.buktiBayarUrl}
+                    href={editRealisasiModal?.buktiBayarUrl || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[11px] text-emerald-600 hover:underline inline-flex items-center gap-0.5"
@@ -3266,7 +3267,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                       }
                     }}
                   />
-                  {editRealisasiModal.buktiBayarUrl && (
+                  {editRealisasiModal?.buktiBayarUrl && (
                     <Button
                       type="button"
                       variant="outline"
@@ -3291,6 +3292,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
               </Button>
             </DialogFooter>
           </form>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -3506,11 +3508,11 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                   <span className="text-muted-foreground">Nominal:</span>
                   <span className="font-bold text-foreground">{formatCurrency(changeProofModal.jumlah)}</span>
                 </div>
-                {changeProofModal.buktiBayarUrl && (
+                {changeProofModal?.buktiBayarUrl && (
                   <div className="flex justify-between items-center pt-1 border-t border-border/50">
                     <span className="text-muted-foreground">Bukti Saat Ini:</span>
                     <a
-                      href={changeProofModal.buktiBayarUrl}
+                      href={changeProofModal?.buktiBayarUrl || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-emerald-600 font-semibold hover:underline inline-flex items-center gap-1"
@@ -3589,7 +3591,7 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                   />
                 )}
 
-                {changeProofModal.buktiBayarUrl && !removeProofFlag && !changeProofFile && (
+                {changeProofModal?.buktiBayarUrl && !removeProofFlag && !changeProofFile && (
                   <div className="pt-1">
                     <button
                       type="button"
