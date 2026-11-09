@@ -26,7 +26,11 @@ import {
   Paperclip,
   ExternalLink,
   Download,
+  FolderInput,
+  CheckSquare,
+  RefreshCw,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -264,7 +268,30 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
     keterangan: '',
   })
   const [editRealisasiVendorType, setEditRealisasiVendorType] = useState<'EXISTING' | 'NEW'>('NEW')
+  const [editRealisasiPayProofFile, setEditRealisasiPayProofFile] = useState<File | null>(null)
+  const [editRealisasiPayProofPreview, setEditRealisasiPayProofPreview] = useState<string | null>(null)
+  const [editRealisasiInvoiceFile, setEditRealisasiInvoiceFile] = useState<File | null>(null)
+  const [editRealisasiRemoveBuktiBayar, setEditRealisasiRemoveBuktiBayar] = useState(false)
+  const [editRealisasiRemoveFileBukti, setEditRealisasiRemoveFileBukti] = useState(false)
   const [submittingEditRealisasi, setSubmittingEditRealisasi] = useState(false)
+
+  // Quick Modal: Ganti Bukti Transfer
+  const [changeProofModal, setChangeProofModal] = useState<any | null>(null)
+  const [changeProofFile, setChangeProofFile] = useState<File | null>(null)
+  const [changeProofPreview, setChangeProofPreview] = useState<string | null>(null)
+  const [removeProofFlag, setRemoveProofFlag] = useState(false)
+  const [submittingChangeProof, setSubmittingChangeProof] = useState(false)
+
+  // Selection & Pindah Item ke Topik Baru / Lain
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
+  const [moveItemsModal, setMoveItemsModal] = useState<{
+    sourceTopic: RABTopik
+    items: RABItem[]
+  } | null>(null)
+  const [moveTargetMode, setMoveTargetMode] = useState<'NEW_TOPIK' | 'EXISTING_TOPIK'>('NEW_TOPIK')
+  const [newTopicName, setNewTopicName] = useState('')
+  const [targetTopicId, setTargetTopicId] = useState('')
+  const [submittingMoveItems, setSubmittingMoveItems] = useState(false)
 
   const isInitialLoad = useRef(true)
 
@@ -785,6 +812,11 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
       statusBayar: r.statusBayar || 'sudah_dibayar',
       keterangan: r.keterangan || '',
     })
+    setEditRealisasiPayProofFile(null)
+    setEditRealisasiPayProofPreview(null)
+    setEditRealisasiInvoiceFile(null)
+    setEditRealisasiRemoveBuktiBayar(false)
+    setEditRealisasiRemoveFileBukti(false)
   }
 
   const handleUpdateRealisasi = async (e: React.FormEvent) => {
@@ -794,6 +826,35 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
     try {
       const rawJumlah = parseFormattedNumber(editRealisasiForm.jumlah)
       const selectedVendor = editRealisasiVendorType === 'EXISTING' ? vendorOptions.find((v) => v.id === editRealisasiForm.vendorId) : null
+
+      let updatedBuktiBayarUrl: string | null | undefined = undefined
+      if (editRealisasiPayProofFile) {
+        const compressedFile = await compressImage(editRealisasiPayProofFile)
+        const fd = new FormData()
+        fd.append('file', compressedFile)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (upData.success) {
+          updatedBuktiBayarUrl = upData.url
+        }
+      } else if (editRealisasiRemoveBuktiBayar) {
+        updatedBuktiBayarUrl = null
+      }
+
+      let updatedFileBuktiUrl: string | null | undefined = undefined
+      if (editRealisasiInvoiceFile) {
+        const compressedFile = await compressImage(editRealisasiInvoiceFile)
+        const fd = new FormData()
+        fd.append('file', compressedFile)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (upData.success) {
+          updatedFileBuktiUrl = upData.url
+        }
+      } else if (editRealisasiRemoveFileBukti) {
+        updatedFileBuktiUrl = null
+      }
+
       const payload = {
         vendorNama: editRealisasiVendorType === 'EXISTING' ? selectedVendor?.name || null : (editRealisasiForm.vendorNama || null),
         vendorId: editRealisasiVendorType === 'EXISTING' ? (editRealisasiForm.vendorId || null) : null,
@@ -803,6 +864,8 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
         jumlah: rawJumlah,
         statusBayar: editRealisasiForm.statusBayar,
         keterangan: editRealisasiForm.keterangan || null,
+        ...(updatedBuktiBayarUrl !== undefined ? { buktiBayarUrl: updatedBuktiBayarUrl } : {}),
+        ...(updatedFileBuktiUrl !== undefined ? { fileBuktiUrl: updatedFileBuktiUrl } : {}),
       }
 
       const res = await fetch(`/api/projects/${projectId}/rab-realisasi/${editRealisasiModal.id}`, {
@@ -822,6 +885,166 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
       toast({ title: 'Error', description: 'Gagal memperbarui transaksi', variant: 'destructive' })
     } finally {
       setSubmittingEditRealisasi(false)
+    }
+  }
+
+  // Quick Modal: Ganti Bukti Transfer Handlers
+  const openChangeProofModal = (r: any) => {
+    setChangeProofModal(r)
+    setChangeProofFile(null)
+    setChangeProofPreview(null)
+    setRemoveProofFlag(false)
+  }
+
+  const handleSaveChangeProof = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!changeProofModal) return
+
+    if (!changeProofFile && !removeProofFlag) {
+      toast({ title: 'Validasi', description: 'Silakan pilih file bukti baru atau tandai untuk menghapus bukti.', variant: 'destructive' })
+      return
+    }
+
+    setSubmittingChangeProof(true)
+    try {
+      let newProofUrl: string | null = null
+
+      if (changeProofFile) {
+        const compressedFile = await compressImage(changeProofFile)
+        const fd = new FormData()
+        fd.append('file', compressedFile)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (upData.success) {
+          newProofUrl = upData.url
+        } else {
+          throw new Error('Gagal mengupload file bukti')
+        }
+      }
+
+      const res = await fetch(`/api/projects/${projectId}/rab-realisasi/${changeProofModal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buktiBayarUrl: newProofUrl,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({
+          title: 'Bukti Transfer Berhasil Disimpan',
+          description: newProofUrl ? 'Bukti transfer berhasil diperbarui.' : 'Bukti transfer berhasil dihapus.',
+        })
+        setChangeProofModal(null)
+        setChangeProofFile(null)
+        setChangeProofPreview(null)
+        await fetchData(true)
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Gagal menyimpan bukti transfer', variant: 'destructive' })
+    } finally {
+      setSubmittingChangeProof(false)
+    }
+  }
+
+  // Handlers: Selection & Move Items
+  const handleToggleSelectItem = (itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    )
+  }
+
+  const handleToggleSelectAllInTopic = (topik: RABTopik, checked: boolean) => {
+    const topicItemIds = topik.items.map((it) => it.id)
+    setSelectedItemIds((prev) => {
+      if (checked) {
+        const toAdd = topicItemIds.filter((id) => !prev.includes(id))
+        return [...prev, ...toAdd]
+      } else {
+        return prev.filter((id) => !topicItemIds.includes(id))
+      }
+    })
+  }
+
+  const handleClearTopicSelection = (topikId: string) => {
+    const topic = topiks.find((t) => t.id === topikId)
+    if (!topic) return
+    const topicItemIds = new Set(topic.items.map((it) => it.id))
+    setSelectedItemIds((prev) => prev.filter((id) => !topicItemIds.has(id)))
+  }
+
+  const openMoveItemsModal = (topik: RABTopik, itemsToMove: RABItem[]) => {
+    const otherTopiks = topiks.filter((t) => t.id !== topik.id)
+    setMoveItemsModal({
+      sourceTopic: topik,
+      items: itemsToMove,
+    })
+    setMoveTargetMode('NEW_TOPIK')
+    setNewTopicName(`${topik.nama} - Lanjutan`)
+    setTargetTopicId(otherTopiks[0]?.id || '')
+  }
+
+  const handleConfirmMoveItems = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!moveItemsModal || moveItemsModal.items.length === 0) return
+
+    if (moveTargetMode === 'NEW_TOPIK' && !newTopicName.trim()) {
+      toast({ title: 'Validasi Gagal', description: 'Nama topik baru wajib diisi', variant: 'destructive' })
+      return
+    }
+    if (moveTargetMode === 'EXISTING_TOPIK' && !targetTopicId) {
+      toast({ title: 'Validasi Gagal', description: 'Pilih topik tujuan', variant: 'destructive' })
+      return
+    }
+
+    setSubmittingMoveItems(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/rab-topik/move-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemIds: moveItemsModal.items.map((it) => it.id),
+          targetMode: moveTargetMode,
+          newTopikNama: newTopicName.trim(),
+          targetTopikId: moveTargetMode === 'EXISTING_TOPIK' ? targetTopicId : null,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({
+          title: 'Item Berhasil Dipindahkan',
+          description: data.message || `${moveItemsModal.items.length} item berhasil dipindahkan.`,
+        })
+
+        // Uncheck item yang dipindahkan
+        const movedSet = new Set(moveItemsModal.items.map((it) => it.id))
+        setSelectedItemIds((prev) => prev.filter((id) => !movedSet.has(id)))
+
+        // Buka otomatis topik sumber & topik tujuan
+        const targetId = data.data?.targetTopikId
+        setExpandedTopiks((prev) => {
+          const next = new Set(prev)
+          next.add(moveItemsModal.sourceTopic.id)
+          if (targetId) next.add(targetId)
+          try {
+            sessionStorage.setItem('rab_expanded_v2_' + projectId, JSON.stringify(Array.from(next)))
+          } catch {
+            // ignore
+          }
+          return next
+        })
+
+        setMoveItemsModal(null)
+        await fetchData(true)
+      } else {
+        toast({ title: 'Gagal Memindahkan Item', description: data.error, variant: 'destructive' })
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Terjadi kesalahan sistem', variant: 'destructive' })
+    } finally {
+      setSubmittingMoveItems(false)
     }
   }
 
@@ -884,6 +1107,8 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           {topiks.map((topik, topikIdx) => {
             const isExpanded = expandedTopiks.has(topik.id)
             const isOverBudget = topik.totalRealisasiTopik > topik.totalRencanaTopik
+            const selectedInThisTopic = topik.items.filter((it) => selectedItemIds.includes(it.id))
+            const isAllSelectedInTopic = topik.items.length > 0 && selectedInThisTopic.length === topik.items.length
 
             return (
               <div
@@ -999,6 +1224,17 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
 
                       {!isReadOnly && (
                         <div className="flex items-center gap-1.5 pl-2 border-l border-emerald-200 dark:border-emerald-800">
+                          {selectedInThisTopic.length > 0 && (
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs px-2.5 gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-xs animate-in fade-in"
+                              onClick={() => openMoveItemsModal(topik, selectedInThisTopic)}
+                              title="Pindahkan item yang dicawang ke topik baru / topik lain"
+                            >
+                              <FolderInput className="w-3.5 h-3.5" />
+                              Pindah Topik ({selectedInThisTopic.length})
+                            </Button>
+                          )}
                           {/* Tombol Bayar Topik (Fleksibel: bayar total topik) */}
                           <Button
                             size="sm"
@@ -1101,10 +1337,33 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                 <span>📅 {formatDate(r.tanggalBayar || r.tanggalInvoice)}</span>
                                 <div className="flex items-center gap-1.5">
-                                  {r.buktiBayarUrl && (
-                                    <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-medium">
-                                      [Bukti Transfer]
-                                    </a>
+                                  {r.buktiBayarUrl ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-medium">
+                                        [Bukti Transfer]
+                                      </a>
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => openChangeProofModal(r)}
+                                          className="text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.5 rounded font-medium cursor-pointer"
+                                          title="Ganti file bukti transfer"
+                                        >
+                                          Ganti
+                                        </button>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    !isReadOnly && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openChangeProofModal(r)}
+                                        className="text-[10px] text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-medium cursor-pointer"
+                                        title="Upload bukti transfer yang tertinggal/salah"
+                                      >
+                                        + Upload Bukti
+                                      </button>
+                                    )
                                   )}
                                   {r.fileBuktiUrl && (
                                     <a href={r.fileBuktiUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
@@ -1116,6 +1375,36 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                               {r.keterangan && <p className="text-[10px] text-muted-foreground italic truncate">{r.keterangan}</p>}
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Banner Item Terpilih untuk Dipindahkan ke Topik Baru */}
+                    {selectedInThisTopic.length > 0 && (
+                      <div className="mx-3.5 sm:mx-4 mt-3 mb-2 flex flex-wrap items-center justify-between gap-2 bg-emerald-100/90 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-3 py-2 rounded-lg text-xs font-medium text-emerald-950 dark:text-emerald-200 shadow-2xs animate-in fade-in">
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                          <span>
+                            <strong>{selectedInThisTopic.length}</strong> dari {topik.items.length} item dicawang untuk dipindahkan
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => handleClearTopicSelection(topik.id)}
+                          >
+                            Batal Cawang
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-emerald-700 hover:bg-emerald-800 text-white gap-1.5 shadow-2xs font-semibold"
+                            onClick={() => openMoveItemsModal(topik, selectedInThisTopic)}
+                          >
+                            <FolderInput className="w-3.5 h-3.5" />
+                            Pindah ke Topik Baru ({selectedInThisTopic.length} Item)
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1157,6 +1446,15 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                               <div key={item.id} className={`p-4 space-y-3 ${groupBg}`}>
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-start gap-2.5 min-w-0">
+                                    {!isReadOnly && (
+                                      <div className="pt-0.5 shrink-0">
+                                        <Checkbox
+                                          checked={selectedItemIds.includes(item.id)}
+                                          onCheckedChange={() => handleToggleSelectItem(item.id)}
+                                          aria-label={`Pilih ${item.namaItem}`}
+                                        />
+                                      </div>
+                                    )}
                                     {item.fotoUrl ? (
                                       isPdfFile(item.fotoUrl) ? (
                                         <a
@@ -1369,10 +1667,32 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                                 [Inv]
                                               </a>
                                             )}
-                                            {r.buktiBayarUrl && (
-                                              <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
-                                                [Bukti]
-                                              </a>
+                                            {r.buktiBayarUrl ? (
+                                              <span className="inline-flex items-center gap-1">
+                                                <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                                  [Bukti]
+                                                </a>
+                                                {!isReadOnly && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => openChangeProofModal(r)}
+                                                    className="text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.5 rounded font-medium"
+                                                    title="Ganti bukti transfer"
+                                                  >
+                                                    Ganti
+                                                  </button>
+                                                )}
+                                              </span>
+                                            ) : (
+                                              !isReadOnly && r.statusBayar === 'sudah_dibayar' && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => openChangeProofModal(r)}
+                                                  className="text-[10px] text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-medium"
+                                                >
+                                                  + Bukti
+                                                </button>
+                                              )
                                             )}
                                             {!isReadOnly && r.statusBayar !== 'sudah_dibayar' && (
                                               <Button
@@ -1421,7 +1741,20 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-muted/60 border-b-2 border-border text-xs">
-                                <TableHead className="w-[40px] text-center">#</TableHead>
+                                <TableHead className="w-[56px] text-center">
+                                  {!isReadOnly && topik.items.length > 0 ? (
+                                    <div className="flex items-center justify-center">
+                                      <Checkbox
+                                        checked={isAllSelectedInTopic}
+                                        onCheckedChange={(checked) => handleToggleSelectAllInTopic(topik, !!checked)}
+                                        aria-label="Pilih semua item dalam topik ini"
+                                        title={isAllSelectedInTopic ? "Batal pilih semua item topik ini" : "Pilih semua item dalam topik ini"}
+                                      />
+                                    </div>
+                                  ) : (
+                                    '#'
+                                  )}
+                                </TableHead>
                                 <TableHead className="min-w-[220px]">Item Pekerjaan</TableHead>
                                 <TableHead className="text-right min-w-[120px]">Volume &amp; Satuan</TableHead>
                                 <TableHead className="text-right min-w-[120px]">Harga Satuan (RAB)</TableHead>
@@ -1443,9 +1776,18 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                     {/* Parent Item Row */}
                                     <TableRow className={`${groupBg} ${!hasRealisasi ? 'border-b-4 border-slate-200 dark:border-slate-800' : 'border-b-0'}`}>
                                       <TableCell className="text-center font-bold text-xs text-muted-foreground">
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary font-semibold text-xs border border-primary/20">
-                                          {itemIdx + 1}
-                                        </span>
+                                        <div className="flex items-center justify-center gap-2">
+                                          {!isReadOnly && (
+                                            <Checkbox
+                                              checked={selectedItemIds.includes(item.id)}
+                                              onCheckedChange={() => handleToggleSelectItem(item.id)}
+                                              aria-label={`Pilih ${item.namaItem}`}
+                                            />
+                                          )}
+                                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary font-semibold text-xs border border-primary/20">
+                                            {itemIdx + 1}
+                                          </span>
+                                        </div>
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex items-start gap-2.5">
@@ -1680,10 +2022,33 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
                                                         [Bukti Invoice]
                                                       </a>
                                                     )}
-                                                    {r.buktiBayarUrl && (
-                                                      <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
-                                                        [Bukti Transfer]
-                                                      </a>
+                                                    {r.buktiBayarUrl ? (
+                                                      <span className="inline-flex items-center gap-1">
+                                                        <a href={r.buktiBayarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                                          [Bukti Transfer]
+                                                        </a>
+                                                        {!isReadOnly && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => openChangeProofModal(r)}
+                                                            className="text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                                                            title="Ganti file bukti transfer"
+                                                          >
+                                                            Ganti
+                                                          </button>
+                                                        )}
+                                                      </span>
+                                                    ) : (
+                                                      !isReadOnly && r.statusBayar === 'sudah_dibayar' && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => openChangeProofModal(r)}
+                                                          className="text-[11px] text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                                                          title="Upload bukti transfer yang tertinggal/salah"
+                                                        >
+                                                          + Upload Bukti
+                                                        </button>
+                                                      )
                                                     )}
                                                     {!isReadOnly && r.statusBayar !== 'sudah_dibayar' && (
                                                       <Button
@@ -2836,6 +3201,86 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
               />
             </div>
 
+            {/* Ganti Bukti Transfer */}
+            <div className="space-y-1.5 p-2.5 rounded-lg border border-border/80 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-primary" />
+                  Bukti Transfer / Pembayaran
+                </Label>
+                {editRealisasiModal.buktiBayarUrl && !editRealisasiRemoveBuktiBayar && !editRealisasiPayProofFile && (
+                  <a
+                    href={editRealisasiModal.buktiBayarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-emerald-600 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Lihat Bukti Saat Ini <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+
+              {editRealisasiRemoveBuktiBayar ? (
+                <div className="flex items-center justify-between text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/40 p-2 rounded border border-rose-200">
+                  <span>Bukti transfer saat ini akan dihapus.</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditRealisasiRemoveBuktiBayar(false)}
+                    className="text-primary hover:underline text-[11px] font-medium"
+                  >
+                    Batal Hapus
+                  </button>
+                </div>
+              ) : editRealisasiPayProofPreview ? (
+                <div className="flex items-center justify-between gap-2 p-2 bg-background rounded border text-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <img src={editRealisasiPayProofPreview} alt="Preview baru" className="w-8 h-8 rounded object-cover border" />
+                    <span className="truncate font-medium">{editRealisasiPayProofFile?.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditRealisasiPayProofFile(null)
+                      setEditRealisasiPayProofPreview(null)
+                    }}
+                    className="text-destructive hover:underline text-xs"
+                  >
+                    Batal
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="h-8 text-xs file:mr-2 file:py-0 file:px-2 file:text-xs file:border-0 file:bg-primary file:text-white file:rounded hover:file:bg-primary/90 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setEditRealisasiPayProofFile(file)
+                        if (file.type.startsWith('image/')) {
+                          setEditRealisasiPayProofPreview(URL.createObjectURL(file))
+                        } else {
+                          setEditRealisasiPayProofPreview(null)
+                        }
+                      }
+                    }}
+                  />
+                  {editRealisasiModal.buktiBayarUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[11px] text-destructive hover:bg-destructive/10 shrink-0"
+                      onClick={() => setEditRealisasiRemoveBuktiBayar(true)}
+                    >
+                      Hapus Bukti
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setEditRealisasiModal(null)}>
                 Batal
@@ -2877,6 +3322,315 @@ export default function RABPlanningModule({ projectId, projectStatus }: RABPlann
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ─── MODAL: Pindahkan Item ke Topik Baru / Lain ─── */}
+      <Dialog
+        open={!!moveItemsModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMoveItemsModal(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FolderInput className="w-5 h-5 text-emerald-600" />
+              Pindahkan Item ke Topik
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Pindahkan <strong>{moveItemsModal?.items.length || 0} item</strong> terpilih dari topik{' '}
+              <strong className="text-foreground">{moveItemsModal?.sourceTopic.nama}</strong> ke topik baru atau topik yang sudah ada.
+            </DialogDescription>
+          </DialogHeader>
+
+          {moveItemsModal && (
+            <form onSubmit={handleConfirmMoveItems} className="space-y-4 pt-1">
+              {/* List Item yang dipilih */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Item Terpilih ({moveItemsModal.items.length}):</Label>
+                <div className="max-h-40 overflow-y-auto rounded-lg border border-border/80 bg-muted/30 divide-y divide-border/60 text-xs">
+                  {moveItemsModal.items.map((it, idx) => (
+                    <div key={it.id} className="p-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="font-medium text-foreground truncate">{it.namaItem}</span>
+                      </div>
+                      <span className="font-semibold shrink-0 text-muted-foreground">{formatCurrency(it.jumlahRencana)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-xs px-1 text-muted-foreground">
+                  <span>Total Anggaran Dipindahkan:</span>
+                  <span className="font-bold text-foreground">
+                    {formatCurrency(moveItemsModal.items.reduce((sum, it) => sum + (it.jumlahRencana || 0), 0))}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mode Pemindahan: Buat Topik Baru vs Masukkan ke Topik Yang Ada */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Tujuan Pemindahan:</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMoveTargetMode('NEW_TOPIK')}
+                    className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                      moveTargetMode === 'NEW_TOPIK'
+                        ? 'border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-600'
+                        : 'border-border bg-background hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Buat Topik Baru</span>
+                    </div>
+                    <p className="text-[11px] opacity-80 font-normal">Buat grup / topik baru otomatis</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMoveTargetMode('EXISTING_TOPIK')}
+                    disabled={topiks.filter((t) => t.id !== moveItemsModal.sourceTopic.id).length === 0}
+                    className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                      moveTargetMode === 'EXISTING_TOPIK'
+                        ? 'border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-600'
+                        : 'border-border bg-background hover:bg-muted text-muted-foreground disabled:opacity-40 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <FolderInput className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Topik Yang Ada</span>
+                    </div>
+                    <p className="text-[11px] opacity-80 font-normal">Pindahkan ke topik yang sudah ada</p>
+                  </button>
+                </div>
+              </div>
+
+              {moveTargetMode === 'NEW_TOPIK' ? (
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Nama Topik Baru *</Label>
+                  <Input
+                    className="h-9 text-xs"
+                    value={newTopicName}
+                    onChange={(e) => setNewTopicName(e.target.value)}
+                    placeholder="Contoh: Material Tambahan Tahap 2"
+                    required
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Topik baru akan dibuat langsung setelah topik <em>{moveItemsModal.sourceTopic.nama}</em>.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Pilih Topik Tujuan *</Label>
+                  <Select value={targetTopicId} onValueChange={setTargetTopicId}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Pilih topik tujuan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {topiks
+                        .filter((t) => t.id !== moveItemsModal.sourceTopic.id)
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.urutan}. {t.nama} ({t.items.length} item)
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMoveItemsModal(null)}
+                  disabled={submittingMoveItems}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white gap-1.5 font-semibold"
+                  disabled={submittingMoveItems}
+                >
+                  {submittingMoveItems ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <FolderInput className="w-3.5 h-3.5 mr-1" />}
+                  Konfirmasi Pindahkan ({moveItemsModal.items.length} Item)
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── MODAL: Ganti / Upload Bukti Transfer Cepat ─── */}
+      <Dialog
+        open={!!changeProofModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChangeProofModal(null)
+            setChangeProofFile(null)
+            setChangeProofPreview(null)
+            setRemoveProofFlag(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <RefreshCw className="w-4 h-4 text-emerald-600" />
+              Ganti Bukti Transfer / Pembayaran
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Upload file bukti transfer baru atau hapus bukti transfer yang ada jika terjadi kesalahan upload.
+            </DialogDescription>
+          </DialogHeader>
+
+          {changeProofModal && (
+            <form onSubmit={handleSaveChangeProof} className="space-y-4 pt-1">
+              {/* Info Transaksi */}
+              <div className="p-2.5 rounded-lg bg-muted/40 border border-border/80 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Penerima / Vendor:</span>
+                  <span className="font-semibold text-foreground">
+                    {changeProofModal.vendor?.name || changeProofModal.vendorNama || 'Tanpa vendor'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Nominal:</span>
+                  <span className="font-bold text-foreground">{formatCurrency(changeProofModal.jumlah)}</span>
+                </div>
+                {changeProofModal.buktiBayarUrl && (
+                  <div className="flex justify-between items-center pt-1 border-t border-border/50">
+                    <span className="text-muted-foreground">Bukti Saat Ini:</span>
+                    <a
+                      href={changeProofModal.buktiBayarUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-600 font-semibold hover:underline inline-flex items-center gap-1"
+                    >
+                      Lihat File Bukti <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Opsi / File Input */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Pilih File Bukti Transfer Baru</Label>
+
+                {removeProofFlag ? (
+                  <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 text-xs flex items-center justify-between text-rose-700 dark:text-rose-300">
+                    <span>Bukti transfer saat ini akan dihapus setelah Anda klik Simpan.</span>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveProofFlag(false)}
+                      className="text-primary hover:underline font-semibold"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : changeProofPreview ? (
+                  <div className="space-y-2">
+                    <div className="relative rounded-lg overflow-hidden border border-border/80 max-h-48 bg-muted flex items-center justify-center">
+                      <img src={changeProofPreview} alt="Preview baru" className="max-h-48 w-auto object-contain" />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium truncate text-muted-foreground">{changeProofFile?.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangeProofFile(null)
+                          setChangeProofPreview(null)
+                        }}
+                        className="text-destructive hover:underline"
+                      >
+                        Ganti File Lain
+                      </button>
+                    </div>
+                  </div>
+                ) : changeProofFile ? (
+                  <div className="flex items-center justify-between p-2 rounded border bg-muted/30 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <FileText className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="truncate font-medium">{changeProofFile.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChangeProofFile(null)}
+                      className="text-destructive hover:underline text-xs"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : (
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="h-9 text-xs file:mr-2 file:py-0 file:px-2.5 file:text-xs file:border-0 file:bg-emerald-600 file:text-white file:rounded hover:file:bg-emerald-700 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setChangeProofFile(file)
+                        setRemoveProofFlag(false)
+                        if (file.type.startsWith('image/')) {
+                          setChangeProofPreview(URL.createObjectURL(file))
+                        } else {
+                          setChangeProofPreview(null)
+                        }
+                      }
+                    }}
+                  />
+                )}
+
+                {changeProofModal.buktiBayarUrl && !removeProofFlag && !changeProofFile && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setRemoveProofFlag(true)}
+                      className="text-xs text-rose-600 hover:text-rose-700 hover:underline"
+                    >
+                      Hapus bukti transfer yang ada tanpa upload pengganti
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setChangeProofModal(null)
+                    setChangeProofFile(null)
+                    setChangeProofPreview(null)
+                    setRemoveProofFlag(false)
+                  }}
+                  disabled={submittingChangeProof}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold"
+                  disabled={submittingChangeProof || (!changeProofFile && !removeProofFlag)}
+                >
+                  {submittingChangeProof ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                  {removeProofFlag ? 'Hapus Bukti Transfer' : 'Simpan Bukti Baru'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
